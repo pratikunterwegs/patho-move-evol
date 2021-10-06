@@ -1,6 +1,7 @@
 #### script to make batch scripts for snevo ####
 library(data.table)
 library(glue)
+library(stringr)
 
 # param file name
 param_file = "data/parameters/parameters_sc_0.csv"
@@ -38,5 +39,17 @@ lines = glue(
 # file to run
 rscript = "scripts/do_sim_snevo.R"
 
-system(glue::glue("{Rbin} {rscript} {param_file} {1}"))
+# nrow of parameter file
+row_number = seq(nrow(fread(param_file)))
+
+# make commands
+lines = glue("{Rbin} {rscript} {param_file} {row_number}")
+date = Sys.time() |> str_replace_all(" |:", "_")
+
+# write batch file
+writeLines(
+    text = as.character(lines),
+    con = glue("scripts/snevo_runs_{date}_sc_0.bat")
+)
+
 
