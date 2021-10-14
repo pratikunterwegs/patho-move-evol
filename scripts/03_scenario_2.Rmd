@@ -1,0 +1,144 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Scenario 2: Evolution of Movement Types
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(patchwork)
+```
+
+## Read data
+
+```{r}
+# load files
+files = list.files("data/output", pattern = "nopatho", full.names = T)
+data_sim = vector("list", length = length(files))
+repl = c()
+spread = c()
+for (i in seq(length(files))) {
+  load(files[i])
+  data_sim[[i]] = data[["gen_data"]]
+  repl = c(repl, data[["replicate"]])
+  spread = c(spread, data[["clusterSpread"]])
+}
+```
+
+## Individual level data
+
+```{r}
+# simulation wise data
+data = lapply(
+  data_sim,
+  function(le) {
+    Map(le[["pop_data"]], le[["gens"]],
+        f = function(l, g) {
+          l$id = seq(nrow(l))
+          l$gen = g
+          l
+        }
+    ) |>
+      rbindlist()
+  }
+)
+```
+
+## Evolution of Movement Types
+
+```{r}
+# get movement morphs
+data_morphs = Map(
+  data, repl, spread,
+  f = function(d, repl, spread) {
+    d = d[, c("sF", "sH", "sN", "gen", "id")]
+    d = melt(d, id.vars = c("gen", "id"))
+    d[, scaled_value := value / sum(abs(value)), 
+      by = c("gen", "id")]
+    d = dcast(
+      d[, !("value")],
+      gen + id ~ variable,
+      value.var = "scaled_value"
+    )
+    
+    # assign strategy
+    d[, move_strat := dplyr::case_when(
+      sF > 0.6 ~ "prey tracking",
+      ((sF > 0) & (sH > 0) & (abs(sF - sH) < 0.1))  ~ "prey and handler tracking",
+      sH > 0.5 ~ "handler tracking",
+      sH < -0.5 ~ "handler avoiding",
+      sN > 0.5 ~ "non-handler tracking",
+      sN < -0.5 ~ "non-handler avoiding",
+      T ~ "other"
+    )]
+    
+    d$repl = repl
+    d$spread = spread
+    d
+  }
+)
+
+# bind and count morphs
+data_morphs = rbindlist(data_morphs)
+data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
+
+# data_morphs = split(data_morphs, by = "spread")
+```
+
+```{r}
+# plot_move_types =
+  ggplot(data_morphs)+
+  geom_area(
+    aes(gen, N, fill = move_strat)
+  )+
+  scale_fill_manual(
+    values = c(
+      "prey tracking" = "seagreen",
+      "prey and handler tracking" = "royalblue",
+      "non-handler avoiding" = "red",
+      "handler avoiding" = "orange",
+      "handler tracking" = "lightblue",
+      "other" = "black",
+      "NA" = "black"
+    ),
+    breaks = c(
+      "prey tracking",
+      "handler tracking",
+      "prey and handler tracking",
+      "non-handler avoiding",
+      "handler avoiding",
+      "other"
+    ),
+    na.value = "black"
+  )+
+  theme_test()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    legend.position = "top",
+    legend.key.width = unit(5, units = "mm"),
+    legend.key.height = unit(1, "mm")
+  )+
+  facet_grid(
+    repl ~ spread,
+    labeller = label_both
+  )+
+  coord_cartesian(
+    expand = F
+  )+
+  labs(
+    x = "Generation",
+    y = "# Agents",
+    fill = NULL
+  )
+
+ggsave(
+  plot_move_types,
+  filename = "figures/fig_sc1_move_types.png",
+  height = 6, width = 6
+)
+```
