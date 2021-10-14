@@ -3,7 +3,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Scenario 1
+# Scenario 1: Evolution of Movement Types
 
 ```{r}
 library(data.table)
@@ -21,74 +21,10 @@ repl = c()
 spread = c()
 for (i in seq(length(files))) {
   load(files[i])
-  data_sim[i] = data[1:2]
+  data_sim[[i]] = data[["gen_data"]]
   repl = c(repl, data[["replicate"]])
   spread = c(spread, data[["clusterSpread"]])
 }
-```
-
-## Generation data
-
-```{r}
-# get generation data
-data_gen = Map(
-  data_sim, repl, spread,
-  f = function(le, repl, spread) {
-    data.table(
-      gen = le[["gens"]],
-      diameter = le[["diameter"]],
-      ge = le[["glob_eff"]],
-      repl = repl,
-      spread = spread
-    )
-  }
-)
-
-data_gen = rbindlist(data_gen)
-```
-
-```{r}
-data_gen = melt(
-  data_gen, id.vars = c("gen", "repl", "spread")
-)
-data_gen = split(data_gen, by = "variable")
-
-plot_ntwk = Map(data_gen, names(data_gen), f = function(df, nm) {
-  ggplot(df)+
-    geom_line(
-      aes(
-        gen, value, 
-        group = repl,
-        colour = factor(spread)
-      ),
-      show.legend = F
-    )+
-    scale_colour_viridis_d(
-      option = "H",
-      begin = 0.2, end = 0.8
-    )+
-    facet_grid(
-      repl ~ spread,
-      labeller = label_both
-    )+
-    labs(
-      title = nm
-    )
-})
-
-plot_ntwk = 
-  wrap_plots(
-    plot_ntwk, ncol = 2
-  ) +
-  plot_annotation(
-    tag_levels = "A"
-  )
-
-# save figures
-ggsave(
-  plot_ntwk,
-  filename = "figures/fig_sc_0_network_metrics.png"
-)
 ```
 
 ## Individual level data
@@ -110,204 +46,14 @@ data = lapply(
 )
 ```
 
-### Energy and movement
+## Evolution of Movement Types
 
 ```{r}
-# energy and movement per generation
-data_energy = Map(
-  data, repl, spread,
-  f = function(d, repl, spread) {
-    d = d[, c("energy", "moved", "gen")]
-    d = melt(d, id.vars = "gen")
-    d = d[, list(mean = mean(value), sd = sd(value)),
-          by = c("gen", "variable")]
-    d$repl = repl
-    d$spread = spread
-    d
-  }
-)
-
-data_energy = rbindlist(data_energy)
-```
-
-```{r}
-data_energy = split(data_energy, by = "variable")
-
-plot_energy = Map(
-  data_energy, names(data_energy),
-  f = function(df, nm) {
-    ggplot(df)+
-      geom_ribbon(
-        aes(
-          gen,
-          ymin = mean - sd,
-          ymax = mean + sd
-        ),
-        alpha = 0.5,
-        fill = "dodgerblue"
-      )+
-      geom_line(
-        aes(
-          gen, mean
-        )
-      )+
-      facet_grid(
-        repl ~ spread,
-        labeller = label_both
-      )+
-      labs(
-        title = nm
-      )
-  }
-)
-
-plot_energy = wrap_plots(
-  plot_energy
-)+
-  plot_annotation(
-    tag_levels = "A"
-  )
-
-# save figures
-ggsave(
-  plot_energy,
-  filename = "figures/fig_sc_0_energy_metrics.png"
-)
-```
-
-### Associations and degree
-
-```{r}
-# energy and movement per generation
-data_sn = Map(
-  data, repl, spread,
-  f = function(d, repl, spread) {
-    d = d[, c("assoc", "degree", "gen")]
-    d = melt(d, id.vars = "gen")
-    d = d[, list(mean = mean(value), sd = sd(value)),
-          by = c("gen", "variable")]
-    d$repl = repl
-    d$spread = spread
-    d
-  }
-)
-
-data_sn = rbindlist(data_sn)
-```
-
-```{r}
-data_sn = split(data_sn, by = "variable")
-
-plot_sn = Map(
-  data_sn, names(data_sn),
-  f = function(df, nm) {
-    ggplot(df)+
-      geom_ribbon(
-        aes(
-          gen,
-          ymin = mean - sd,
-          ymax = mean + sd
-        ),
-        alpha = 0.5,
-        fill = "red1"
-      )+
-      geom_line(
-        aes(
-          gen, mean
-        )
-      )+
-      facet_grid(
-        repl ~ spread,
-        labeller = label_both
-      )+
-      labs(
-        title = nm
-      )
-  }
-)
-
-plot_sn = 
-  wrap_plots(
-    plot_sn
-)+
-  plot_annotation(
-    tag_levels = "A"
-  )
-
-# save figures
-ggsave(
-  plot_sn,
-  filename = "figures/fig_sc_0_sn_id_metrics.png"
-)
-```
-
-## Weight evolution
-
-### Weight polymorphism
-
-```{r}
-data_wt_count = Map(
-  data, repl, spread,
-  f = function(d, repl, spread) {
-    d = d[, c("sF", "sH", "sN", "gen")]
-    d = melt(d, id.vars = "gen")
-    d[, value := tanh(value * 20)]
-    d$repl = repl
-    d$spread = spread
-    d
-  }
-)
-
-data_wt_count = rbindlist(data_wt_count)
-```
-
-```{r}
-data_wt_count = split(data_wt_count, by = "spread")
-
-plot_morphs = Map(
-  data_wt_count, names(data_wt_count),
-  f = function(df, nm) {
-    ggplot(df)+
-      geom_hline(
-        yintercept = 0, lty = 2,
-        col = "grey", size = 0.2
-      )+
-      geom_bin2d(
-        aes(gen, value),
-        binwidth = c(2, 0.02),
-        show.legend = F
-      )+
-      scale_y_continuous(
-        trans = ggallin::ssqrt_trans
-      )+
-      scale_fill_viridis_c(
-        option = "A", direction = -1,
-        begin = 0, end = 1
-      )+
-      theme_test()+
-      facet_grid(
-        labeller = label_both,
-        repl ~ variable
-      )+
-      labs(
-        title = sprintf("spread: %s", nm)
-      )
-  }
-)
-
-wrap_plots(
-  plot_morphs
-)
-```
-
-### Functional variation
-
-```{r}
+# get movement morphs
 data_morphs = Map(
   data, repl, spread,
   f = function(d, repl, spread) {
-    d = d[(gen %% 100 == 0) | (gen == max(gen)), 
-          c("sF", "sH", "sN", "gen", "id")]
+    d = d[, c("sF", "sH", "sN", "gen", "id")]
     d = melt(d, id.vars = c("gen", "id"))
     d[, scaled_value := value / sum(abs(value)), 
       by = c("gen", "id")]
@@ -316,62 +62,83 @@ data_morphs = Map(
       gen + id ~ variable,
       value.var = "scaled_value"
     )
+    
+    # assign strategy
+    d[, move_strat := dplyr::case_when(
+      sF > 0.6 ~ "prey tracking",
+      ((sF > 0) & (sH > 0) & (abs(sF - sH) < 0.1))  ~ "prey and handler tracking",
+      sH > 0.5 ~ "handler tracking",
+      sH < -0.5 ~ "handler avoiding",
+      sN > 0.5 ~ "non-handler tracking",
+      sN < -0.5 ~ "non-handler avoiding",
+      T ~ "other"
+    )]
+    
     d$repl = repl
     d$spread = spread
     d
   }
 )
 
+# bind and count morphs
 data_morphs = rbindlist(data_morphs)
+data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
 
-data_morphs = split(data_morphs, by = "spread")
+# data_morphs = split(data_morphs, by = "spread")
 ```
 
 ```{r}
-plot_fun_var = Map(
-  data_morphs, names(data_morphs),
-  f = function(df, nm) {
-    ggplot(df)+
-      geom_hline(
-        yintercept = 0, col = 2
-      )+
-      geom_vline(
-        xintercept = 0, col = 2
-      )+
-      geom_jitter(
-        aes(sF, sH,
-            fill = sN),
-        shape = 21,
-        # colour = "transparent",
-        stroke = 0.1,
-        size = 4,
-        alpha = 0.5
-      )+
-      colorspace::scale_fill_continuous_diverging(
-        palette = "Blue-Red 3", rev = T,
-        limits = c(-1, 1)
-        # trans = ggallin::ssqrt_trans
-      )+
-      scale_x_continuous(
-        # trans = ggallin::ssqrt_trans
-      )+
-      scale_y_continuous(
-        # trans = ggallin::ssqrt_trans
-      )+
-      facet_grid(
-        repl ~ gen, 
-        labeller = label_both
-      )+
-      coord_equal(
-        xlim = c(-1, 1),
-        ylim = c(-1, 1)
-      )+
-      labs(
-        title = sprintf("spread: %s", nm)
-      )
-  }
+plot_move_types =
+  ggplot(data_morphs)+
+  geom_area(
+    aes(gen, N, fill = move_strat)
+  )+
+  scale_fill_manual(
+    values = c(
+      "prey tracking" = "seagreen",
+      "prey and handler tracking" = "royalblue",
+      "non-handler avoiding" = "red",
+      "handler avoiding" = "orange",
+      "handler tracking" = "lightblue",
+      "other" = "black",
+      "NA" = "black"
+    ),
+    breaks = c(
+      "prey tracking",
+      "handler tracking",
+      "prey and handler tracking",
+      "non-handler avoiding",
+      "handler avoiding",
+      "other"
+    ),
+    na.value = "black"
+  )+
+  theme_test()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    legend.position = "top",
+    legend.key.width = unit(5, units = "mm"),
+    legend.key.height = unit(1, "mm")
+  )+
+  facet_grid(
+    repl ~ spread,
+    labeller = label_both
+  )+
+  coord_cartesian(
+    expand = F
+  )+
+  labs(
+    x = "Generation",
+    y = "# Agents",
+    fill = NULL
+  )
+
+ggsave(
+  plot_move_types,
+  filename = "figures/fig_sc1_move_types.png",
+  height = 6, width = 6
 )
-
-wrap_plots(plot_fun_var)
 ```
-
