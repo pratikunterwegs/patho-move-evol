@@ -109,3 +109,6 @@ Makefile
 !data/parameters/*
 
 data/password
+
+# batch files
+*.bat
