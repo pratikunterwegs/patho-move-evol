@@ -1,0 +1,116 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Networks at equilibrium
+
+```{r}
+library(data.table)
+library(igraph)
+library(tidygraph)
+
+library(ggplot2)
+library(ggraph)
+```
+
+
+```{r}
+# load files
+files = list.files("data/output", pattern = "Rds", full.names = T)[1:10]
+data_ntwk = vector("list", length = length(files))
+repl = c()
+spread = c()
+for (i in seq(length(files))) {
+  load(files[i])
+  
+  # filter edge lists for 0 interactions
+  el = data[["edgeLists"]]
+  el = el[[length(el)]]
+  el = setDT(el[el$assoc > 5,])
+  setnames(el, c("from", "to", "weight"))
+  # increment el to and from by 1
+  el$to = el$to + 1
+  el$from = el$from + 1
+  
+  # scale weight
+  el$weight = el$weight / 100
+  
+  # get nodes and attributes
+  nodes = data[["gen_data"]][["pop_data"]]
+  nodes = nodes[[length(nodes)]]
+  nodes$id = seq(nrow(nodes))
+  
+  # scale node attributes
+  setDT(nodes)
+  nodes = melt(nodes, id.vars = c("id", "assoc", "t_infec", "moved", "energy"))
+  nodes[, scaled_value := value / sum(abs(value)), 
+        by = c("id")]
+  nodes = dcast(
+    nodes[, !("value")],
+    id + energy + moved + t_infec + assoc ~ variable,
+    value.var = "scaled_value"
+  )
+  
+  # assign movement strategy
+  nodes[, move_strat := dplyr::case_when(
+    sF > 0.6 ~ "prey tracking",
+    ((sF > 0) & (sH > 0) & (abs(sF - sH) < 0.2))  ~ "prey and handler tracking",
+    sH > 0.5 ~ "handler tracking",
+    sH < -0.5 ~ "handler avoiding",
+    sN > 0.5 ~ "non-handler tracking",
+    sN < -0.5 ~ "non-handler avoiding",
+    T ~ "other"
+  )]
+  
+  # make tidygraph
+  g = tbl_graph(nodes = nodes, edges = el)
+  
+  # add metrics
+  g = mutate(
+    g,
+    degree = tidygraph::centrality_degree(weights = weight)
+  )
+  
+  data_ntwk[[i]] = g
+  repl = c(repl, data[["replicate"]])
+  spread = c(spread, data[["clusterSpread"]])
+  
+  rm(data, g, nodes, el)
+}
+```
+
+```{r}
+# get node data
+gn = Map(
+  data_ntwk, repl, spread,
+  f = function(df, repl, spread) {
+    as_tibble(df) |>
+      mutate(repl = repl, spread = spread)
+  }
+)
+
+# bind node data
+gn = rbindlist(gn)
+
+ggplot(gn)+
+  geom_bin_2d(
+    aes(moved, degree)
+  )+
+  scale_fill_viridis_c(
+    option = "D",
+    direction = -1
+  )+
+  scale_y_log10(
+    labels = scales::scientific
+  )+
+  theme_test()+
+  facet_grid(
+    move_strat ~ spread,
+    labeller = label_both
+  )+
+  coord_cartesian(
+    expand = F
+  )
+```
+
