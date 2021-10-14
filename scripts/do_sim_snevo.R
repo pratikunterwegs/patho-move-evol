@@ -55,9 +55,15 @@ data = append(
 
 output_file_index = params$ofi[row_n]
 
+sc_type = dplyr::case_when(
+  params$scenario[row_n] == 1 ~ "nopatho",
+  params$scenario[row_n] == 2 ~ "endemic",
+  params$scenario[row_n] == 3 ~ "spillover"
+)
+
 # name of rdata file
 output_file = glue::glue(
-  'data/output/{output_file_index}.Rds'
+  'data/output/scenario_{sc_type}_{output_file_index}.Rds'
 )
 
 # save
