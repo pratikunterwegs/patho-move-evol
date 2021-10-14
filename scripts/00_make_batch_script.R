@@ -4,11 +4,11 @@ library(glue)
 library(stringr)
 
 # param file name
-param_file = "data/parameters/parameters_sc_0.csv"
+param_file = "data/parameters/parameters_sc_2.csv"
 
 # make parameter combinations
 snevo::make_parameter_file(
-  scenario = 0,
+  scenario = 1,
   popsize = 500,
   nItems = 500,
   landsize = 200,
@@ -19,10 +19,10 @@ snevo::make_parameter_file(
   range_food = 1,
   range_agents = 1,
   handling_time = 5,
-  regen_time = 50,
-  pTransmit = "0.00",
-  initialInfections = 2,
-  costInfect = 0.00,
+  regen_time = 20,
+  pTransmit = "0.05",
+  initialInfections = 10,
+  costInfect = 0.2,
   nThreads = 2,
   replicates = 5,
   which_file = param_file
@@ -31,11 +31,6 @@ snevo::make_parameter_file(
 # the R binary path
 Rbin = file.path(R.home("bin"), "Rscript.exe")
 
-# make commands
-lines = glue(
-    "{Rbin}"
-)
-
 # file to run
 rscript = "scripts/do_sim_snevo.R"
 
@@ -43,13 +38,13 @@ rscript = "scripts/do_sim_snevo.R"
 row_number = seq(nrow(fread(param_file)))
 
 # make commands
-lines = glue("{Rbin} {rscript} {param_file} {row_number}")
+lines = c("cd ../", glue("{Rbin} {rscript} {param_file} {row_number}"))
 date = Sys.time() |> str_replace_all(" |:", "_")
 
 # write batch file
 writeLines(
     text = as.character(lines),
-    con = glue("scripts/snevo_runs_{date}_sc_0.bat")
+    con = glue("scripts/snevo_runs_{date}_sc_2.bat")
 )
 
 
