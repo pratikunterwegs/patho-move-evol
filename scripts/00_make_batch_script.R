@@ -4,11 +4,11 @@ library(glue)
 library(stringr)
 
 # param file name
-param_file = "data/parameters/parameters_sc_2.csv"
+param_file = "data/parameters/parameters_all.csv"
 
 # make parameter combinations
 snevo::make_parameter_file(
-  scenario = 1,
+  scenario = c(0, 1, 2),
   popsize = 500,
   nItems = 500,
   landsize = 200,
@@ -44,7 +44,5 @@ date = Sys.time() |> str_replace_all(" |:", "_")
 # write batch file
 writeLines(
     text = as.character(lines),
-    con = glue("scripts/snevo_runs_{date}_sc_2.bat")
+    con = glue("scripts/snevo_runs_{date}_sc_all.bat")
 )
-
-
