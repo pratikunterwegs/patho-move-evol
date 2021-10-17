@@ -112,3 +112,6 @@ data/password
 
 # batch files
 *.bat
+
+# parameters
+data/parameters
