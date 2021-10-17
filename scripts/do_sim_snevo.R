@@ -56,9 +56,9 @@ data = append(
 output_file_index = params$ofi[row_n]
 
 sc_type = dplyr::case_when(
-  params$scenario[row_n] == 1 ~ "nopatho",
-  params$scenario[row_n] == 2 ~ "endemic",
-  params$scenario[row_n] == 3 ~ "spillover"
+  params$scenario[row_n] == 0 ~ "nopatho",
+  params$scenario[row_n] == 1 ~ "endemic",
+  params$scenario[row_n] == 2 ~ "spillover"
 )
 
 # name of rdata file
