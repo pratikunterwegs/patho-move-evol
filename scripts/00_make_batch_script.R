@@ -2,20 +2,42 @@
 library(data.table)
 library(glue)
 library(stringr)
+library(ggplot2)
 
 # param file name
-param_file = "data/parameters/parameters_all.csv"
+date = Sys.time() |> str_replace_all(" |:", "_")
+param_file = glue("data/parameters/parameters_{date}.csv")
+
+# vis landscape
+d = snevo::get_test_landscape(
+  nItems = 1000,
+  landsize = 200,
+  nClusters = 60,
+  clusterSpread = 2,
+  regen_time = 20
+)
+
+ggplot(d)+
+  geom_point(
+    aes(x,y,col=tAvail),
+    alpha = 0.5,
+    size = 2
+  )+
+  scale_colour_viridis_b(
+    option = "H"
+  )+
+  coord_equal()
 
 # make parameter combinations
 snevo::make_parameter_file(
   scenario = c(0, 1, 2),
   popsize = 500,
-  nItems = 500,
+  nItems = 1000,
   landsize = 200,
-  nClusters = 50,
-  clusterSpread = c(2, 10),
+  nClusters = 60,
+  clusterSpread = 2,
   tmax = 100,
-  genmax = 500,
+  genmax = 1000,
   range_food = 1,
   range_agents = 1,
   handling_time = 5,
@@ -39,7 +61,7 @@ row_number = seq(nrow(fread(param_file)))
 
 # make commands
 lines = c("cd ../", glue("{Rbin} {rscript} {param_file} {row_number}"))
-date = Sys.time() |> str_replace_all(" |:", "_")
+
 
 # write batch file
 writeLines(
