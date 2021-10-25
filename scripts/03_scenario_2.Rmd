@@ -15,7 +15,7 @@ library(patchwork)
 
 ```{r}
 # load files
-files = list.files("data/output", pattern = "nopatho", full.names = T)
+files = list.files("data/output", pattern = "endemic", full.names = T)
 data_sim = vector("list", length = length(files))
 repl = c()
 spread = c()
@@ -83,12 +83,10 @@ data_morphs = Map(
 # bind and count morphs
 data_morphs = rbindlist(data_morphs)
 data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
-
-# data_morphs = split(data_morphs, by = "spread")
 ```
 
 ```{r}
-# plot_move_types =
+plot_move_types =
   ggplot(data_morphs)+
   geom_area(
     aes(gen, N, fill = move_strat)
@@ -138,7 +136,124 @@ data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
 
 ggsave(
   plot_move_types,
-  filename = "figures/fig_sc1_move_types.png",
+  filename = "figures/fig_sc2_move_types.png",
   height = 6, width = 6
 )
+```
+
+## Social information use
+
+```{r}
+# get movement morphs
+data_si = Map(
+  data, repl, spread,
+  f = function(d, repl, spread) {
+    d = d[, c("sF", "sH", "sN", "gen", "id")]
+    d = d[, c("sH", "sN") := list(
+      sH > 0, sN > 0
+    )]
+    d = d[, .N, by = c("gen", "sH", "sN")]
+    
+    d$repl = repl
+    d$spread = spread
+    d
+  }
+)
+
+# bind and count morphs
+data_si = rbindlist(data_si)
+data_si[, c("sH", "sN") := lapply(.SD, `+`, 1), .SDcols = c("sH", "sN")]
+```
+
+```{r}
+library(biscale)
+plot_si = ggplot(data_si)+
+  geom_area(
+    aes(gen, N, fill = sprintf("%i-%i", sH, sN))
+  )+
+  bi_scale_fill(
+    pal = "DkViolet", dim = 2,
+    name = "Social cues",
+    breaks = c("1-1", "2-1", "1-2", "2-2"),
+    labels = c("Agent avoiding", "H+ N-", "H- N+", "Agent tracking")
+  )+
+  theme_test()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    legend.position = "top",
+    legend.key.width = unit(5, units = "mm"),
+    legend.key.height = unit(1, "mm")
+  )+
+  facet_grid(
+    repl ~ spread,
+    labeller = label_both
+  )+
+  coord_cartesian(
+    expand = F
+  )+
+  labs(
+    x = "Generation",
+    y = "# Agents",
+    fill = NULL
+  )
+
+ggsave(
+  plot_si,
+  filename = "figures/fig_sc2_si_use.png",
+  height = 6, width = 6
+)
+```
+
+## Resource selection
+
+```{r}
+data_rs = Map(
+  data, repl, spread,
+  f = function(df, repl, spread) {
+    df[, sF := sF > 0]
+    df = df[,.N, by = c("gen", "sF")]
+    
+    df$repl = repl
+    df$spread = spread
+    df
+})
+
+data_rs = rbindlist(data_rs)
+```
+
+```{r}
+ggplot(data_rs)+
+  geom_area(
+    aes(gen, N, fill = sF)
+  )+
+  scico::scale_fill_scico_d(
+    palette = "bamako",
+    direction = -1,
+    labels = c("Resource avoiding", "Resource tracking")
+  )+
+  theme_test()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    legend.position = "top",
+    legend.key.width = unit(5, units = "mm"),
+    legend.key.height = unit(1, "mm")
+  )+
+  facet_grid(
+    repl ~ spread,
+    labeller = label_both
+  )+
+  coord_cartesian(
+    expand = F
+  )+
+  labs(
+    x = "Generation",
+    y = "# Agents",
+    fill = NULL
+  )
 ```
