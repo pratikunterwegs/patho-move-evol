@@ -89,7 +89,7 @@ data_ntwk[[5]] |>
   plot(vertex.size = 3, vertex.color = "orange", vertex.label = NA, 
        edge.arrow.size = 0)
 
-data_ntwk[[4]] |>
+data_ntwk[[1]] |>
   # filter(!isolated) |>
   ggraph(layout = "fr")+
   geom_edge_fan(
@@ -99,7 +99,8 @@ data_ntwk[[4]] |>
   geom_node_point(
     aes(colour = interaction(sH, sN)),
     size = 2,
-    alpha = 0.8
+    alpha = 0.8,
+    show.legend = F
   )+
   scale_colour_manual(
     values = c(

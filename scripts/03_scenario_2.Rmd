@@ -148,11 +148,9 @@ ggsave(
 data_si = Map(
   data, repl, spread,
   f = function(d, repl, spread) {
-    d = d[, c("sF", "sH", "sN", "gen", "id")]
-    d = d[, c("sH", "sN") := list(
-      sH > 0, sN > 0
-    )]
-    d = d[, .N, by = c("gen", "sH", "sN")]
+    get_social_strategy(d)
+    
+    d = d[, .N, by = c("gen", "strat_social")]
     
     d$repl = repl
     d$spread = spread
@@ -162,21 +160,22 @@ data_si = Map(
 
 # bind and count morphs
 data_si = rbindlist(data_si)
-data_si[, c("sH", "sN") := lapply(.SD, `+`, 1), .SDcols = c("sH", "sN")]
 ```
 
 ```{r}
-library(biscale)
-plot_si =
+# library(biscale)
+# plot_si =
   ggplot(data_si)+
   geom_area(
-    aes(gen, N, fill = sprintf("%i-%i", sH, sN))
+    aes(gen, N, fill = strat_social)
   )+
-  bi_scale_fill(
-    pal = "DkViolet", dim = 2,
-    name = "Social cues",
-    breaks = c("1-1", "2-1", "1-2", "2-2"),
-    labels = c("Agent avoiding", "H+ N-", "H- N+", "Agent tracking")
+  scale_fill_manual(
+    values = c(
+      "agent avoiding" = "black",
+      "agent tracking" = "gold",
+      "handler tracking" = "royalblue",
+      "non-handler tracking" = "indianred"
+    )
   )+
   theme_test()+
   theme(
@@ -207,3 +206,48 @@ ggsave(
   height = 6, width = 6
 )
 ```
+
+## Social strategy and outcomes
+
+```{r}
+# get social strategy outcomes
+data_inf = Map(
+  data, repl, spread,
+  f = function(d, repl, spread) {
+    d = get_social_outcomes(d)
+    
+    d$repl = repl
+    d$spread = spread
+    d
+  }
+)
+
+# bind and count morphs
+data_inf = rbindlist(data_inf)
+```
+
+```{r}
+ggplot(data_inf[strat_social %in% c("agent avoiding", "handler tracking")])+
+  geom_area(
+    aes(gen, runmed(p_inf, k = 11), fill = strat_social, shape = strat_social),
+    alpha = 0.8
+  )+
+  scale_fill_manual(
+    values = c(
+      "agent avoiding" = "black",
+      "agent tracking" = "gold",
+      "handler tracking" = "royalblue",
+      "non-handler tracking" = "indianred"
+    )
+  )+
+  scale_y_continuous(
+    labels = scales::percent
+    # trans = ggallin::ssqrt_trans
+  )+
+  # coord_cartesian(ylim = c(0, 0.25))+
+  facet_wrap(~repl)+
+  labs(
+    y = "% infected"
+  )
+```
+
