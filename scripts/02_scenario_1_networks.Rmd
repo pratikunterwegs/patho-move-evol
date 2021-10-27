@@ -61,6 +61,10 @@ for (i in seq(length(files))) {
     T ~ "other"
   )]
   
+  nodes[, c("sH", "sN") := list(
+    sH > 0, sN > 0
+  )]
+  
   # make tidygraph
   g = tbl_graph(nodes = nodes, edges = el, directed = FALSE)
   
@@ -82,45 +86,59 @@ for (i in seq(length(files))) {
 ### Plot networks
 
 ```{r}
-data_ntwk[[1]] |> 
+data_ntwk[[4]] |> 
   plot(vertex.size = 3, vertex.color = "orange", vertex.label = NA, 
        edge.arrow.size = 0)
 
-data_ntwk[[5]] |>
-  filter(!isolated) |>
+data_ntwk[[4]] |>
+  # filter(!isolated) |>
   ggraph(layout = "fr")+
   geom_edge_fan(
     edge_width = 0.2,
     edge_alpha = 0.2
   )+
   geom_node_point(
-    aes(colour = move_strat),
+    aes(colour = interaction(sH, sN)),
     size = 2,
     alpha = 0.8
   )+
   scale_colour_manual(
     values = c(
-      "prey tracking" = "seagreen",
-      "prey and handler tracking" = "royalblue",
-      "non-handler avoiding" = "red",
-      "handler avoiding" = "orange",
-      "handler tracking" = "lightblue",
-      "other" = "black",
-      "NA" = "black"
+      "TRUE.TRUE" = "royalblue",
+      "TRUE.FALSE" = "lightblue",
+      "FALSE.TRUE" = "indianred",
+      "FALSE.FALSE" = "black"
     ),
-    breaks = c(
-      "prey tracking",
-      "handler tracking",
-      "prey and handler tracking",
-      "non-handler avoiding",
-      "handler avoiding",
-      "other"
-    ),
-    na.value = "black"
+    name = "Social cues",
+    labels = c("Agent tracking", "H+ N-", "H- N+", "Agent avoiding")
   )+
+  # scale_colour_manual(
+  #   values = c(
+  #     "prey tracking" = "seagreen",
+  #     "prey and handler tracking" = "royalblue",
+  #     "non-handler avoiding" = "red",
+  #     "handler avoiding" = "orange",
+  #     "handler tracking" = "lightblue",
+  #     "other" = "black",
+  #     "NA" = "black"
+  #   ),
+  #   breaks = c(
+  #     "prey tracking",
+  #     "handler tracking",
+  #     "prey and handler tracking",
+  #     "non-handler avoiding",
+  #     "handler avoiding",
+  #     "other"
+  #   ),
+  #   na.value = "black"
+  # )+
   theme(
     legend.position = "top"
   )
+
+ggsave(
+  filename = "figures/fig_network_sc1.png"
+)
 ```
 
 ## Networks over evolutionary time

@@ -3,7 +3,7 @@ editor_options:
   chunk_output_type: console
 ---
   
-# Networks at equilibrium: Scenario 2
+# Networks at equilibrium: Scenario 3
   
 ```{r}
 library(data.table)
@@ -17,7 +17,7 @@ library(ggraph)
 
 ```{r}
 # load files
-files = list.files("data/output", pattern = "endemic", full.names = T)
+files = list.files("data/output", pattern = "spillover", full.names = T)
 data_ntwk = vector("list", length = length(files))
 repl = c()
 spread = c()
@@ -116,6 +116,6 @@ data_ntwk[[4]] |>
   )
 
 ggsave(
-  filename = "figures/fig_network_sc2.png"
+  filename = "figures/fig_network_sc3.png"
 )
 ```

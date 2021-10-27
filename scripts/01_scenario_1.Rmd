@@ -167,7 +167,8 @@ data_si[, c("sH", "sN") := lapply(.SD, `+`, 1), .SDcols = c("sH", "sN")]
 
 ```{r}
 library(biscale)
-plot_si = ggplot(data_si)+
+plot_si =
+ggplot(data_si)+
   geom_area(
     aes(gen, N, fill = sprintf("%i-%i", sH, sN))
   )+
