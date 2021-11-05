@@ -15,7 +15,10 @@ library(patchwork)
 
 ```{r}
 # load files
-files = list.files("data/output", pattern = "spillover", full.names = T)
+files = list.files(
+  "data/output/small_landscape_60_gen_10000", 
+  pattern = "spillover", full.names = T
+)
 data_sim = vector("list", length = length(files))
 repl = c()
 spread = c()
@@ -25,6 +28,213 @@ for (i in seq(length(files))) {
   repl = c(repl, data[["replicate"]])
   spread = c(spread, data[["clusterSpread"]])
 }
+```
+
+## Generation level data
+
+### Energy
+
+```{r}
+# simulation wise data
+data_energy = Map(
+  data_sim, repl, spread,
+  f = function(le, repl, spread) {
+    
+    le = Map(le[["pop_data"]], le[["gens"]],
+        f = function(l, g) {
+          l$gen = g
+          l$repl = repl
+          l$spread = spread
+          l
+        }
+    ) |>
+      rbindlist()
+    
+    le$repl = repl
+    le$spread = spread
+    # le
+    le[, list(
+      mean_energy = mean(energy),
+      sd_energy = sd(energy)
+    ), by = c("gen", "repl", "spread")]
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+plot_energy = ggplot(data_energy)+
+  geom_line(
+    aes(gen, mean_energy),
+    col = "seagreen"
+  )+
+  facet_wrap(~repl)
+```
+
+### Intake
+
+```{r}
+data_intake = Map(
+  data_sim, repl, spread,
+  f = function(le, repl, spread) {
+    
+    le = Map(le[["pop_data"]], le[["gens"]],
+        f = function(l, g) {
+          l$gen = g
+          l$repl = repl
+          l$spread = spread
+          l
+        }
+    ) |>
+      rbindlist()
+    
+    le$repl = repl
+    le$spread = spread
+    
+    get_energy_breakup(le, disease_cost = 0.25)
+    
+    le[, list(
+      mean_intake = mean(intake),
+      sd_intake = sd(intake)
+    ), by = c("gen", "repl", "spread")]
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+ggplot(data_intake)+
+  geom_line(
+    aes(
+      gen, mean_intake
+    )
+  )+
+  facet_grid(~repl)
+```
+
+
+### Movement
+
+```{r}
+# simulation wise data
+data_movement = Map(
+  data_sim, repl, spread,
+  f = function(le, repl, spread) {
+    
+    le = Map(le[["pop_data"]], le[["gens"]],
+        f = function(l, g) {
+          l$gen = g
+          l$repl = repl
+          l$spread = spread
+          l
+        }
+    ) |>
+      rbindlist()
+    
+    le$repl = repl
+    le$spread = spread
+    
+    le[, list(
+      mean_moved = mean(moved),
+      sd_moved = sd(moved)
+    ), by = c("gen", "repl", "spread")]
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+plot_movement = 
+  ggplot(data_movement)+
+  geom_line(
+    aes(gen, mean_moved),
+    col = "steelblue"
+  )+
+  facet_wrap(~repl)
+```
+
+### Infections
+
+```{r}
+data_n_infected = Map(
+  data_sim, repl, spread, 
+  f = function(le, repl, spread) {
+    df = data.table(
+      gen = le[["gens"]],
+      n_infected = le[["n_infected"]]
+    )
+    df$repl = repl
+    df$spread = spread
+    df
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+plot_infected = 
+  ggplot(data_n_infected)+
+  geom_line(
+    aes(gen, n_infected),
+    col = "red"
+  )+
+  facet_grid(
+    ~repl
+  )
+```
+
+### Associations
+
+```{r}
+# simulation wise data
+data_assoc = Map(
+  data_sim, repl, spread,
+  f = function(le, repl, spread) {
+    
+    le = Map(le[["pop_data"]], le[["gens"]],
+        f = function(l, g) {
+          l$gen = g
+          l$repl = repl
+          l$spread = spread
+          l
+        }
+    ) |>
+      rbindlist()
+    
+    le$repl = repl
+    le$spread = spread
+    
+    le[, list(
+      mean_assoc = mean(assoc),
+      sd_assoc = sd(assoc)
+    ), by = c("gen", "repl", "spread")]
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+plot_assoc = 
+  ggplot(data_assoc)+
+  geom_line(
+    aes(gen, mean_assoc),
+    alpha = 0.5
+  )+
+  geom_vline(
+    xintercept = 6670,
+    col = "red"
+  )+
+  coord_cartesian(
+    xlim = 6670 + c(-667, 333)
+  )+
+  facet_wrap(~repl)
+```
+
+```{r}
+wrap_plots(
+  plot_energy, plot_mvoement, plot_assoc, plot_infected,
+  ncol = 1
+)
 ```
 
 ## Individual level data
@@ -53,26 +263,7 @@ data = lapply(
 data_morphs = Map(
   data, repl, spread,
   f = function(d, repl, spread) {
-    d = d[, c("sF", "sH", "sN", "gen", "id")]
-    d = melt(d, id.vars = c("gen", "id"))
-    d[, scaled_value := value / sum(abs(value)), 
-      by = c("gen", "id")]
-    d = dcast(
-      d[, !("value")],
-      gen + id ~ variable,
-      value.var = "scaled_value"
-    )
-    
-    # assign strategy
-    d[, move_strat := dplyr::case_when(
-      sF > 0.6 ~ "prey tracking",
-      ((sF > 0) & (sH > 0) & (abs(sF - sH) < 0.1))  ~ "prey and handler tracking",
-      sH > 0.5 ~ "handler tracking",
-      sH < -0.5 ~ "handler avoiding",
-      sN > 0.5 ~ "non-handler tracking",
-      sN < -0.5 ~ "non-handler avoiding",
-      T ~ "other"
-    )]
+    d = assign_movement_types(d)
     
     d$repl = repl
     d$spread = spread
@@ -86,13 +277,13 @@ data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
 ```
 
 ```{r}
-plot_move_types =
+# plot_move_types =
   ggplot(data_morphs)+
   geom_area(
     aes(gen, N, fill = move_strat)
   )+
   geom_vline(
-    xintercept = 667,
+    xintercept = 6670,
     col = 2
   )+
   scale_fill_manual(
@@ -173,6 +364,10 @@ data_si = rbindlist(data_si)
   geom_area(
     aes(gen, N, fill = strat_social)
   )+
+  geom_vline(
+    xintercept = 667,
+    col = 2
+  )+
   scale_fill_manual(
     values = c(
       "agent avoiding" = "black",
@@ -231,12 +426,12 @@ data_inf = rbindlist(data_inf)
 ```
 
 ```{r}
-ggplot(data_inf[strat_social %in% c("agent avoiding", "handler tracking")])+
-  geom_area(
-    aes(gen, runmed(p_inf, k = 11), fill = strat_social, shape = strat_social),
+ggplot(data_inf)+
+  geom_point(
+    aes(gen, p_inf, col = strat_social),
     alpha = 0.8
   )+
-  scale_fill_manual(
+  scale_colour_manual(
     values = c(
       "agent avoiding" = "black",
       "agent tracking" = "gold",
@@ -248,7 +443,9 @@ ggplot(data_inf[strat_social %in% c("agent avoiding", "handler tracking")])+
     labels = scales::percent
     # trans = ggallin::ssqrt_trans
   )+
-  # coord_cartesian(ylim = c(0, 0.25))+
+  coord_cartesian(
+    xlim = c(6600, 8000)
+  )+
   facet_wrap(~repl)+
   labs(
     y = "% infected"

@@ -27,7 +27,7 @@ for (i in seq(length(files))) {
   # filter edge lists for 0 interactions
   el = data[["edgeLists"]]
   el = el[[length(el)]]
-  el = setDT(el[el$assoc > 5,])
+  el = setDT(el[el$assoc > 1,])
   setnames(el, c("from", "to", "weight"))
   el = el[from != to]
   # increment el to and from by 1
@@ -60,9 +60,7 @@ for (i in seq(length(files))) {
     sN < -0.5 ~ "non-handler avoiding",
     T ~ "other"
   )]
-  nodes[, c("sH", "sN") := list(
-    sH > 0, sN > 0
-  )]
+  get_social_strategy(nodes)
   
   # make tidygraph
   g = tbl_graph(nodes = nodes, edges = el, directed = FALSE)
@@ -85,7 +83,7 @@ for (i in seq(length(files))) {
 ### Plot networks
 
 ```{r}
-data_ntwk[[5]] |> 
+data_ntwk[[1]] |> 
   plot(vertex.size = 3, vertex.color = "orange", vertex.label = NA, 
        edge.arrow.size = 0)
 
@@ -94,29 +92,33 @@ data_ntwk[[1]] |>
   ggraph(layout = "fr")+
   geom_edge_fan(
     edge_width = 0.2,
-    edge_alpha = 0.2
+    colour = "grey"
+    # edge_alpha = 0.2
   )+
   geom_node_point(
-    aes(colour = interaction(sH, sN)),
-    size = 2,
-    alpha = 0.8,
+    aes(fill = strat_social),
+    size = 3,
+    shape = 21,
+    alpha = 1,
     show.legend = F
   )+
-  scale_colour_manual(
+  theme_void()+
+  scale_fill_manual(
     values = c(
-      "TRUE.TRUE" = "royalblue",
-      "TRUE.FALSE" = "lightblue",
-      "FALSE.TRUE" = "indianred",
-      "FALSE.FALSE" = "black"
+      "agent avoiding" = "black",
+      "agent tracking" = "gold",
+      "handler tracking" = "steelblue",
+      "non-handler tracking" = "indianred"
     ),
-    name = "Social cues",
-    labels = c("Agent tracking", "H+ N-", "H- N+", "Agent avoiding")
+    name = "Social cues"
+    # labels = c("Agent tracking", "H+ N-", "H- N+", "Agent avoiding")
   )+
   theme(
     legend.position = "top"
   )
 
 ggsave(
-  filename = "figures/fig_network_sc2.png"
+  filename = "figures/fig_network_sc2.png",
+  width = 6, height = 6
 )
 ```

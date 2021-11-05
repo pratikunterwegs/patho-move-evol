@@ -9,6 +9,7 @@ editor_options:
 library(data.table)
 library(ggplot2)
 library(patchwork)
+library(colorspace)
 ```
 
 ## Read data
@@ -25,6 +26,78 @@ for (i in seq(length(files))) {
   repl = c(repl, data[["replicate"]])
   spread = c(spread, data[["clusterSpread"]])
 }
+```
+
+## Generation level data
+
+### Energy and Movement
+
+```{r}
+# simulation wise data
+data_energy = Map(
+  data_sim, repl, spread,
+  f = function(le, repl, spread) {
+    
+    le = Map(le[["pop_data"]], le[["gens"]],
+        f = function(l, g) {
+          l$gen = g
+          l$repl = repl
+          l$spread = spread
+          l
+        }
+    ) |>
+      rbindlist()
+    
+    le$repl = repl
+    le$spread = spread
+    
+    le[, list(
+      mean_energy = mean(energy),
+      sd_energy = sd(energy)
+    ), by = c("gen", "repl", "spread")]
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+ggplot(data_energy)+
+  geom_line(
+    aes(gen, mean_energy)
+  )+
+  coord_cartesian(
+    xlim = c(0, NA)
+  )+
+  facet_wrap(~repl)
+```
+
+### Infections
+
+```{r}
+data_n_infected = Map(
+  data_sim, repl, spread, 
+  f = function(le, repl, spread) {
+    df = data.table(
+      gen = le[["gens"]],
+      n_infected = le[["n_infected"]]
+    )
+    df$repl = repl
+    df$spread = spread
+    df
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+ggplot(data_n_infected)+
+  geom_line(
+    aes(gen, n_infected),
+    col = "red"
+  )+
+  facet_grid(
+    ~repl
+  )
 ```
 
 ## Individual level data
@@ -53,26 +126,9 @@ data = lapply(
 data_morphs = Map(
   data, repl, spread,
   f = function(d, repl, spread) {
-    d = d[, c("sF", "sH", "sN", "gen", "id")]
-    d = melt(d, id.vars = c("gen", "id"))
-    d[, scaled_value := value / sum(abs(value)), 
-      by = c("gen", "id")]
-    d = dcast(
-      d[, !("value")],
-      gen + id ~ variable,
-      value.var = "scaled_value"
-    )
+    d = get_functional_variation(d)
     
-    # assign strategy
-    d[, move_strat := dplyr::case_when(
-      sF > 0.6 ~ "prey tracking",
-      ((sF > 0) & (sH > 0) & (abs(sF - sH) < 0.1))  ~ "prey and handler tracking",
-      sH > 0.5 ~ "handler tracking",
-      sH < -0.5 ~ "handler avoiding",
-      sN > 0.5 ~ "non-handler tracking",
-      sN < -0.5 ~ "non-handler avoiding",
-      T ~ "other"
-    )]
+    d = assign_movement_types(d)
     
     d$repl = repl
     d$spread = spread
@@ -86,7 +142,7 @@ data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
 ```
 
 ```{r}
-plot_move_types =
+# plot_move_types =
   ggplot(data_morphs)+
   geom_area(
     aes(gen, N, fill = move_strat)
@@ -139,6 +195,74 @@ ggsave(
   filename = "figures/fig_sc2_move_types.png",
   height = 6, width = 6
 )
+```
+
+## Final evolved variation
+
+```{r}
+# get movement morphs
+data_morph_final = Map(
+  data, repl, spread,
+  f = function(d, repl, spread) {
+    d = d[gen == max(gen)]
+    d = get_functional_variation(d)
+    
+    d = assign_movement_types(d)
+    
+    d$repl = repl
+    d$spread = spread
+    d
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+ggplot(data_morph_final)+
+  geom_hline(
+    yintercept = 0, # size = 0.2,
+    col = "grey"
+  )+
+  geom_vline(
+    xintercept = 0, # size = 0.2,
+    col = "grey"
+  )+
+  geom_abline(
+    slope = c(-1, 1),
+    intercept = c(1, -1),
+    col = "grey",
+    lty = 2,
+    size = 0.5
+  )+
+  geom_point(
+    aes(sF, sH, fill = sN),
+    shape = 21,
+    size = 4,
+    alpha = 0.2
+  )+
+  scale_fill_continuous_diverging(
+    palette = "Blue-Red 3",
+    limits = c(-1, 1),
+    breaks = c(-1, 1)
+    # labels = c("Non-handler avoiding", "Non-handler tracking")
+  )+
+  scale_x_continuous(
+    # trans = ggallin::ssqrt_trans
+  )+
+  scale_y_continuous(
+    # trans = ggallin::ssqrt_trans
+  )+
+  facet_grid(~repl, labeller = label_both)+
+  coord_fixed(
+    xlim = c(-1, 1),
+    ylim = c(-1, 1)
+  )+
+  theme(
+    legend.position = "top",
+    legend.title = element_text(vjust = 1),
+    legend.key.width = unit(5, units = "mm"),
+    legend.key.height = unit(1, "mm")
+  )
 ```
 
 ## Social information use
@@ -209,6 +333,78 @@ ggsave(
 
 ## Social strategy and outcomes
 
+### Social strategy and infection burden
+
+```{r}
+data_burden = Map(
+  data, repl, spread,
+  f = function(df, repl, spread) {
+    setDT(df)
+    d = get_disease_burden(df)
+    d$repl = repl
+    d$spread = spread
+    d
+  }
+)
+
+# bind and count morphs
+data_burden = rbindlist(data_burden)
+```
+
+```{r}
+ggplot(data_burden)+
+  geom_area(
+    aes(gen, inf_load, fill = strat_social)
+  )+
+  scale_fill_manual(
+    values = c(
+      "agent avoiding" = "black",
+      "agent tracking" = "gold",
+      "handler tracking" = "dodgerblue",
+      "non-handler tracking" = "indianred"
+    )
+  )+
+  # scale_y_sqrt()+
+  facet_wrap(~repl, ncol = 1)
+```
+
+### Time infected
+
+```{r}
+data_tinfec = Map(
+  data, repl, spread,
+  f = function(d, repl, spread) {
+    d = get_tinfec_stats(d)
+    
+    d$repl = repl
+    d$spread = spread
+    d
+  }
+)
+
+data_tinfec = rbindlist(data_tinfec)
+```
+
+```{r}
+ggplot(data_tinfec)+
+  geom_point(
+    aes(gen, mean_tinfec, colour = strat_social)
+  )+
+  scale_colour_manual(
+    values = c(
+      "agent avoiding" = "black",
+      "agent tracking" = "gold",
+      "handler tracking" = "dodgerblue",
+      "non-handler tracking" = "indianred"
+    )
+  )+
+  # scale_y_sqrt()+
+  facet_wrap(~repl)
+```
+
+
+## Other social outcomes
+
 ```{r}
 # get social strategy outcomes
 data_inf = Map(
@@ -227,12 +423,30 @@ data_inf = rbindlist(data_inf)
 ```
 
 ```{r}
-ggplot(data_inf[strat_social %in% c("agent avoiding", "handler tracking")])+
-  geom_area(
-    aes(gen, runmed(p_inf, k = 11), fill = strat_social, shape = strat_social),
+ggplot(data_inf)+
+  geom_point(
+    aes(gen, runmed(mean_assoc, k = 3), colour = strat_social)
+  )+
+   scale_colour_manual(
+    values = c(
+      "agent avoiding" = "black",
+      "agent tracking" = "gold",
+      "handler tracking" = "dodgerblue",
+      "non-handler tracking" = "indianred"
+    )
+  )+
+  facet_wrap(~repl)
+```
+
+
+```{r}
+ggplot(data_inf)+
+  geom_point(
+    aes(gen, p_inf, 
+        colour = strat_social),
     alpha = 0.8
   )+
-  scale_fill_manual(
+  scale_colour_manual(
     values = c(
       "agent avoiding" = "black",
       "agent tracking" = "gold",
@@ -241,10 +455,9 @@ ggplot(data_inf[strat_social %in% c("agent avoiding", "handler tracking")])+
     )
   )+
   scale_y_continuous(
-    labels = scales::percent
-    # trans = ggallin::ssqrt_trans
+    labels = scales::percent,
+    trans = "log10"
   )+
-  # coord_cartesian(ylim = c(0, 0.25))+
   facet_wrap(~repl)+
   labs(
     y = "% infected"

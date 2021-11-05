@@ -17,7 +17,7 @@ library(ggraph)
 
 ```{r}
 # load files
-files = list.files("data/output", pattern = "spillover", full.names = T)
+files = list.files("data/output/", pattern = "spillover", full.names = T)
 data_ntwk = vector("list", length = length(files))
 repl = c()
 spread = c()
@@ -39,30 +39,10 @@ for (i in seq(length(files))) {
   nodes = nodes[[length(nodes)]]
   nodes$id = seq(nrow(nodes))
   
-  # scale node attributes
-  setDT(nodes)
-  nodes = melt(nodes, id.vars = c("id", "assoc", "t_infec", "moved", "energy"))
-  nodes[, scaled_value := value / sum(abs(value)), 
-        by = c("id")]
-  nodes = dcast(
-    nodes[, !("value")],
-    id + energy + moved + t_infec + assoc ~ variable,
-    value.var = "scaled_value"
-  )
+  # scale node attributes and assign movement types
+  # nodes = assign_movement_types(nodes)
   
-  # assign movement strategy
-  nodes[, move_strat := dplyr::case_when(
-    sF > 0.6 ~ "prey tracking",
-    ((sF > 0) & (sH > 0) & (abs(sF - sH) < 0.2))  ~ "prey and handler tracking",
-    sH > 0.5 ~ "handler tracking",
-    sH < -0.5 ~ "handler avoiding",
-    sN > 0.5 ~ "non-handler tracking",
-    sN < -0.5 ~ "non-handler avoiding",
-    T ~ "other"
-  )]
-  nodes[, c("sH", "sN") := list(
-    sH > 0, sN > 0
-  )]
+  nodes = get_social_strategy(nodes)
   
   # make tidygraph
   g = tbl_graph(nodes = nodes, edges = el, directed = FALSE)
@@ -85,31 +65,33 @@ for (i in seq(length(files))) {
 ### Plot networks
 
 ```{r}
-data_ntwk[[5]] |> 
-  plot(vertex.size = 3, vertex.color = "orange", vertex.label = NA, 
-       edge.arrow.size = 0)
+g = data_ntwk[[1]]
+plot(g,
+     vertex.size = 3, vertex.color = "orange", vertex.label = NA, 
+     edge.arrow.size = 0, 
+     layout = layout.sphere
+)
 
-data_ntwk[[4]] |>
+data_ntwk[[3]] |>
   # filter(!isolated) |>
   ggraph(layout = "fr")+
-  geom_edge_fan(
+  geom_edge_link(
     edge_width = 0.2,
     edge_alpha = 0.2
   )+
   geom_node_point(
-    aes(colour = interaction(sH, sN)),
+    aes(colour = strat_social),
     size = 2,
     alpha = 0.8
   )+
   scale_colour_manual(
     values = c(
-      "TRUE.TRUE" = "royalblue",
-      "TRUE.FALSE" = "lightblue",
-      "FALSE.TRUE" = "indianred",
-      "FALSE.FALSE" = "black"
+      "agent avoiding" = "black",
+      "agent tracking" = "blue",
+      "handler tracking" = "gold",
+      "non-handler tracking" = "red"
     ),
-    name = "Social cues",
-    labels = c("Agent tracking", "H+ N-", "H- N+", "Agent avoiding")
+    name = "Social cues"
   )+
   theme(
     legend.position = "top"

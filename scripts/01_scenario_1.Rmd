@@ -15,7 +15,7 @@ library(patchwork)
 
 ```{r}
 # load files
-files = list.files("data/output", pattern = "nopatho", full.names = T)
+files = list.files("data/output/", pattern = "nopatho", full.names = T)
 data_sim = vector("list", length = length(files))
 repl = c()
 spread = c()
@@ -25,6 +25,133 @@ for (i in seq(length(files))) {
   repl = c(repl, data[["replicate"]])
   spread = c(spread, data[["clusterSpread"]])
 }
+```
+
+## Generation level data
+
+### Energy
+
+```{r}
+# simulation wise data
+data_energy = Map(
+  data_sim, repl, spread,
+  f = function(le, repl, spread) {
+    
+    le = Map(le[["pop_data"]], le[["gens"]],
+        f = function(l, g) {
+          l$gen = g
+          l$repl = repl
+          l$spread = spread
+          l
+        }
+    ) |>
+      rbindlist()
+    
+    le$repl = repl
+    le$spread = spread
+    # le
+    le[, list(
+      mean_energy = mean(energy),
+      sd_energy = sd(energy)
+    ), by = c("gen", "repl", "spread")]
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+plot_energy = ggplot(data_energy)+
+  geom_line(
+    aes(gen, mean_energy),
+    col = "seagreen"
+  )+
+  scale_y_continuous(
+    trans = ggallin::pseudolog10_trans
+  )+
+  facet_wrap(~repl)+
+  coord_cartesian(
+    ylim = c(1, NA)
+  )
+```
+
+### Movement
+
+```{r}
+# simulation wise data
+data_movement = Map(
+  data_sim, repl, spread,
+  f = function(le, repl, spread) {
+    
+    le = Map(le[["pop_data"]], le[["gens"]],
+        f = function(l, g) {
+          l$gen = g
+          l$repl = repl
+          l$spread = spread
+          l
+        }
+    ) |>
+      rbindlist()
+    
+    le$repl = repl
+    le$spread = spread
+    
+    le[, list(
+      mean_moved = mean(moved),
+      sd_moved = sd(moved)
+    ), by = c("gen", "repl", "spread")]
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+plot_movement = 
+  ggplot(data_movement)+
+  geom_line(
+    aes(gen, mean_moved),
+    col = "steelblue"
+  )+
+  facet_wrap(~repl)
+```
+
+### Associations
+
+```{r}
+# simulation wise data
+data_assoc = Map(
+  data_sim, repl, spread,
+  f = function(le, repl, spread) {
+    
+    le = Map(le[["pop_data"]], le[["gens"]],
+        f = function(l, g) {
+          l$gen = g
+          l$repl = repl
+          l$spread = spread
+          l
+        }
+    ) |>
+      rbindlist()
+    
+    le$repl = repl
+    le$spread = spread
+    
+    le[, list(
+      mean_assoc = mean(assoc),
+      sd_assoc = sd(assoc)
+    ), by = c("gen", "repl", "spread")]
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+plot_assoc = 
+  ggplot(data_assoc)+
+  geom_line(
+    aes(gen, mean_assoc),
+    alpha = 0.5
+  )+
+  facet_wrap(~repl)
 ```
 
 ## Individual level data
@@ -53,26 +180,7 @@ data = lapply(
 data_morphs = Map(
   data, repl, spread,
   f = function(d, repl, spread) {
-    d = d[, c("sF", "sH", "sN", "gen", "id")]
-    d = melt(d, id.vars = c("gen", "id"))
-    d[, scaled_value := value / sum(abs(value)), 
-      by = c("gen", "id")]
-    d = dcast(
-      d[, !("value")],
-      gen + id ~ variable,
-      value.var = "scaled_value"
-    )
-    
-    # assign strategy
-    d[, move_strat := dplyr::case_when(
-      sF > 0.6 ~ "prey tracking",
-      ((sF > 0) & (sH > 0) & (abs(sF - sH) < 0.1))  ~ "prey and handler tracking",
-      sH > 0.5 ~ "handler tracking",
-      sH < -0.5 ~ "handler avoiding",
-      sN > 0.5 ~ "non-handler tracking",
-      sN < -0.5 ~ "non-handler avoiding",
-      T ~ "other"
-    )]
+    d = assign_movement_types(d)
     
     d$repl = repl
     d$spread = spread
@@ -86,7 +194,7 @@ data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
 ```
 
 ```{r}
-plot_move_types =
+# plot_move_types =
   ggplot(data_morphs)+
   geom_area(
     aes(gen, N, fill = move_strat)
@@ -148,11 +256,8 @@ ggsave(
 data_si = Map(
   data, repl, spread,
   f = function(d, repl, spread) {
-    d = d[, c("sF", "sH", "sN", "gen", "id")]
-    d = d[, c("sH", "sN") := list(
-      sH > 0, sN > 0
-    )]
-    d = d[, .N, by = c("gen", "sH", "sN")]
+    get_social_strategy(d)
+    d = d[, .N, by = c("gen", "strat_social")]
     
     d$repl = repl
     d$spread = spread
@@ -162,21 +267,21 @@ data_si = Map(
 
 # bind and count morphs
 data_si = rbindlist(data_si)
-data_si[, c("sH", "sN") := lapply(.SD, `+`, 1), .SDcols = c("sH", "sN")]
 ```
 
 ```{r}
-library(biscale)
-plot_si =
+# plot_si =
 ggplot(data_si)+
   geom_area(
-    aes(gen, N, fill = sprintf("%i-%i", sH, sN))
+    aes(gen, N, fill = strat_social)
   )+
-  bi_scale_fill(
-    pal = "DkViolet", dim = 2,
-    name = "Social cues",
-    breaks = c("1-1", "2-1", "1-2", "2-2"),
-    labels = c("Agent avoiding", "H+ N-", "H- N+", "Agent tracking")
+  scale_fill_manual(
+    values = c(
+      "agent avoiding" = "indianred",
+      "agent tracking" = "royalblue",
+      "handler tracking" = "royalblue",
+      "non-handler tracking" = "indianred"
+    )
   )+
   theme_test()+
   theme(
@@ -207,4 +312,3 @@ ggsave(
   height = 6, width = 6
 )
 ```
-
