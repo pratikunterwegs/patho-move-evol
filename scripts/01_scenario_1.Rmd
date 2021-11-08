@@ -9,6 +9,7 @@ editor_options:
 library(data.table)
 library(ggplot2)
 library(patchwork)
+library(colorspace)
 ```
 
 ## Read data
@@ -29,11 +30,9 @@ for (i in seq(length(files))) {
 
 ## Generation level data
 
-### Energy
-
 ```{r}
 # simulation wise data
-data_energy = Map(
+data_sc1 = Map(
   data_sim, repl, spread,
   f = function(le, repl, spread) {
     
@@ -52,106 +51,18 @@ data_energy = Map(
     # le
     le[, list(
       mean_energy = mean(energy),
-      sd_energy = sd(energy)
-    ), by = c("gen", "repl", "spread")]
-  }
-) |>
-  rbindlist()
-```
-
-```{r}
-plot_energy = ggplot(data_energy)+
-  geom_line(
-    aes(gen, mean_energy),
-    col = "seagreen"
-  )+
-  scale_y_continuous(
-    trans = ggallin::pseudolog10_trans
-  )+
-  facet_wrap(~repl)+
-  coord_cartesian(
-    ylim = c(1, NA)
-  )
-```
-
-### Movement
-
-```{r}
-# simulation wise data
-data_movement = Map(
-  data_sim, repl, spread,
-  f = function(le, repl, spread) {
-    
-    le = Map(le[["pop_data"]], le[["gens"]],
-        f = function(l, g) {
-          l$gen = g
-          l$repl = repl
-          l$spread = spread
-          l
-        }
-    ) |>
-      rbindlist()
-    
-    le$repl = repl
-    le$spread = spread
-    
-    le[, list(
+      sd_energy = sd(energy),
       mean_moved = mean(moved),
-      sd_moved = sd(moved)
-    ), by = c("gen", "repl", "spread")]
-  }
-) |>
-  rbindlist()
-```
-
-```{r}
-plot_movement = 
-  ggplot(data_movement)+
-  geom_line(
-    aes(gen, mean_moved),
-    col = "steelblue"
-  )+
-  facet_wrap(~repl)
-```
-
-### Associations
-
-```{r}
-# simulation wise data
-data_assoc = Map(
-  data_sim, repl, spread,
-  f = function(le, repl, spread) {
-    
-    le = Map(le[["pop_data"]], le[["gens"]],
-        f = function(l, g) {
-          l$gen = g
-          l$repl = repl
-          l$spread = spread
-          l
-        }
-    ) |>
-      rbindlist()
-    
-    le$repl = repl
-    le$spread = spread
-    
-    le[, list(
+      sd_moved = sd(moved),
       mean_assoc = mean(assoc),
       sd_assoc = sd(assoc)
     ), by = c("gen", "repl", "spread")]
   }
 ) |>
   rbindlist()
-```
 
-```{r}
-plot_assoc = 
-  ggplot(data_assoc)+
-  geom_line(
-    aes(gen, mean_assoc),
-    alpha = 0.5
-  )+
-  facet_wrap(~repl)
+# save
+fwrite(data_sc1, file = "data/results/data_gen_sc1.csv")
 ```
 
 ## Individual level data
@@ -173,7 +84,7 @@ data = lapply(
 )
 ```
 
-## Evolution of Movement Types
+### Evolution of Movement Types
 
 ```{r}
 # get movement morphs
@@ -191,65 +102,12 @@ data_morphs = Map(
 # bind and count morphs
 data_morphs = rbindlist(data_morphs)
 data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
+
+# save
+fwrite(data_morphs, file = "data/results/data_morphs_sc1.csv")
 ```
 
-```{r}
-# plot_move_types =
-  ggplot(data_morphs)+
-  geom_area(
-    aes(gen, N, fill = move_strat)
-  )+
-  scale_fill_manual(
-    values = c(
-      "prey tracking" = "seagreen",
-      "prey and handler tracking" = "royalblue",
-      "non-handler avoiding" = "red",
-      "handler avoiding" = "orange",
-      "handler tracking" = "lightblue",
-      "other" = "black",
-      "NA" = "black"
-    ),
-    breaks = c(
-      "prey tracking",
-      "handler tracking",
-      "prey and handler tracking",
-      "non-handler avoiding",
-      "handler avoiding",
-      "other"
-    ),
-    na.value = "black"
-  )+
-  theme_test()+
-  theme(
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "italic"
-    ),
-    legend.position = "top",
-    legend.key.width = unit(5, units = "mm"),
-    legend.key.height = unit(1, "mm")
-  )+
-  facet_grid(
-    repl ~ spread,
-    labeller = label_both
-  )+
-  coord_cartesian(
-    expand = F
-  )+
-  labs(
-    x = "Generation",
-    y = "# Agents",
-    fill = NULL
-  )
-
-ggsave(
-  plot_move_types,
-  filename = "figures/fig_sc1_move_types.png",
-  height = 6, width = 6
-)
-```
-
-## Social information use
+### Social information use
 
 ```{r}
 # get movement morphs
@@ -267,48 +125,8 @@ data_si = Map(
 
 # bind and count morphs
 data_si = rbindlist(data_si)
+
+# save
+fwrite(data_si, file = "data/results/data_si_sc1.csv")
 ```
 
-```{r}
-# plot_si =
-ggplot(data_si)+
-  geom_area(
-    aes(gen, N, fill = strat_social)
-  )+
-  scale_fill_manual(
-    values = c(
-      "agent avoiding" = "indianred",
-      "agent tracking" = "royalblue",
-      "handler tracking" = "royalblue",
-      "non-handler tracking" = "indianred"
-    )
-  )+
-  theme_test()+
-  theme(
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "italic"
-    ),
-    legend.position = "top",
-    legend.key.width = unit(5, units = "mm"),
-    legend.key.height = unit(1, "mm")
-  )+
-  facet_grid(
-    repl ~ spread,
-    labeller = label_both
-  )+
-  coord_cartesian(
-    expand = F
-  )+
-  labs(
-    x = "Generation",
-    y = "# Agents",
-    fill = NULL
-  )
-
-ggsave(
-  plot_si,
-  filename = "figures/fig_sc1_si_use.png",
-  height = 6, width = 6
-)
-```
