@@ -1,0 +1,44 @@
+
+```{r}
+# plot_si =
+ggplot(data_si)+
+  geom_area(
+    aes(gen, N, fill = strat_social)
+  )+
+  scale_fill_manual(
+    values = c(
+      "agent avoiding" = "indianred",
+      "agent tracking" = "royalblue",
+      "handler tracking" = "lightblue",
+      "non-handler tracking" = "orange"
+    )
+  )+
+  theme_test()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    legend.position = "top",
+    legend.key.width = unit(5, units = "mm"),
+    legend.key.height = unit(1, "mm")
+  )+
+  facet_grid(
+    repl ~ spread,
+    labeller = label_both
+  )+
+  coord_cartesian(
+    expand = F
+  )+
+  labs(
+    x = "Generation",
+    y = "# Agents",
+    fill = NULL
+  )
+
+ggsave(
+  plot_si,
+  filename = "figures/fig_sc1_si_use.png",
+  height = 6, width = 6
+)
+```

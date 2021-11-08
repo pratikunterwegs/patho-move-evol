@@ -1,0 +1,56 @@
+
+```{r}
+# plot_move_types =
+  ggplot(data_morphs)+
+  geom_area(
+    aes(gen, N, fill = move_strat)
+  )+
+  scale_fill_manual(
+    values = c(
+      "prey tracking" = "seagreen",
+      "prey and handler tracking" = "royalblue",
+      "non-handler avoiding" = "red",
+      "handler avoiding" = "orange",
+      "handler tracking" = "lightblue",
+      "other" = "black",
+      "NA" = "black"
+    ),
+    breaks = c(
+      "prey tracking",
+      "handler tracking",
+      "prey and handler tracking",
+      "non-handler avoiding",
+      "handler avoiding",
+      "other"
+    ),
+    na.value = "black"
+  )+
+  theme_test()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    legend.position = "top",
+    legend.key.width = unit(5, units = "mm"),
+    legend.key.height = unit(1, "mm")
+  )+
+  facet_grid(
+    repl ~ spread,
+    labeller = label_both
+  )+
+  coord_cartesian(
+    expand = F
+  )+
+  labs(
+    x = "Generation",
+    y = "# Agents",
+    fill = NULL
+  )
+
+ggsave(
+  plot_move_types,
+  filename = "figures/fig_sc1_move_types.png",
+  height = 6, width = 6
+)
+```

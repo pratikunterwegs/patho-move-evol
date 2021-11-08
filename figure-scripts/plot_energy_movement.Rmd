@@ -1,0 +1,23 @@
+
+```{r}
+plot_energy = 
+  ggplot(data_energy[gen %% 10 == 0])+
+  geom_line(
+    aes(
+      gen, mean_energy, group = repl,
+      col = as.factor(repl)
+    ),
+    alpha = 0.5,
+    show.legend = F
+  )+
+  scale_colour_discrete_sequential(
+    palette = "Greens"
+  )+
+  scale_y_continuous(
+    trans = ggallin::pseudolog10_trans
+  )+
+  theme_test()+
+  coord_cartesian(
+    ylim = c(0, NA)
+  )
+```
