@@ -129,4 +129,3 @@ data_si = rbindlist(data_si)
 # save
 fwrite(data_si, file = "data/results/data_si_sc3.csv")
 ```
-
