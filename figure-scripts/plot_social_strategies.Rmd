@@ -27,12 +27,26 @@ data = Map(files, scenario, f = function(file, sc) {
 })
 
 data = rbindlist(data)
-data = data[strat_social %in% c("agent avoiding"), list(
-  agent_avoiding = N / 500
-), by = c("repl", "spread", "scenario", "gen")]
+data = dcast(
+  data,
+  gen + repl + spread + scenario ~ strat_social,
+  value.var = "N"
+)
+
+data = data[, list(
+  handler_tracking = sum(`handler tracking` + `agent tracking`) / 500,
+  agent_avoiding = `agent avoiding` / 500
+),  by = c("gen", "repl", "scenario")]
+
+data = melt(
+  data,
+  id.vars = c("gen", "repl", "scenario"),
+  value.name = "N",
+  variable.name = "social_strat"
+)
 
 data_summary = copy(data)
-data_summary[, gen_round := round(gen, digits = -2)]
+data_summary[, gen_round := round(gen, -2)]
 ```
 
 ```{r}
@@ -47,15 +61,117 @@ labels = c(
 
 ```{r}
 plot_si =
-ggplot(data[gen %% 10 == 0])+
-  geom_line(
+ggplot(data_summary)+
+  stat_summary(
     aes(
-      gen, agent_avoiding,
-      group = interaction(scenario, repl),
-      colour = as.factor(scenario)
+      gen_round, N,
+      group = interaction(scenario, repl, social_strat),
+      col = social_strat
     ),
+    geom = "line",
     alpha = 0.8,
+    # show.legend = F
+  )+
+  geom_vline(
+    data = data.table(
+      x = 0.667 * 5000,
+      scenario = 3
+    ),
+    aes(
+      xintercept = x
+    ),
+    lty = 2
+  )+
+  scale_colour_manual(
+    values = c("steelblue", "darkred"),
+    labels = c("handler tracking", "agent avoiding")
+  )+
+  scale_x_continuous(
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  scale_y_continuous(
+    labels = scales::percent
+  )+
+  theme_classic(
+    base_size = 10
+  )+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    panel.grid.major = element_line(
+      size = 0.2
+    ),
+    legend.position = "bottom"
+  )+
+  facet_wrap(
+    ~scenario,
+    labeller = labeller(
+      scenario = labels
+    ),
+    scales = "free"
+  )+
+  coord_cartesian(
+    ylim = c(0, 1)
+  )+
+  guides(
+    colour = guide_legend(
+      override.aes = list(
+        alpha = 1,
+        size = 2
+      )
+    )
+  )+
+  labs(
+    x = "Generation",
+    y = "% Agents",
+    colour = NULL
+  )
+```
+
+## Plot associations
+
+Load data.
+
+```{r}
+files = list.files(path = "data/results/", pattern = "gen", full.names = T)
+scenario = grep(pattern = "\\d{1}", files)
+```
+
+```{r}
+data_assoc = Map(files, scenario, f = function(file, sc) {
+  df = fread(file)
+  df$scenario = sc
+  df
+}) |>
+  rbindlist()
+
+data_assoc_summary = copy(data_assoc)
+data_assoc_summary[, gen_round := round(gen, -2)]
+```
+
+```{r}
+plot_assoc = 
+  ggplot(data_assoc[gen %% 10 == 0])+
+  geom_bin_2d(
+    aes(
+      gen, mean_assoc,
+      group = interaction(repl, scenario)
+    ),
     show.legend = F
+  )+
+  stat_summary(
+    data = data_assoc_summary,
+    aes(
+      gen_round, mean_assoc,
+      colour = as.factor(scenario),
+      group = interaction(scenario, repl)
+    ),
+    position = position_jitter(),
+    show.legend = F,
+    geom = "line"
   )+
   geom_vline(
     data = data.table(
@@ -72,12 +188,20 @@ ggplot(data[gen %% 10 == 0])+
     order = c(3,1,2),
     l1 = 30
   )+
+  scale_fill_continuous_sequential(
+    palette = "Light Grays"
+  )+
   scale_x_continuous(
+    trans = "sqrt",
     breaks = c(1, 1000, 2500, 5000),
     labels = scales::comma
   )+
-  scale_y_continuous(
-    trans = "sqrt"
+  facet_wrap(
+    ~scenario,
+    labeller = labeller(
+      scenario = labels
+    ),
+    scales = "free"
   )+
   theme_classic(
     base_size = 10
@@ -91,21 +215,22 @@ ggplot(data[gen %% 10 == 0])+
       size = 0.2
     )
   )+
-  facet_wrap(
-    ~scenario,
-    labeller = labeller(
-      scenario = labels
-    ),
-    scales = "free"
-  )+
   coord_cartesian(
-    ylim = c(0, 1)
+    expand = T,
+    ylim = c(110, 250)
   )+
   labs(
     x = "Generation",
-    y = "% Agents w/ avoidant strategy",
+    y = "# Agents",
     fill = NULL
   )
 ```
 
-##
+```{r}
+wrap_plots(
+  plot_si,
+  plot_assoc,
+  ncol = 1
+)
+```
+
