@@ -1,23 +1,220 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plot energy and movement outcomes
 
 ```{r}
-plot_energy = 
-  ggplot(data_energy[gen %% 10 == 0])+
-  geom_line(
+library(data.table)
+library(ggplot2)
+library(patchwork)
+library(colorspace)
+```
+
+Load data.
+
+```{r}
+files = list.files(path = "data/results/", pattern = "gen", full.names = T)
+scenario = grep(pattern = "\\d{1}", files)
+```
+
+```{r}
+data = Map(files, scenario, f = function(file, sc) {
+  df = fread(file)
+  df$scenario = sc
+  df
+})
+
+data = rbindlist(data)
+
+data_summary = copy(data)
+data_summary[, gen_round := round(gen, digits = -2)]
+```
+
+```{r}
+labels = c(
+  "1" = "Sc. 1: No pathogen",
+  "2" = "Sc. 2: Endemic pathogen",
+  "3" = "Sc. 3: Spillover pathogen"
+)
+```
+
+## Plot energy
+
+```{r}
+plot_energy =
+  ggplot(data[gen %% 10 == 0])+
+  geom_bin_2d(
     aes(
-      gen, mean_energy, group = repl,
-      col = as.factor(repl)
+      gen, mean_energy, 
+      group = interaction(scenario, repl)
     ),
-    alpha = 0.5,
+    alpha = 0.6,
+    shape = 4,
     show.legend = F
   )+
-  scale_colour_discrete_sequential(
-    palette = "Greens"
+  stat_summary(
+    data = data_summary,
+    aes(
+      gen_round, mean_energy,
+      colour = as.factor(scenario),
+      group = interaction(scenario, repl)
+    ),
+    position = position_jitter(),
+    show.legend = F,
+    geom = "line"
   )+
-  scale_y_continuous(
-    trans = ggallin::pseudolog10_trans
+  geom_vline(
+    data = data.table(
+      x = 0.667 * 5000,
+      scenario = 3
+    ),
+    aes(
+      xintercept = x
+    ),
+    lty = 2
   )+
-  theme_test()+
+  scale_colour_discrete_qualitative(
+    palette = "Dark 2",
+    order = c(3,1,2),
+    l1 = 30
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Light Grays"
+  )+
+  scale_x_continuous(
+    trans = "sqrt",
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  facet_wrap(
+    ~scenario,
+    labeller = labeller(
+      scenario = labels
+    ),
+    scales = "free"
+  )+
+  theme_classic(
+    base_size = 10
+  )+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    panel.grid.major = element_line(
+      size = 0.2
+    )
+  )+
   coord_cartesian(
-    ylim = c(0, NA)
+    ylim = c(1.5, 2.5)
+  )+
+  labs(
+    x = "Generation",
+    y = "Mean per-capita intake"
   )
 ```
+
+## Plot movement
+
+```{r}
+plot_movement =
+  ggplot(data[gen %% 10 == 0])+
+  geom_bin_2d(
+    aes(
+      gen, mean_moved, 
+      group = interaction(scenario, repl)
+    ),
+    alpha = 0.6,
+    shape = 4,
+    show.legend = F
+  )+
+  stat_summary(
+    data = data_summary,
+    aes(
+      gen_round, mean_moved,
+      colour = as.factor(scenario),
+      group = interaction(scenario, repl)
+    ),
+    position = position_jitter(),
+    show.legend = F,
+    geom = "line"
+  )+
+  geom_vline(
+    data = data.table(
+      x = 0.667 * 5000,
+      scenario = 3
+    ),
+    aes(
+      xintercept = x
+    ),
+    lty = 2
+  )+
+  scale_colour_discrete_qualitative(
+    palette = "Dark 2",
+    order = c(3,1,2), 
+    l1 = 30
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Light Grays"
+  )+
+  scale_x_continuous(
+    trans = "sqrt",
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  facet_wrap(
+    ~scenario,
+    labeller = labeller(
+      scenario = labels
+    ),
+    scales = "free"
+  )+
+  theme_classic(
+    base_size = 10
+  )+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    panel.grid.major = element_line(
+      size = 0.2
+    )
+  )+
+  coord_cartesian(
+    ylim = c(88, 93),
+  )+
+  labs(
+    x = "Generation",
+    y = "Mean distance moved"
+  )
+```
+
+## Make Figure 1
+
+```{r}
+fig_1 = wrap_plots(
+  plot_movement,
+  plot_energy, 
+  ncol = 1
+) &
+  plot_annotation(
+    tag_levels = c("A", 1)
+  ) &
+  theme(
+    plot.tag = element_text(
+      face = "bold",
+      size = 10
+    )
+  )
+
+ggsave(
+  fig_1,
+  filename = "figures/fig_01.png",
+  height = 5,
+  width = 6
+)
+```
+
