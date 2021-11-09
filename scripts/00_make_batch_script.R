@@ -10,10 +10,10 @@ param_file = glue("data/parameters/parameters_{date}.csv")
 
 # vis landscape
 d = snevo::get_test_landscape(
-  nItems = 1000,
-  landsize = 200,
+  nItems = 1440,
+  landsize = 60,
   nClusters = 60,
-  clusterSpread = 2,
+  clusterSpread = 1,
   regen_time = 20
 )
 
@@ -30,21 +30,22 @@ ggplot(d)+
 
 # make parameter combinations
 snevo::make_parameter_file(
-  scenario = c(0, 1, 2),
+  scenario = c(2),
   popsize = 500,
-  nItems = 1000,
-  landsize = 200,
+  nItems = 1440,
+  landsize = 60,
   nClusters = 60,
-  clusterSpread = 2,
+  clusterSpread = 1,
   tmax = 100,
-  genmax = 1000,
+  genmax = 5000,
   range_food = 1,
   range_agents = 1,
+  range_move = 1,
   handling_time = 5,
-  regen_time = 20,
+  regen_time = 100,
   pTransmit = "0.05",
-  initialInfections = 10,
-  costInfect = 0.2,
+  initialInfections = 25,
+  costInfect = 0.25,
   nThreads = 2,
   replicates = 5,
   which_file = param_file
