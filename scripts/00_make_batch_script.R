@@ -30,7 +30,7 @@ ggplot(d)+
 
 # make parameter combinations
 snevo::make_parameter_file(
-  scenario = c(2),
+  scenario = c(0, 1, 2),
   popsize = 500,
   nItems = 1440,
   landsize = 60,
@@ -38,13 +38,13 @@ snevo::make_parameter_file(
   clusterSpread = 1,
   tmax = 100,
   genmax = 5000,
-  range_food = 1,
-  range_agents = 1,
+  range_food = 2,
+  range_agents = 2,
   range_move = 1,
   handling_time = 5,
-  regen_time = 100,
+  regen_time = 60,
   pTransmit = "0.05",
-  initialInfections = 25,
+  initialInfections = 20,
   costInfect = 0.25,
   nThreads = 2,
   replicates = 5,
