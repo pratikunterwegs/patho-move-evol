@@ -1,44 +1,111 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plot social strategies
 
 ```{r}
-# plot_si =
-ggplot(data_si)+
-  geom_area(
-    aes(gen, N, fill = strat_social)
+library(data.table)
+library(ggplot2)
+library(patchwork)
+library(colorspace)
+```
+
+Load data.
+
+```{r}
+files = list.files(path = "data/results/", pattern = "si", full.names = T)
+scenario = grep(pattern = "\\d{1}", files)
+```
+
+```{r}
+data = Map(files, scenario, f = function(file, sc) {
+  df = fread(file)
+  df$scenario = sc
+  df
+})
+
+data = rbindlist(data)
+data = data[strat_social %in% c("agent avoiding"), list(
+  agent_avoiding = N / 500
+), by = c("repl", "spread", "scenario", "gen")]
+
+data_summary = copy(data)
+data_summary[, gen_round := round(gen, digits = -2)]
+```
+
+```{r}
+labels = c(
+  "1" = "Sc. 1: No pathogen",
+  "2" = "Sc. 2: Endemic pathogen",
+  "3" = "Sc. 3: Spillover pathogen"
+)
+```
+
+## Plot social strategies
+
+```{r}
+plot_si =
+ggplot(data[gen %% 10 == 0])+
+  geom_line(
+    aes(
+      gen, agent_avoiding,
+      group = interaction(scenario, repl),
+      colour = as.factor(scenario)
+    ),
+    alpha = 0.8,
+    show.legend = F
   )+
-  scale_fill_manual(
-    values = c(
-      "agent avoiding" = "indianred",
-      "agent tracking" = "royalblue",
-      "handler tracking" = "lightblue",
-      "non-handler tracking" = "orange"
-    )
+  geom_vline(
+    data = data.table(
+      x = 0.667 * 5000,
+      scenario = 3
+    ),
+    aes(
+      xintercept = x
+    ),
+    lty = 2
   )+
-  theme_test()+
+  scale_colour_discrete_qualitative(
+    palette = "Dark 2",
+    order = c(3,1,2),
+    l1 = 30
+  )+
+  scale_x_continuous(
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  scale_y_continuous(
+    trans = "sqrt"
+  )+
+  theme_classic(
+    base_size = 10
+  )+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(
       face = "italic"
     ),
-    legend.position = "top",
-    legend.key.width = unit(5, units = "mm"),
-    legend.key.height = unit(1, "mm")
+    panel.grid.major = element_line(
+      size = 0.2
+    )
   )+
-  facet_grid(
-    repl ~ spread,
-    labeller = label_both
+  facet_wrap(
+    ~scenario,
+    labeller = labeller(
+      scenario = labels
+    ),
+    scales = "free"
   )+
   coord_cartesian(
-    expand = F
+    ylim = c(0, 1)
   )+
   labs(
     x = "Generation",
-    y = "# Agents",
+    y = "% Agents w/ avoidant strategy",
     fill = NULL
   )
-
-ggsave(
-  plot_si,
-  filename = "figures/fig_sc1_si_use.png",
-  height = 6, width = 6
-)
 ```
+
+##
