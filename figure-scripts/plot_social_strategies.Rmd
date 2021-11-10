@@ -27,26 +27,26 @@ data = Map(files, scenario, f = function(file, sc) {
 })
 
 data = rbindlist(data)
-data = dcast(
-  data,
-  gen + repl + spread + scenario ~ strat_social,
-  value.var = "N"
-)
-
-data = data[, list(
-  handler_tracking = sum(`handler tracking` + `agent tracking`) / 500,
-  agent_avoiding = `agent avoiding` / 500
-),  by = c("gen", "repl", "scenario")]
-
-data = melt(
-  data,
-  id.vars = c("gen", "repl", "scenario"),
-  value.name = "N",
-  variable.name = "social_strat"
-)
+# data = dcast(
+#   data,
+#   gen + repl + spread + scenario ~ strat_social,
+#   value.var = "N"
+# )
+# 
+# data = data[, list(
+#   handler_tracking = sum(`handler tracking` + `agent tracking`) / 500,
+#   agent_avoiding = `agent avoiding` / 500
+# ),  by = c("gen", "repl", "scenario")]
+# 
+# data = melt(
+#   data,
+#   id.vars = c("gen", "repl", "scenario"),
+#   value.name = "N",
+#   variable.name = "social_strat"
+# )
 
 data_summary = copy(data)
-data_summary[, gen_round := round(gen, -2)]
+data_summary[, gen_round := plyr::round_any(gen, 500)]
 ```
 
 ```{r}
@@ -60,17 +60,33 @@ labels = c(
 ## Plot social strategies
 
 ```{r}
-plot_si =
-ggplot(data_summary)+
-  stat_summary(
+# plot_si =
+ggplot(data[gen %% 100 == 0])+
+  # stat_summary(
+  #   data = data_summary[
+  #     strat_social %in% c("agent avoiding")
+  #   ],
+  #   fun = median, 
+  #   fun.min = function(x) {quantile(x, 0.05)}, 
+  #   fun.max = function(x) {quantile(x, 0.95)},
+  #   aes(
+  #     gen_round, N,
+  #     colour = as.factor(strat_social),
+  #     # group = interaction(social_strat, repl)
+  #   ),
+  #   # geom = "line",
+  #   position = position_dodge(
+  #     width = 200
+  #   ),
+  #   show.legend = T
+  # )+
+  geom_area(
     aes(
-      gen_round, N,
-      group = interaction(scenario, repl, social_strat),
-      col = social_strat
+      gen, N,
+      fill = strat_social,
+      group = strat_social
     ),
-    geom = "line",
-    alpha = 0.8,
-    # show.legend = F
+    position = "stack"
   )+
   geom_vline(
     data = data.table(
@@ -82,16 +98,16 @@ ggplot(data_summary)+
     ),
     lty = 2
   )+
-  scale_colour_manual(
-    values = c("steelblue", "darkred"),
-    labels = c("handler tracking", "agent avoiding")
-  )+
+  # scale_colour_manual(
+  #   values = c("steelblue", "darkred"),
+  #   labels = c("handler tracking", "agent avoiding")
+  # )+
   scale_x_continuous(
     breaks = c(1, 1000, 2500, 5000),
     labels = scales::comma
   )+
   scale_y_continuous(
-    labels = scales::percent
+    # labels = scales::percent
   )+
   theme_classic(
     base_size = 10
@@ -106,15 +122,15 @@ ggplot(data_summary)+
     ),
     legend.position = "bottom"
   )+
-  facet_wrap(
-    ~scenario,
+  facet_grid(
+    repl~scenario,
     labeller = labeller(
       scenario = labels
     ),
     scales = "free"
   )+
   coord_cartesian(
-    ylim = c(0, 1)
+    # ylim = c(0, 300)
   )+
   guides(
     colour = guide_legend(
@@ -149,29 +165,30 @@ data_assoc = Map(files, scenario, f = function(file, sc) {
   rbindlist()
 
 data_assoc_summary = copy(data_assoc)
-data_assoc_summary[, gen_round := round(gen, -2)]
+data_assoc_summary[, gen_round := plyr::round_any(gen, 500)]
 ```
 
 ```{r}
-plot_assoc = 
+plot_assoc =
   ggplot(data_assoc[gen %% 10 == 0])+
   geom_bin_2d(
     aes(
       gen, mean_assoc,
-      group = interaction(repl, scenario)
     ),
-    show.legend = F
+    show.legend = F,
+    binwidth = c(100, 0.05)
   )+
   stat_summary(
     data = data_assoc_summary,
+    fun = median,
+    fun.min = function(x) {quantile(x, 0.05)}, 
+    fun.max = function(x) {quantile(x, 0.95)},
     aes(
       gen_round, mean_assoc,
-      colour = as.factor(scenario),
-      group = interaction(scenario, repl)
+      # group = interaction(scenario, repl)
     ),
-    position = position_jitter(),
-    show.legend = F,
-    geom = "line"
+    # geom = "line",
+    show.legend = F
   )+
   geom_vline(
     data = data.table(
@@ -186,14 +203,19 @@ plot_assoc =
   scale_colour_discrete_qualitative(
     palette = "Dark 2",
     order = c(3,1,2),
-    l1 = 30
+    l1 = 40
   )+
   scale_fill_continuous_sequential(
-    palette = "Light Grays"
+    palette = "Sunset"
   )+
   scale_x_continuous(
-    trans = "sqrt",
+    # trans = "sqrt",
     breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  scale_y_continuous(
+    trans = "log10",
+    # breaks = c(50, 1000, 2500, 5000),
     labels = scales::comma
   )+
   facet_wrap(
@@ -217,11 +239,11 @@ plot_assoc =
   )+
   coord_cartesian(
     expand = T,
-    ylim = c(110, 250)
+    ylim = c(50, 2000)
   )+
   labs(
     x = "Generation",
-    y = "# Agents",
+    y = "Mean per-capita encounters",
     fill = NULL
   )
 ```
