@@ -29,7 +29,7 @@ data = Map(files, scenario, f = function(file, sc) {
 data = rbindlist(data)
 
 data_summary = copy(data)
-data_summary[, gen_round := round(gen, digits = -2)]
+data_summary[, gen_round := plyr::round_any(gen, 500)]
 ```
 
 ```{r}
@@ -44,26 +44,26 @@ labels = c(
 
 ```{r}
 plot_energy =
-  ggplot(data[gen %% 10 == 0])+
+  ggplot(data)+
   geom_bin_2d(
     aes(
       gen, mean_energy, 
       group = interaction(scenario, repl)
     ),
     alpha = 0.6,
-    shape = 4,
     show.legend = F
   )+
   stat_summary(
     data = data_summary,
+    fun = mean, 
+    fun.min = function(x) {quantile(x, 0.05)}, 
+    fun.max = function(x) {quantile(x, 0.95)},
     aes(
       gen_round, mean_energy,
-      colour = as.factor(scenario),
-      group = interaction(scenario, repl)
+      # colour = as.factor(scenario),
+      # group = interaction(scenario, repl)
     ),
-    position = position_jitter(),
-    show.legend = F,
-    geom = "line"
+    show.legend = F
   )+
   geom_vline(
     data = data.table(
@@ -78,13 +78,13 @@ plot_energy =
   scale_colour_discrete_qualitative(
     palette = "Dark 2",
     order = c(3,1,2),
-    l1 = 30
+    l1 = 40
   )+
   scale_fill_continuous_sequential(
-    palette = "Light Grays"
+    palette = "Heat 2"
   )+
   scale_x_continuous(
-    trans = "sqrt",
+    # trans = "sqrt",
     breaks = c(1, 1000, 2500, 5000),
     labels = scales::comma
   )+
@@ -108,7 +108,7 @@ plot_energy =
     )
   )+
   coord_cartesian(
-    ylim = c(1.5, 2.5)
+    ylim = c(0, 5)
   )+
   labs(
     x = "Generation",
@@ -120,26 +120,27 @@ plot_energy =
 
 ```{r}
 plot_movement =
-  ggplot(data[gen %% 10 == 0])+
+  ggplot(data)+
   geom_bin_2d(
     aes(
       gen, mean_moved, 
       group = interaction(scenario, repl)
     ),
-    alpha = 0.6,
-    shape = 4,
+    alpha = 0.7,
     show.legend = F
   )+
   stat_summary(
     data = data_summary,
+    fun = mean, 
+    fun.min = function(x) {quantile(x, 0.05)}, 
+    fun.max = function(x) {quantile(x, 0.95)},
     aes(
       gen_round, mean_moved,
-      colour = as.factor(scenario),
-      group = interaction(scenario, repl)
+      # colour = as.factor(scenario),
+      # group = interaction(scenario, repl)
     ),
-    position = position_jitter(),
+    # position = position_jitter(),
     show.legend = F,
-    geom = "line"
   )+
   geom_vline(
     data = data.table(
@@ -154,13 +155,13 @@ plot_movement =
   scale_colour_discrete_qualitative(
     palette = "Dark 2",
     order = c(3,1,2), 
-    l1 = 30
+    l1 = 40
   )+
   scale_fill_continuous_sequential(
-    palette = "Light Grays"
+    palette = "Heat 2"
   )+
   scale_x_continuous(
-    trans = "sqrt",
+    # trans = "sqrt",
     breaks = c(1, 1000, 2500, 5000),
     labels = scales::comma
   )+
@@ -184,7 +185,7 @@ plot_movement =
     )
   )+
   coord_cartesian(
-    ylim = c(88, 93),
+    ylim = c(80, 96),
   )+
   labs(
     x = "Generation",
