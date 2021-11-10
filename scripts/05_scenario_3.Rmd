@@ -3,7 +3,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Scenario 2: Evolution of Movement Types
+# Scenario 3: Evolution of Movement Types
 
 ```{r}
 library(data.table)
@@ -16,7 +16,7 @@ library(colorspace)
 
 ```{r}
 # load files
-files = list.files("data/output/", pattern = "spillover", full.names = T)
+files = list.files("data/output/", pattern = "spillover", full.names = T)[7]
 data_sim = vector("list", length = length(files))
 repl = c()
 spread = c()
@@ -48,10 +48,11 @@ data_sc3 = Map(
     
     le$repl = repl
     le$spread = spread
+    # setnames(le, "energy", "intake")
     # le
     le[, list(
-      mean_energy = mean(energy),
-      sd_energy = sd(energy),
+      mean_intake = mean(intake),
+      sd_intake = sd(intake),
       mean_moved = mean(moved),
       sd_moved = sd(moved),
       mean_assoc = mean(assoc),
@@ -64,6 +65,19 @@ data_sc3 = Map(
 # save
 fwrite(data_sc3, file = "data/results/data_gen_sc3.csv")
 ```
+
+```{r}
+ggplot(data_sc3)+
+  geom_line(
+    aes(
+      gen, mean_assoc
+    )
+  )+
+  coord_cartesian(
+    # ylim = c(1.5, 2.5)
+  )
+```
+
 
 ## Individual level data
 
@@ -107,6 +121,14 @@ data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
 fwrite(data_morphs, file = "data/results/data_morphs_sc3.csv")
 ```
 
+```{r}
+ggplot()+
+  geom_area(data = data_morphs, 
+            aes(gen, N, fill = move_strat))+
+  geom_line(aes(x = data_sim[[1]][["gens"]], y = data_sim[[1]][["n_infected"]]))
+```
+
+
 ### Social information use
 
 ```{r}
@@ -128,4 +150,10 @@ data_si = rbindlist(data_si)
 
 # save
 fwrite(data_si, file = "data/results/data_si_sc3.csv")
+```
+
+```{r}
+ggplot()+
+  geom_area(data = data_si, aes(gen, N, fill = strat_social))+
+  geom_line(aes(x = data_sim[[1]][["gens"]], y = data_sim[[1]][["n_infected"]]))
 ```
