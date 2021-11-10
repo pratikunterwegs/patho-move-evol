@@ -16,15 +16,15 @@ library(colorspace)
 
 ```{r}
 # load files
-files = list.files("data/output/", pattern = "spillover", full.names = T)[7]
+files = list.files("data/output/", pattern = "spillover", full.names = T)
 data_sim = vector("list", length = length(files))
 repl = c()
-spread = c()
+regrowth = c()
 for (i in seq(length(files))) {
   load(files[i])
   data_sim[[i]] = data[["gen_data"]]
   repl = c(repl, data[["replicate"]])
-  spread = c(spread, data[["clusterSpread"]])
+  regrowth = c(regrowth, data[["regen_time"]])
 }
 ```
 
@@ -33,21 +33,21 @@ for (i in seq(length(files))) {
 ```{r}
 # simulation wise data
 data_sc3 = Map(
-  data_sim, repl, spread,
-  f = function(le, repl, spread) {
+  data_sim, repl, regrowth,
+  f = function(le, repl, regrowth) {
     
     le = Map(le[["pop_data"]], le[["gens"]],
         f = function(l, g) {
           l$gen = g
           l$repl = repl
-          l$spread = spread
+          l$regrowth = regrowth
           l
         }
     ) |>
       rbindlist()
     
     le$repl = repl
-    le$spread = spread
+    le$regrowth = regrowth
     # setnames(le, "energy", "intake")
     # le
     le[, list(
@@ -57,7 +57,7 @@ data_sc3 = Map(
       sd_moved = sd(moved),
       mean_assoc = mean(assoc),
       sd_assoc = sd(assoc)
-    ), by = c("gen", "repl", "spread")]
+    ), by = c("gen", "repl", "regrowth")]
   }
 ) |>
   rbindlist()
@@ -73,6 +73,8 @@ ggplot(data_sc3)+
       gen, mean_assoc
     )
   )+
+  facet_grid(~regrowth)+
+  scale_y_log10()+
   coord_cartesian(
     # ylim = c(1.5, 2.5)
   )
@@ -103,19 +105,19 @@ data = lapply(
 ```{r}
 # get movement morphs
 data_morphs = Map(
-  data, repl, spread,
-  f = function(d, repl, spread) {
+  data, repl, regrowth,
+  f = function(d, repl, regrowth) {
     d = assign_movement_types(d)
     
     d$repl = repl
-    d$spread = spread
+    d$regrowth = regrowth
     d
   }
 )
 
 # bind and count morphs
 data_morphs = rbindlist(data_morphs)
-data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
+data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "regrowth")]
 
 # save
 fwrite(data_morphs, file = "data/results/data_morphs_sc3.csv")
@@ -125,7 +127,7 @@ fwrite(data_morphs, file = "data/results/data_morphs_sc3.csv")
 ggplot()+
   geom_area(data = data_morphs, 
             aes(gen, N, fill = move_strat))+
-  geom_line(aes(x = data_sim[[1]][["gens"]], y = data_sim[[1]][["n_infected"]]))
+  facet_grid(~regrowth)
 ```
 
 
@@ -134,13 +136,13 @@ ggplot()+
 ```{r}
 # get movement morphs
 data_si = Map(
-  data, repl, spread,
-  f = function(d, repl, spread) {
+  data, repl, regrowth,
+  f = function(d, repl, regrowth) {
     get_social_strategy(d)
     d = d[, .N, by = c("gen", "strat_social")]
     
     d$repl = repl
-    d$spread = spread
+    d$regrowth = regrowth
     d
   }
 )
@@ -155,5 +157,5 @@ fwrite(data_si, file = "data/results/data_si_sc3.csv")
 ```{r}
 ggplot()+
   geom_area(data = data_si, aes(gen, N, fill = strat_social))+
-  geom_line(aes(x = data_sim[[1]][["gens"]], y = data_sim[[1]][["n_infected"]]))
+  facet_grid(~regrowth)
 ```
