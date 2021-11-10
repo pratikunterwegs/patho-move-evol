@@ -48,7 +48,7 @@ plot_energy =
   geom_bin_2d(
     aes(
       gen, mean_energy, 
-      group = interaction(scenario, repl)
+      # group = interaction(scenario, repl)
     ),
     alpha = 0.6,
     show.legend = F
@@ -74,11 +74,6 @@ plot_energy =
       xintercept = x
     ),
     lty = 2
-  )+
-  scale_colour_discrete_qualitative(
-    palette = "Dark 2",
-    order = c(3,1,2),
-    l1 = 40
   )+
   scale_fill_continuous_sequential(
     palette = "Heat 2"
@@ -124,7 +119,7 @@ plot_movement =
   geom_bin_2d(
     aes(
       gen, mean_moved, 
-      group = interaction(scenario, repl)
+      # group = interaction(scenario, repl)
     ),
     alpha = 0.7,
     show.legend = F
@@ -152,13 +147,10 @@ plot_movement =
     ),
     lty = 2
   )+
-  scale_colour_discrete_qualitative(
-    palette = "Dark 2",
-    order = c(3,1,2), 
-    l1 = 40
-  )+
   scale_fill_continuous_sequential(
-    palette = "Heat 2"
+    palette = "Blues 3",
+    rev = T,
+    na.value = "transparent"
   )+
   scale_x_continuous(
     # trans = "sqrt",
