@@ -20,6 +20,26 @@ get_social_strategy = function(df) {
   )]
 }
 
+#' Get agent avoidance.
+#'
+#' @param df A dataframe with scaled decision weights.
+#'
+#' @return A column of agent avoidance value, where agent avoidance is
+#' the sum of negative scaled agent weights.
+#' @export
+get_agent_avoidance = function(df) {
+  assertthat::assert_that(
+    all(c("sH", "sN") %in% names(df)),
+    msg = "get_agent_avoidance: data does not have social weights"
+  )
+  data.table::setDT(df)
+  d_ = copy(df)
+  # avoidance is sum of negative agent weights
+  d_[, agent_avoidance := fifelse(sH < 0, sH, 0) + fifelse(sN < 0, sN, 0)]
+  # assign to original df, modified by reference
+  df[, agent_avoidance := d_$agent_avoidance]
+}
+
 #' Get ecological outcomes of evolved social strategies.
 #'
 #' @param df A dataframe with social weights and ecological outcomes.
