@@ -64,6 +64,11 @@ for (i in seq(length(files))) {
 }
 ```
 
+```{r}
+# save networks
+save(data_ntwk, file = "data/results/data_networks.Rds")
+```
+
 ### Plot networks
 
 ```{r}
