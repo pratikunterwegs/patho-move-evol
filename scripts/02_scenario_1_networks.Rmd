@@ -9,6 +9,7 @@ editor_options:
 library(data.table)
 library(igraph)
 library(tidygraph)
+library(stringr)
 
 library(ggplot2)
 library(ggraph)
@@ -18,50 +19,11 @@ library(ggraph)
 ```{r}
 # load files
 files = list.files("data/output/", 
-                   pattern = "nopatho", full.names = T)
-data_ntwk = vector("list", length = length(files))
-repl = c()
-spread = c()
-for (i in seq(length(files))) {
-  load(files[i])
-  
-  # filter edge lists for 0 interactions
-  el = data[["edgeLists"]]
-  el = el[[length(el)]]
-  el = setDT(el[el$assoc > 1,])
-  setnames(el, c("from", "to", "weight"))
-  el = el[from != to]
-  # increment el to and from by 1
-  el$to = el$to + 1
-  el$from = el$from + 1
-  
-  # get nodes and attributes
-  nodes = data[["gen_data"]][["pop_data"]]
-  nodes = nodes[[length(nodes)]]
-  nodes$id = seq(nrow(nodes))
-  
-  # scale node attributes
-  setDT(nodes)
-  # assign_movement_types(nodes)
-  
-  nodes = get_social_strategy(nodes)
-  
-  # make tidygraph
-  g = tbl_graph(nodes = nodes, edges = el, directed = FALSE)
-  
-  # add metrics
-  g = mutate(
-    g,
-    degree = tidygraph::centrality_degree(weights = weight),
-    isolated = tidygraph::node_is_isolated()
-  )
-  
-  data_ntwk[[i]] = g
-  repl = c(repl, data[["replicate"]])
-  spread = c(spread, data[["clusterSpread"]])
-  
-  rm(data, g, nodes, el)
-}
+                   pattern = "Rds",#nopatho", 
+                   full.names = T)
+
+# use the get networks function
+data_ntwk = lapply(files, get_networks)
 ```
 
 ```{r}
@@ -72,29 +34,34 @@ save(data_ntwk, file = "data/results/data_networks.Rds")
 ### Plot networks
 
 ```{r}
-g = data_ntwk[[1]]
-plot(g, vertex.size = 3, vertex.color = "orange", vertex.label = NA, 
-     edge.arrow.size = 0)
+plot(g[[1]], 
+  vertex.size = 3,
+  # vertex.color = as.numeric(as.factor(as_tibble(g)$social_strat)),
+  vertex.label = NA, 
+  edge.arrow.size = 0,
+  edge.width = 0.1,
+  edge.color = "black"
+)
 
 # manual layout
   # filter(!isolated) |>
-  ggraph(g, x = x, y = y)+
+  ggraph(g[[7]], x = x, y = y)+
   geom_edge_fan(
     edge_width = 0.2,
-    edge_alpha = 0.2
+    edge_alpha = 0.1
   )+
   geom_node_point(
-    aes(fill = strat_social),
-    size = 2,
+    aes(fill = social_strat),
+    size = 3,
     shape = 21,
     alpha = 0.8
   )+
   scale_fill_manual(
     values = c(
-      "agent avoiding" = "black",
-      "agent tracking" = "gold",
+      "agent avoiding" = "brown",
+      "agent tracking" = "lightblue",
       "handler tracking" = "royalblue",
-      "non-handler tracking" = "indianred"
+      "non-handler tracking" = "orange"
     ),
     name = "Social cues"
     # labels = c("Agent tracking", "H+ N-", "H- N+", "Agent avoiding")
@@ -107,71 +74,3 @@ ggsave(
   filename = "figures/fig_network_sc1.png"
 )
 ```
-
-## Networks over evolutionary time
-
-```{r}
-# load files
-files = list.files("data/output", pattern = "nopatho", full.names = T)[1]
-data_sim = vector("list", length = length(files))
-repl = c()
-spread = c()
-for (i in seq(length(files))) {
-  load(files[i])
-  
-  # filter edge lists for 0 interactions
-  el = data[["edgeLists"]]
-  # el = el[[length(el)]]
-  el = el = Map(el, f=function(df) {setDT(df[df$assoc > 5,])})
-  el = Map(el, f = function(df) setnames(df, c("from", "to", "weight")))
-  # increment el to and from by 1
-  el = Map(el, f=function(df){df$to = df$to +1; df$from = df$from +1; df})
-  
-  # get nodes and attributes
-  nodes = data[["gen_data"]][["pop_data"]]
-  nodes = nodes[c(1, seq(length(nodes)/10, length(nodes), by = length(nodes) / 10))]
-  nodes = Map(nodes, f = function(df) {df$id = seq(nrow(df)); df})
-  
-  # scale node attributes
-  nodes = Map(nodes, f = setDT)
-  nodes = Map(nodes, f = function(df) {
-    df = melt(df, id.vars = c("id", "assoc", "t_infec", "moved", "energy"))
-    df[, scaled_value := value / sum(abs(value)), 
-       by = c("id")]
-    df = dcast(
-      df[, !("value")],
-      id + energy + moved + t_infec + assoc ~ variable,
-      value.var = "scaled_value"
-    )
-    df[, move_strat := dplyr::case_when(
-      sF > 0.6 ~ "prey tracking",
-      ((sF > 0) & (sH > 0) & (abs(sF - sH) < 0.2))  ~ "prey and handler tracking",
-      sH > 0.5 ~ "handler tracking",
-      sH < -0.5 ~ "handler avoiding",
-      sN > 0.5 ~ "non-handler tracking",
-      sN < -0.5 ~ "non-handler avoiding",
-      T ~ "other"
-    )]
-    df
-  })
-  
-  # make tidygraph
-  g = Map(nodes, el, f = function(nodes, el) {
-    tbl_graph(nodes = nodes, edges = el) |>
-      mutate(degree = centrality_betweenness(weights = weight))
-  })
-  
-  data_sim[[i]] = g
-  repl = c(repl, data[["replicate"]])
-  spread = c(spread, data[["clusterSpread"]])
-  
-  rm(data, g, nodes, el)
-}
-```
-
-```{r}
-data_sim[[1]][[]] |> 
-  plot(vertex.size = 3, vertex.color = "orange", 
-       vertex.label = NA, edge.arrow.size = 0)
-```
-
