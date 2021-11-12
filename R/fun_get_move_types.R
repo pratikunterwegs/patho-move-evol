@@ -3,7 +3,7 @@
 #'
 #' @param df A dataframe with generation, id, and movement weights.
 #'
-#' @return A dataframe with scaled weights.
+#' @return Nothing. Transforms weights by reference. See data.table.
 #' @export
 get_functional_variation = function(df) {
   data.table::setDT(df)
@@ -14,23 +14,18 @@ get_functional_variation = function(df) {
     )
   )
   
-  df = df[, c("sF", "sH", "sN", "gen", "id")]
-  df = melt(df, id.vars = c("gen", "id"))
-  df[, scaled_value := value / sum(abs(value)), 
-    by = c("gen", "id")]
-  df = dcast(
-    df[, !("value")],
-    gen + id ~ variable,
-    value.var = "scaled_value"
-  )
-  df
+  # transform weights
+  df[, c("sF", "sH", "sN") := lapply(.SD, function(x) {
+    x / (abs(sF) + abs(sH) + abs(sN))
+  }), 
+  .SDcols = c("sF", "sH", "sN")]
 }
 
 #' Assign movement types.
 #'
 #' @param df A dataframe with generation, id, and movement weights.
 #'
-#' @return A dataframe with assigned movement strategies.
+#' @return Nothing. Assigns strategy by reference. See data.table.
 #' @export
 assign_movement_types = function(df) {
   data.table::setDT(df)
@@ -47,6 +42,4 @@ assign_movement_types = function(df) {
     sN < -0.5 ~ "non-handler avoiding",
     T ~ "other"
   )]
-  
-  df
 }
