@@ -15,16 +15,25 @@ library(colorspace)
 ## Read data
 
 ```{r}
-# load files
-files = list.files("data/output/", pattern = "nopatho", full.names = T)
+# load files and scenario names
+files = list.files(
+  "data/output/land_50_food_1000", 
+  pattern = "Rds", full.names = T
+)
+scenarios = str_extract_all(files, pattern = "scenario_(\\w+)_") |> 
+  str_remove_all("scenario|_")
+
+# prepare lists to hold data
 data_sim = vector("list", length = length(files))
 repl = c()
-spread = c()
+cost = c()
+
+# spread = c()
 for (i in seq(length(files))) {
   load(files[i])
   data_sim[[i]] = data[["gen_data"]]
   repl = c(repl, data[["replicate"]])
-  spread = c(spread, data[["clusterSpread"]])
+  cost = c(cost, data[["costInfect"]])
 }
 ```
 
@@ -32,51 +41,65 @@ for (i in seq(length(files))) {
 
 ```{r}
 # simulation wise data
-data_sc1 = Map(
-  data_sim, repl, spread,
-  f = function(le, repl, spread) {
-    
+data = Map(
+  data_sim, repl, cost, scenarios,
+  
+  # map over simulations
+  f = function(le, repl, cost, scenario) {
+    # map over generations
     le = Map(le[["pop_data"]], le[["gens"]],
         f = function(l, g) {
           l$gen = g
           l$repl = repl
-          l$spread = spread
-          l
+          # l$spread = spread
+          if(g == 0) {
+            NULL
+          } else {
+            l
+          }
         }
     ) |>
       rbindlist()
     
-    le$repl = repl
-    le$spread = spread
-    # le
-    le[, list(
-      mean_energy = mean(energy),
-      sd_energy = sd(energy),
-      mean_moved = mean(moved),
-      sd_moved = sd(moved),
-      mean_assoc = mean(assoc),
-      sd_assoc = sd(assoc)
-    ), by = c("gen", "repl", "spread")]
+    le$scenario = scenario
+    # assign disease cost
+    get_total_energy(le, cost_disease = cost)
+    # summarise within sim
+    le = le[, unlist(
+      lapply(.SD, function(x) {
+        list(
+          mean = mean(x),
+          sd = sd(x)
+        )
+      }), recursive = FALSE
+    ), 
+    .SDcols = c("energy", "intake", "moved", "assoc", "cost_disease"),
+    by = c("gen", "repl", "scenario")]
   }
 ) |>
   rbindlist()
 
 # save
-fwrite(data_sc1, file = "data/results/data_gen_sc1.csv")
+fwrite(data, file = "data/results/data_gen.csv")
 ```
 
 ## Individual level data
 
 ```{r}
 # simulation wise data
-data = lapply(
-  data_sim,
-  function(le) {
+data = Map(
+  data_sim, scenarios,
+  f = function(le, scenario) {
     Map(le[["pop_data"]], le[["gens"]],
         f = function(l, g) {
           l$id = seq(nrow(l))
           l$gen = g
-          l
+          l$scenario = scenario
+          if(g == 0) {
+            NULL
+          } else {
+            l
+          }
         }
     ) |>
       rbindlist()
@@ -89,36 +112,43 @@ data = lapply(
 ```{r}
 # get movement morphs
 data_morphs = Map(
-  data, repl, spread,
-  f = function(d, repl, spread) {
-    d = assign_movement_types(d)
-    
+  data, repl, scenarios,
+  f = function(d, repl, scenario) {
+    assign_movement_types(d)
+    get_social_strategy(d)
     d$repl = repl
-    d$spread = spread
+    # d$scenario = scenario
     d
   }
 )
 
 # bind and count morphs
 data_morphs = rbindlist(data_morphs)
-data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl", "spread")]
+# data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl")]
 
 # save
-fwrite(data_morphs, file = "data/results/data_morphs_sc1.csv")
+fwrite(data_morphs, file = "data/results/data_morphs.csv")
 ```
+
+```{r}
+ggplot()+
+  geom_area(data = data_morphs, 
+            aes(gen, N, fill = move_strat))+
+  facet_grid(~repl)
+```
+
 
 ### Social information use
 
 ```{r}
 # get movement morphs
 data_si = Map(
-  data, repl, spread,
-  f = function(d, repl, spread) {
+  data, repl, 
+  f = function(d, repl) {
     get_social_strategy(d)
     d = d[, .N, by = c("gen", "strat_social")]
     
     d$repl = repl
-    d$spread = spread
     d
   }
 )
@@ -130,3 +160,10 @@ data_si = rbindlist(data_si)
 fwrite(data_si, file = "data/results/data_si_sc1.csv")
 ```
 
+```{r}
+ggplot()+
+  geom_area(data = data_si, 
+            aes(gen, N, fill = strat_social))+
+  scale_fill_discrete_qualitative()+
+  facet_grid(~repl)
+```
