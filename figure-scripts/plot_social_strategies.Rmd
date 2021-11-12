@@ -15,38 +15,20 @@ library(colorspace)
 Load data.
 
 ```{r}
-files = list.files(path = "data/results/", pattern = "si", full.names = T)
-scenario = grep(pattern = "\\d{1}", files)
+data = fread("data/results/data_morphs.csv")
+data[, gen_round := plyr::round_any(gen, 500)]
 ```
 
+Get social information data.
+
 ```{r}
-data = Map(files, scenario, f = function(file, sc) {
-  df = fread(file)
-  df$scenario = sc
-  df
-})
-
-data = rbindlist(data)
-# data = dcast(
-#   data,
-#   gen + repl + spread + scenario ~ strat_social,
-#   value.var = "N"
-# )
-# 
-# data = data[, list(
-#   handler_tracking = sum(`handler tracking` + `agent tracking`) / 500,
-#   agent_avoiding = `agent avoiding` / 500
-# ),  by = c("gen", "repl", "scenario")]
-# 
-# data = melt(
-#   data,
-#   id.vars = c("gen", "repl", "scenario"),
-#   value.name = "N",
-#   variable.name = "social_strat"
-# )
-
-data_summary = copy(data)
-data_summary[, gen_round := plyr::round_any(gen, 500)]
+data_si = data[, list(prop = .N / 500), 
+               by = c("gen", "social_strat", "scenario", "repl", "gen_round")]
+data_si[, scenario := fcase(
+  scenario == "nopatho", 1,
+  scenario == "endemic", 2,
+  scenario == "spillover", 3
+)]
 ```
 
 ```{r}
@@ -57,36 +39,51 @@ labels = c(
 )
 ```
 
-## Plot social strategies
+## Plot agent avoidance
 
 ```{r}
-# plot_si =
-ggplot(data[gen %% 100 == 0])+
-  # stat_summary(
-  #   data = data_summary[
-  #     strat_social %in% c("agent avoiding")
-  #   ],
-  #   fun = median, 
-  #   fun.min = function(x) {quantile(x, 0.05)}, 
-  #   fun.max = function(x) {quantile(x, 0.95)},
-  #   aes(
-  #     gen_round, N,
-  #     colour = as.factor(strat_social),
-  #     # group = interaction(social_strat, repl)
-  #   ),
-  #   # geom = "line",
-  #   position = position_dodge(
-  #     width = 200
-  #   ),
-  #   show.legend = T
-  # )+
-  geom_area(
+plot_agent_avoid =
+  ggplot(
+    data = data_si[social_strat == "agent avoiding",]
+  )+
+  stat_summary(
+    fun = median,
+    fun.min = function(x) {quantile(x, 0.05)}, 
+    fun.max = function(x) {quantile(x, 0.95)},
     aes(
-      gen, N,
-      fill = strat_social,
-      group = strat_social
+      gen_round, prop,
+      colour = as.factor(scenario),
+      shape = as.factor(scenario)
     ),
-    position = "stack"
+    position = position_dodge(width = 100),
+    show.legend = F
+  )+
+  scale_colour_discrete_qualitative(
+    palette = "Harmonic",
+    l1 = 50,
+    order = c(3, 1, 2),
+    name = NULL,
+    labels = c(
+      "1" = "Sc. 1: No pathogen",
+      "2" = "Sc. 2: Endemic pathogen",
+      "3" = "Sc. 3: Spillover pathogen"
+    )
+  )+
+  scale_shape(
+    name = NULL,
+    labels = c(
+      "1" = "Sc. 1: No pathogen",
+      "2" = "Sc. 2: Endemic pathogen",
+      "3" = "Sc. 3: Spillover pathogen"
+    )
+  )+
+  scale_x_continuous(
+    # trans = "sqrt",
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  scale_y_continuous(
+    labels = scales::percent
   )+
   geom_vline(
     data = data.table(
@@ -98,16 +95,15 @@ ggplot(data[gen %% 100 == 0])+
     ),
     lty = 2
   )+
-  # scale_colour_manual(
-  #   values = c("steelblue", "darkred"),
-  #   labels = c("handler tracking", "agent avoiding")
-  # )+
-  scale_x_continuous(
-    breaks = c(1, 1000, 2500, 5000),
-    labels = scales::comma
+  coord_cartesian(
+    ylim = c(0, 1)
   )+
-  scale_y_continuous(
-    # labels = scales::percent
+  facet_wrap(
+    vars(scenario),
+    labeller = labeller(
+      scenario = labels
+    ),
+    scales = "free"
   )+
   theme_classic(
     base_size = 10
@@ -117,77 +113,44 @@ ggplot(data[gen %% 100 == 0])+
     strip.text = element_text(
       face = "italic"
     ),
-    panel.grid.major = element_line(
+    legend.background = element_blank(),
+    legend.position = "top",
+    panel.grid.major.y = element_line(
       size = 0.2
-    ),
-    legend.position = "bottom"
-  )+
-  facet_grid(
-    repl~scenario,
-    labeller = labeller(
-      scenario = labels
-    ),
-    scales = "free"
-  )+
-  coord_cartesian(
-    # ylim = c(0, 300)
-  )+
-  guides(
-    colour = guide_legend(
-      override.aes = list(
-        alpha = 1,
-        size = 2
-      )
     )
   )+
   labs(
-    x = "Generation",
-    y = "% Agents",
-    colour = NULL
+    y = "% Agents avoiding all agents",
+    x = "Generation"
   )
 ```
 
 ## Plot associations
 
-Load data.
-
 ```{r}
-files = list.files(path = "data/results/", pattern = "gen", full.names = T)
-scenario = grep(pattern = "\\d{1}", files)
+data = fread("data/results/data_gen.csv")
+data[, scenario := fcase(
+  scenario == "nopatho", 1,
+  scenario == "endemic", 2,
+  scenario == "spillover", 3
+)]
+data[, gen_round := plyr::round_any(gen, 500)]
 ```
 
-```{r}
-data_assoc = Map(files, scenario, f = function(file, sc) {
-  df = fread(file)
-  df$scenario = sc
-  df
-}) |>
-  rbindlist()
-
-data_assoc_summary = copy(data_assoc)
-data_assoc_summary[, gen_round := plyr::round_any(gen, 500)]
-```
 
 ```{r}
 plot_assoc =
-  ggplot(data_assoc[gen %% 10 == 0])+
-  geom_bin_2d(
-    aes(
-      gen, mean_assoc,
-    ),
-    show.legend = F,
-    binwidth = c(100, 0.05)
-  )+
+  ggplot(data)+
   stat_summary(
-    data = data_assoc_summary,
     fun = median,
     fun.min = function(x) {quantile(x, 0.05)}, 
     fun.max = function(x) {quantile(x, 0.95)},
     aes(
-      gen_round, mean_assoc,
-      # group = interaction(scenario, repl)
+      gen_round, assoc.mean,
+      colour = as.factor(scenario),
+      shape = as.factor(scenario)
     ),
-    # geom = "line",
+    position = position_dodge(width = 100),
     show.legend = F
   )+
   geom_vline(
@@ -201,25 +164,34 @@ plot_assoc =
     lty = 2
   )+
   scale_colour_discrete_qualitative(
-    palette = "Dark 2",
-    order = c(3,1,2),
-    l1 = 40
+    palette = "Harmonic",
+    l1 = 50,
+    order = c(3, 1, 2),
+    name = NULL,
+    labels = c(
+      "1" = "Sc. 1: No pathogen",
+      "2" = "Sc. 2: Endemic pathogen",
+      "3" = "Sc. 3: Spillover pathogen"
+    )
   )+
-  scale_fill_continuous_sequential(
-    palette = "Sunset"
+  scale_shape(
+    name = NULL,
+    labels = c(
+      "1" = "Sc. 1: No pathogen",
+      "2" = "Sc. 2: Endemic pathogen",
+      "3" = "Sc. 3: Spillover pathogen"
+    )
   )+
   scale_x_continuous(
-    # trans = "sqrt",
     breaks = c(1, 1000, 2500, 5000),
     labels = scales::comma
   )+
   scale_y_continuous(
     trans = "log10",
-    # breaks = c(50, 1000, 2500, 5000),
     labels = scales::comma
   )+
   facet_wrap(
-    ~scenario,
+    vars(scenario),
     labeller = labeller(
       scenario = labels
     ),
@@ -235,11 +207,12 @@ plot_assoc =
     ),
     panel.grid.major = element_line(
       size = 0.2
-    )
+    ),
+    legend.position = "top"
   )+
   coord_cartesian(
     expand = T,
-    ylim = c(50, 2000)
+    ylim = c(50, 20e3)
   )+
   labs(
     x = "Generation",
@@ -249,10 +222,19 @@ plot_assoc =
 ```
 
 ```{r}
-wrap_plots(
-  plot_si,
+fig_2 = wrap_plots(
+  plot_agent_avoid,
   plot_assoc,
-  ncol = 1
+  ncol = 1,
+  guides = "collect"
+) &
+  theme(legend.position = "top")
+
+ggsave(
+  fig_2,
+  filename = "figures/fig_02.png",
+  height = 5,
+  width = 6
 )
 ```
 
