@@ -11,8 +11,8 @@ get_social_strategy = function(df) {
     all(c("sH", "sN") %in% names(df)),
     msg = "get_social_strat: data does not have social weights"
   )
-  df = data.table::setDT(df)
-  df[, strat_social := data.table::fcase(
+  data.table::setDT(df)
+  df[, social_strat := data.table::fcase(
     (sH > 0 & sN > 0), "agent tracking",
     (sH > 0 & sN < 0), "handler tracking",
     (sH < 0 & sN > 0), "non-handler tracking",
