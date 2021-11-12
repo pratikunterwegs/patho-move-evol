@@ -1,0 +1,29 @@
+
+# Run SIR models
+
+Load libraries.
+
+```{r}
+library(igraph)
+library(data.table)
+library(ggplot2)
+```
+
+## Prepare parameters
+
+```{r}
+beta = c(seq(1, 5, 1))
+gamma = c(seq(1, 5, 1))
+```
+
+## Load networks
+
+```{r}
+# make network
+g <- sample_gnm(100, 100)
+s = sir(g, 10, 1)
+
+plot(s)
+```
+
+## 
