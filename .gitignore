@@ -115,3 +115,4 @@ data/password
 
 # parameters
 data/parameters
+*.Rds
