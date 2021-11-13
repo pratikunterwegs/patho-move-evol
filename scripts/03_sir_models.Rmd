@@ -1,3 +1,7 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
 
 # Run SIR models
 
@@ -6,7 +10,10 @@ Load libraries.
 ```{r}
 library(igraph)
 library(data.table)
+
 library(ggplot2)
+library(ggraph)
+library(patchwork)
 ```
 
 ## Prepare parameters
@@ -19,11 +26,94 @@ gamma = c(seq(1, 5, 1))
 ## Load networks
 
 ```{r}
-# make network
-g <- sample_gnm(100, 100)
-s = sir(g, 10, 1)
-
-plot(s)
+load("data/results/data_networks.Rds")
+networks_spillover = data_ntwk[[1]]
+n1 = networks_spillover[[6]]
+n2 = networks_spillover[[7]]
 ```
 
-## 
+## SIR models
+
+```{r}
+models = lapply(
+  list(n1, n2), igraph::sir, beta = 5, gamma = 1
+)
+models = lapply(models, handle_sir_data)
+```
+
+```{r}
+sirplots = lapply(models, function(df) {
+  ggplot(df)+
+    stat_summary(
+      aes(time, mean, colour = class, shape = class),
+      alpha = 1
+    )+
+    scale_colour_manual(
+      values = c(
+        "NS" = "orange",
+        "NI" = "indianred",
+        "NR" = "steelblue"
+      )
+    )+
+    scale_x_sqrt()+
+    coord_cartesian(
+      xlim = c(0, 15),
+      ylim = c(0, 500)
+    )
+})
+
+sirplots = wrap_plots(sirplots, guides = "collect", ncol = 2)
+```
+
+
+## Make plots
+
+```{r}
+networkplots = lapply(
+  list(n1, n2), function(n) {
+    ggraph(n, x = x, y = y)+
+      geom_edge_fan(
+        edge_width = 0.2,
+        edge_alpha = 0.1
+      )+
+      geom_node_point(
+        aes(fill = t_infec, shape = social_strat,
+            size = assoc),
+        size = 3,
+        alpha = 1,
+        show.legend = F
+      )+
+      scale_shape_manual(
+        values = c(21, 22, 23, 24)
+      )+
+      scale_fill_viridis_c(
+        option = "A",
+        limit = c(1, NA),
+        na.value = "lightblue"
+        # trans = "sqrt"
+      )+
+      theme(
+        legend.position = "top"
+      )
+  })
+
+networkplots = wrap_plots(networkplots, ncol = 2)
+```
+
+```{r}
+fig = wrap_plots(
+  networkplots,
+  sirplots,
+  guides = "collect",
+  ncol=1
+) &
+  theme(
+    legend.position = "top"
+  )
+  
+ggsave(
+  fig,
+  filename = "figures/fig_sir.png"
+)
+```
+
