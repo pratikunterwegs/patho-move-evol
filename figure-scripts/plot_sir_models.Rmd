@@ -1,0 +1,133 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+  
+# Plot SIR models
+  
+```{r}
+library(data.table)
+library(ggplot2)
+
+library(patchwork)
+library(colorspace)
+```
+
+```{r}
+labels = c(
+  "nopatho" = "Sc. 1: No pathogen",
+  "endemic" = "Sc. 2: Endemic pathogen",
+  "spillover" = "Sc. 3: Spillover pathogen"
+)
+```
+
+
+## Basic scenarios
+
+```{r}
+sir_basic = fread("data/results/data_sir_basic.csv")
+sir_basic$mean = sir_basic$mean / 500
+sir_basic = sir_basic[beta == 6 & gamma == 1]
+sir_basic[, tround := plyr::round_any(time, 1)]
+sir_basic$scenario = factor(sir_basic$scenario, levels = c("nopatho", "endemic"))
+```
+
+
+
+```{r}
+ggplot(sir_basic[class == "NR"])+
+  geom_bin2d(
+    aes(
+      time, mean
+    ),
+    show.legend = F
+  )+
+  stat_summary(
+    aes(
+      tround, mean,
+    ),
+    show.legend = F,
+    col = "grey",
+    geom = "line"
+  )+
+  stat_summary(
+    aes(
+      tround, mean,
+    ),
+    show.legend = F,
+    alpha = 1
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Heat 2"
+  )+
+  theme_classic()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    panel.grid.major.y = element_line(
+      size = 0.2
+    )
+  )+
+  facet_wrap(
+    ~scenario,
+    scales = "free",
+    labeller = labeller(
+      scenario = labels
+    )
+  )+
+  scale_y_sqrt(
+    
+  )+
+  coord_cartesian(
+    expand = F,
+    xlim = c(-1, 15),
+    ylim = c(0, 1)
+  )+
+  labs(
+    x = "Time",
+    y = "# Individuals"
+  )
+```
+
+
+## Spillover
+
+```{r}
+# spillover data and rounding
+sir_spillover = fread("data/results/data_sir_spillover.csv")
+sir_spillover = sir_spillover[beta == 6 & gamma == 1]
+sir_spillover[, tround := plyr::round_any(time, 1)]
+```
+
+```{r}
+ggplot(sir_spillover[class == "NR"])+
+  stat_summary(
+    aes(
+      tround, mean, 
+      colour = sc_repl,
+      # shape = class
+      group = interaction(class, sc_repl)
+    ),
+    geom = "line",
+    alpha = 1
+  )+
+  stat_summary(
+    aes(
+      tround, mean, 
+      colour = sc_repl,
+      # shape = class
+      group = interaction(class, sc_repl)
+    ),
+    # geom = "line",
+    alpha = 1
+  )+
+  facet_grid(~type)+
+  scale_y_sqrt()+
+  coord_cartesian(
+    xlim = c(0, 15),
+    ylim = c(0, 500)
+  )
+```
+
