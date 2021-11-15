@@ -30,3 +30,23 @@ get_total_energy = function(df, cost_disease = 0.25) {
   # calculate energy
   df[, energy := intake - cost_disease]
 }
+
+#' Lower 95% CI
+#'
+#' @param x A numeric vector.
+#'
+#' @return The lower 95% CI value.
+#' @export
+ci_lower = function(x) {
+  mean(x) - sd(x)
+}
+
+#' Upper 95% CI
+#'
+#' @param x A numeric vector.
+#'
+#' @return The upper 95% CI value.
+#' @export
+ci_upper = function(x) {
+  mean(x) + sd(x)
+}

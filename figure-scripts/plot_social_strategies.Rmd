@@ -16,7 +16,7 @@ Load data.
 
 ```{r}
 data = fread("data/results/data_morphs.csv")
-data[, gen_round := plyr::round_any(gen, 500)]
+data[, gen_round := plyr::round_any(gen, 400)]
 ```
 
 Get social information data.
@@ -44,38 +44,32 @@ labels = c(
 ```{r}
 plot_agent_avoid =
   ggplot(
-    data = data_si[social_strat == "agent avoiding",]
+    data = data_si[social_strat %in% c("handler tracking")]
+  )+
+  geom_bin2d(
+    aes(
+      gen, prop
+    ),
+    show.legend = F
   )+
   stat_summary(
     fun = median,
-    fun.min = function(x) {quantile(x, 0.05)}, 
-    fun.max = function(x) {quantile(x, 0.95)},
+    # fun = mean,
+    fun.min = ci_lower,
+    fun.max = ci_upper,
     aes(
       gen_round, prop,
-      colour = as.factor(scenario),
-      shape = as.factor(scenario)
+      colour = "Avoiding",
+      group = interaction(scenario)
     ),
-    position = position_dodge(width = 100),
-    show.legend = F
+    show.legend = F,
+    alpha = 0.8
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Reds 2"
   )+
   scale_colour_discrete_qualitative(
-    palette = "Harmonic",
-    l1 = 50,
-    order = c(3, 1, 2),
-    name = NULL,
-    labels = c(
-      "1" = "Sc. 1: No pathogen",
-      "2" = "Sc. 2: Endemic pathogen",
-      "3" = "Sc. 3: Spillover pathogen"
-    )
-  )+
-  scale_shape(
-    name = NULL,
-    labels = c(
-      "1" = "Sc. 1: No pathogen",
-      "2" = "Sc. 2: Endemic pathogen",
-      "3" = "Sc. 3: Spillover pathogen"
-    )
+    palette = "Dark 2", l1 = 10
   )+
   scale_x_continuous(
     # trans = "sqrt",
@@ -105,22 +99,20 @@ plot_agent_avoid =
     ),
     scales = "free"
   )+
-  theme_classic(
-    base_size = 10
-  )+
+  theme_test()+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(
       face = "italic"
     ),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    ),
     legend.background = element_blank(),
-    legend.position = "top",
-    panel.grid.major.y = element_line(
-      size = 0.2
-    )
+    legend.position = "top"
   )+
   labs(
-    y = "% Agents avoiding all agents",
+    y = "% Agents",
     x = "Generation"
   )
 ```
@@ -134,24 +126,31 @@ data[, scenario := fcase(
   scenario == "endemic", 2,
   scenario == "spillover", 3
 )]
-data[, gen_round := plyr::round_any(gen, 500)]
+data[, gen_round := plyr::round_any(gen, 400)]
 ```
 
 
 ```{r}
 plot_assoc =
   ggplot(data)+
+  geom_bin2d(
+    aes(
+      gen, assoc.mean
+    ),
+    show.legend = F
+  )+
   stat_summary(
-    fun = median,
-    fun.min = function(x) {quantile(x, 0.05)}, 
-    fun.max = function(x) {quantile(x, 0.95)},
+    data = data,
+    fun = mean,
+    fun.min = ci_lower, 
+    fun.max = ci_upper,
     aes(
       gen_round, assoc.mean,
-      colour = as.factor(scenario),
-      shape = as.factor(scenario)
+      colour = "Assoc"
     ),
     position = position_dodge(width = 100),
-    show.legend = F
+    show.legend = F,
+    alpha = 0.8
   )+
   geom_vline(
     data = data.table(
@@ -163,24 +162,11 @@ plot_assoc =
     ),
     lty = 2
   )+
-  scale_colour_discrete_qualitative(
-    palette = "Harmonic",
-    l1 = 50,
-    order = c(3, 1, 2),
-    name = NULL,
-    labels = c(
-      "1" = "Sc. 1: No pathogen",
-      "2" = "Sc. 2: Endemic pathogen",
-      "3" = "Sc. 3: Spillover pathogen"
-    )
+  scale_fill_continuous_sequential(
+    palette = "Blues 2"
   )+
-  scale_shape(
-    name = NULL,
-    labels = c(
-      "1" = "Sc. 1: No pathogen",
-      "2" = "Sc. 2: Endemic pathogen",
-      "3" = "Sc. 3: Spillover pathogen"
-    )
+  scale_colour_discrete_qualitative(
+    palette = "Cold", l1 = 20
   )+
   scale_x_continuous(
     breaks = c(1, 1000, 2500, 5000),
@@ -197,22 +183,22 @@ plot_assoc =
     ),
     scales = "free"
   )+
-  theme_classic(
-    base_size = 10
+  theme_test(
+    
   )+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(
       face = "italic"
     ),
-    panel.grid.major = element_line(
-      size = 0.2
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
     ),
     legend.position = "top"
   )+
   coord_cartesian(
     expand = T,
-    ylim = c(50, 20e3)
+    ylim = c(50, 30e3)
   )+
   labs(
     x = "Generation",
@@ -228,13 +214,23 @@ fig_2 = wrap_plots(
   ncol = 1,
   guides = "collect"
 ) &
-  theme(legend.position = "top")
+  plot_annotation(
+    tag_levels = c("A", 1)
+  ) &
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(1, units = "mm"),
+    plot.tag = element_text(
+      face = "bold",
+      size = 10
+    )
+  )
 
 ggsave(
   fig_2,
   filename = "figures/fig_02.png",
   height = 5,
-  width = 6
+  width = 5.5
 )
 ```
 
