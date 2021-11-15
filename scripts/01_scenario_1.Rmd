@@ -7,9 +7,10 @@ editor_options:
 
 ```{r}
 library(data.table)
-library(ggplot2)
-library(patchwork)
-library(colorspace)
+library(stringr)
+
+# load local funs
+devtools::load_all()
 ```
 
 ## Read data
@@ -17,7 +18,7 @@ library(colorspace)
 ```{r}
 # load files and scenario names
 files = list.files(
-  "data/output/land_50_food_1000", 
+  "data/output/", 
   pattern = "Rds", full.names = T
 )
 scenarios = str_extract_all(files, pattern = "scenario_(\\w+)_") |> 
@@ -128,42 +129,4 @@ data_morphs = rbindlist(data_morphs)
 
 # save
 fwrite(data_morphs, file = "data/results/data_morphs.csv")
-```
-
-```{r}
-ggplot()+
-  geom_area(data = data_morphs, 
-            aes(gen, N, fill = move_strat))+
-  facet_grid(~repl)
-```
-
-
-### Social information use
-
-```{r}
-# get movement morphs
-data_si = Map(
-  data, repl, 
-  f = function(d, repl) {
-    get_social_strategy(d)
-    d = d[, .N, by = c("gen", "strat_social")]
-    
-    d$repl = repl
-    d
-  }
-)
-
-# bind and count morphs
-data_si = rbindlist(data_si)
-
-# save
-fwrite(data_si, file = "data/results/data_si_sc1.csv")
-```
-
-```{r}
-ggplot()+
-  geom_area(data = data_si, 
-            aes(gen, N, fill = strat_social))+
-  scale_fill_discrete_qualitative()+
-  facet_grid(~repl)
 ```
