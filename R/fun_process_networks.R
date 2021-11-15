@@ -18,7 +18,7 @@ get_networks = function(datafile, assoc_threshold = 5) {
   el = el[-1] # all edgelists except first
   
   el = lapply(el, function(le) {
-    le = le[le$assoc > 1,]
+    le = le[le$assoc > assoc_threshold,]
     data.table::setDT(le)
     setnames(le, c("from", "to", "weight"))
     le = le[from != to,]
