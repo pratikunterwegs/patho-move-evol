@@ -25,55 +25,11 @@ scenarios = str_extract_all(files, "scenario_(\\w+)_") |>
   str_remove_all("scenario|_")
 
 # use the get networks function
-data_ntwk = lapply(files, get_networks)
+data_ntwk = lapply(files, get_networks, assoc_threshold = 20)
 names(data_ntwk) = scenarios
 ```
 
 ```{r}
 # save networks
 save(data_ntwk, file = "data/results/data_networks.Rds")
-```
-
-### Plot networks
-
-```{r}
-plot(g[[1]], 
-  vertex.size = 3,
-  # vertex.color = as.numeric(as.factor(as_tibble(g)$social_strat)),
-  vertex.label = NA, 
-  edge.arrow.size = 0,
-  edge.width = 0.1,
-  edge.color = "black"
-)
-
-# manual layout
-  # filter(!isolated) |>
-  ggraph(g[[7]], x = x, y = y)+
-  geom_edge_fan(
-    edge_width = 0.2,
-    edge_alpha = 0.1
-  )+
-  geom_node_point(
-    aes(fill = social_strat),
-    size = 3,
-    shape = 21,
-    alpha = 0.8
-  )+
-  scale_fill_manual(
-    values = c(
-      "agent avoiding" = "brown",
-      "agent tracking" = "lightblue",
-      "handler tracking" = "royalblue",
-      "non-handler tracking" = "orange"
-    ),
-    name = "Social cues"
-    # labels = c("Agent tracking", "H+ N-", "H- N+", "Agent avoiding")
-  )+
-  theme(
-    legend.position = "top"
-  )
-
-ggsave(
-  filename = "figures/fig_network_sc1.png"
-)
 ```
