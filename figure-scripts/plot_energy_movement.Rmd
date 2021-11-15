@@ -23,25 +23,9 @@ data[, scenario := fcase(
   scenario == "endemic", 2,
   scenario == "spillover", 3
 )]
-data[, gen_round := plyr::round_any(gen, 500)]
-
-# melt data
-data_melt = data[, c("gen_round", "scenario",
-                     "energy.mean", "intake.mean")] |>
-  melt(
-    id.vars = c("gen_round", "scenario")
-  )
-
-# no disease in sc 1
-data_melt = data_melt[!(
-  (variable %in% c("energy.mean")) &
-    (scenario == 1)
-)]
-# handle sc 3
-data_melt = data_melt[!(
-  (variable %in% c("energy.mean")) &
-    (scenario == 3) & (gen_round < 3334)
-)]
+data[, gen_round := plyr::round_any(gen, 250)]
+data[, energy.mean := fifelse(scenario == 1, NA_real_, energy.mean)]
+data[, energy.mean := fifelse(scenario == 3 & gen < 3334, NA_real_, energy.mean)]
 ```
 
 ```{r}
@@ -55,27 +39,71 @@ labels = c(
 ## Plot intake
 
 ```{r}
-plot_intake =
+plot_intake = 
   ggplot(data)+
   stat_summary(
-    data = data_melt,
-    fun = mean,
-    fun.min = function(x) {quantile(x, 0.05)},
-    fun.max = function(x) {quantile(x, 0.95)},
     aes(
-      gen_round, value,
-      shape = variable,
-      col = variable
+      gen_round, intake.mean,
+      group = interaction(scenario, repl),
+      colour = "intake"
     ),
-    show.legend = T,
-    position = position_dodge(
-      width = 100
+    shape = 1
+  )+
+  stat_summary(
+    aes(
+      gen_round, energy.mean,
+      group = interaction(scenario, repl),
+      colour = "energy"
+    ),
+    shape = 2
+  )+
+  scale_colour_discrete_qualitative(
+    palette = "Dark 2"
+  )+
+  scale_x_continuous(
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  geom_vline(
+    data = data.table(
+      x = 0.667 * 5000,
+      scenario = 3
+    ),
+    aes(
+      xintercept = x
+    ),
+    lty = 2
+  )+
+  facet_wrap(
+    ~scenario,
+    labeller = labeller(
+      scenario = labels
+    ),
+    scales = "free"
+  )+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
     )
   )+
-  geom_hline(
-    yintercept = 0,
-    col = "grey",
-    lty = 2
+  coord_cartesian(
+    ylim = c(-1, 15)
+  )
+```
+
+## Plot movement
+
+```{r}
+plot_movement =
+  ggplot(data[gen %% 10 == 0])+
+  stat_summary(
+    aes(
+      gen_round, moved.mean,
+      group = interaction(scenario, repl),
+      colour = "moved"
+    ),
+    shape = 0
   )+
   geom_vline(
     data = data.table(
@@ -88,86 +116,9 @@ plot_intake =
     lty = 2
   )+
   scale_colour_discrete_qualitative(
-    palette = "Dark 3",
-    labels = c("Net energy", "Total intake"),
-    name = NULL,
-    l1 = 40
-  )+
-  scale_shape_manual(
-    values = c(17, 16),
-    labels = c("Net energy", "Total intake"),
-    name = NULL
+    palette = "Harmonic"
   )+
   scale_x_continuous(
-    # trans = "sqrt",
-    breaks = c(1, 1000, 2500, 5000),
-    labels = scales::comma
-  )+
-  scale_y_continuous(
-    # trans = ggallin::ssqrt_trans
-  )+
-  facet_wrap(
-    vars(scenario),
-    labeller = labeller(
-      scenario = labels
-    ),
-    scales = "free"
-  )+
-  theme_classic(
-    base_size = 10
-  )+
-  theme(
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "italic"
-    ),
-    legend.background = element_blank(),
-    legend.position = c(0.1, 0.2),
-    panel.grid.major.y = element_line(
-      size = 0.2
-    )
-  )+
-  coord_cartesian(
-    ylim = c(0, 15)
-  )+
-  labs(
-    x = "Generation",
-    y = "Mean per-capita value"
-  )
-```
-
-## Plot movement
-
-```{r}
-plot_movement =
-  ggplot(data)+
-  stat_summary(
-    # data = data_melt,
-    fun = mean, 
-    fun.min = function(x) {quantile(x, 0.05)}, 
-    fun.max = function(x) {quantile(x, 0.95)},
-    aes(
-      gen_round, moved.mean,
-      # colour = as.factor(scenario),
-      # group = interaction(scenario, repl)
-    ),
-    # position = position_jitter(),
-    show.legend = F,
-    colour = "navy",
-    shape = 15
-  )+
-  geom_vline(
-    data = data.table(
-      x = 0.667 * 5000,
-      scenario = 3
-    ),
-    aes(
-      xintercept = x
-    ),
-    lty = 2
-  )+
-  scale_x_continuous(
-    # trans = "sqrt",
     breaks = c(1, 1000, 2500, 5000),
     labels = scales::comma
   )+
@@ -177,9 +128,6 @@ plot_movement =
       scenario = labels
     ),
     scales = "free"
-  )+
-  theme_classic(
-    base_size = 10
   )+
   theme(
     strip.background = element_blank(),
@@ -206,12 +154,14 @@ fig_1 =
 wrap_plots(
   plot_intake, 
   plot_movement,
-  ncol = 1
+  ncol = 1,
+  guides = "collect"
 ) &
   plot_annotation(
     tag_levels = c("A", 1)
   ) &
   theme(
+    legend.position = "top",
     plot.tag = element_text(
       face = "bold",
       size = 10
@@ -221,8 +171,8 @@ wrap_plots(
 ggsave(
   fig_1,
   filename = "figures/fig_01.png",
-  height = 5,
-  width = 6
+  height = 6,
+  width = 7
 )
 ```
 
