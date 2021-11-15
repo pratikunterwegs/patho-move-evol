@@ -1,0 +1,73 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plot network data
+
+```{r}
+library(data.table)
+library(tidygraph)
+library(ggraph)
+```
+
+```{r}
+load("data/results/data_networks.Rds")
+```
+
+```{r}
+ntwks = data_ntwk[c(1, 6)]
+```
+
+
+```{r}
+networkplots = lapply(
+  ntwks, function(n) {
+    ggraph(last(n), x = x, y = y)+
+      geom_edge_fan(
+        edge_width = 0.2,
+        edge_alpha = 0.1
+      )+
+      geom_node_point(
+        aes(fill = t_infec, shape = social_strat,
+            size = assoc),
+        size = 3,
+        alpha = 1,
+        show.legend = F
+      )+
+      scale_shape_manual(
+        values = c(21, 22, 23, 24)
+      )+
+      scale_fill_viridis_c(
+        option = "A",
+        limit = c(1, NA),
+        na.value = "lightblue"
+        # trans = "sqrt"
+      )+
+      theme(
+        legend.position = "top"
+      )
+  })
+
+# networkplots = 
+  wrap_plots(networkplots, ncol = 2)
+```
+
+```{r}
+fig = wrap_plots(
+  networkplots,
+  sirplots,
+  guides = "collect",
+  ncol=1
+) &
+  theme(
+    legend.position = "top"
+  )
+  
+ggsave(
+  fig,
+  filename = "figures/fig_sir.png"
+)
+```
+

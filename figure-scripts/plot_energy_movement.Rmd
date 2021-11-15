@@ -47,7 +47,8 @@ plot_intake =
       group = interaction(scenario, repl),
       colour = "intake"
     ),
-    shape = 1
+    shape = 16,
+    alpha = 0.8
   )+
   stat_summary(
     aes(
@@ -55,7 +56,8 @@ plot_intake =
       group = interaction(scenario, repl),
       colour = "energy"
     ),
-    shape = 2
+    shape = 17,
+    alpha = 0.8
   )+
   scale_colour_discrete_qualitative(
     palette = "Dark 2"
@@ -103,7 +105,8 @@ plot_movement =
       group = interaction(scenario, repl),
       colour = "moved"
     ),
-    shape = 0
+    shape = 15,
+    alpha = 0.8
   )+
   geom_vline(
     data = data.table(
