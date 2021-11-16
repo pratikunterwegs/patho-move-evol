@@ -1,0 +1,140 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plot social outcomes in scenario 3
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(patchwork)
+library(colorspace)
+```
+
+```{r}
+# load data
+data = fread("data/results/data_morphs.csv")
+data = data[scenario == "spillover" & gen > 4000]
+```
+
+## Summarise metrics by social strategy
+
+```{r}
+# summarise mean movement, mean associations, and proportion infected
+# by social strategy
+data_summary = data[, list(
+  moved.mean = mean(moved),
+  assoc.mean = mean(assoc),
+  prop.infected = sum(t_infec > 0) / length(t_infec)
+), by = c("gen", "repl", "social_strat")]
+
+# melt data
+data_summary = melt(
+  data_summary,
+  id.vars = c("gen", "repl", "social_strat")
+)
+
+# assign broad strategy
+data_summary$social_strat = fifelse(
+  data_summary$social_strat == "agent avoiding", "agent avoiding", "other"
+)
+
+# split by variable
+data_summary = split(data_summary, by = "variable")
+```
+
+```{r}
+plot_soc_out = Map(
+  data_summary, names(data_summary),
+  f = function(df, varb) {
+    p = ggplot(df)+
+      geom_bin2d(
+        aes(
+          social_strat, value,
+          fill = ..density..
+        ),
+        show.legend = F,
+        bins = 100,
+        alpha = 0.6,
+        # colour = "grey",
+        # size = 0.2
+      )+
+      geom_boxplot(
+        aes(
+          social_strat, value,
+          # col = social_strat
+        ),
+        fill = alpha("grey", 0.3),
+        col = "grey20",
+        show.legend = F,
+        size = 1,
+        width = 0.3,
+        outlier.size = 0.1
+      ) +
+      scale_x_discrete(
+        breaks = c("agent avoiding", "other"),
+        labels = c("Agent\navoiding", "Other\nstrategy")
+      )+
+      scale_fill_continuous_sequential(
+        palette = "Heat 2"
+      )+
+      scale_colour_discrete_diverging(
+        palette = "Blue-Red 3",
+        order = c(2, 1),
+        l1 = 30
+      )+
+      # facet_wrap(
+      #   ~scenario,
+      #   labeller = labeller(
+      #     scenario = labels
+      #   )
+      # )+
+      theme_test()+
+      theme(
+        strip.background = element_blank(),
+        strip.text = element_text(
+          face = "italic"
+        ),
+        axis.text.y = element_text(
+          angle = 90,
+          hjust = 0.5
+        )
+      )+
+      labs(
+        x = NULL,
+        y = "Distance moved"
+      )
+    
+    if(varb == "assoc.mean") {
+      p = p + 
+        scale_y_log10() +
+        labs(
+          y = "Per-capita encounters",
+          labels = scales::comma
+        )
+    } else if(varb == "prop.infected") {
+      p = p + 
+        scale_y_continuous(
+          trans = "sqrt",
+          breaks = c(0.01, seq(0.25, 1, 0.25)),
+          labels = scales::percent
+        ) +
+        labs(
+          y = "% Agents infected"
+        )
+    }
+    p
+  }
+)
+
+plot_soc_out = wrap_plots(plot_soc_out)
+
+ggsave(
+  plot_soc_out,
+  file = "figures/fig_03.png",
+  height = 3.5,
+  width = 5
+)
+```
+
