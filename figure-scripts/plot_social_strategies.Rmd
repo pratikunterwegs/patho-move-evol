@@ -16,7 +16,7 @@ Load data.
 
 ```{r}
 data = fread("data/results/data_morphs.csv")
-data[, gen_round := plyr::round_any(gen, 250)]
+data[, gen_round := plyr::round_any(gen, 400)]
 ```
 
 Get social information data.
@@ -44,15 +44,32 @@ labels = c(
 ```{r}
 plot_agent_avoid =
   ggplot(
-    data = data_si[social_strat %in% c("agent avoiding", "handler tracking"),]
+    data = data_si[social_strat %in% c("handler tracking")]
+  )+
+  geom_bin2d(
+    aes(
+      gen, prop
+    ),
+    show.legend = F
   )+
   stat_summary(
+    fun = median,
+    # fun = mean,
+    fun.min = ci_lower,
+    fun.max = ci_upper,
     aes(
       gen_round, prop,
-      colour = social_strat,
-      group = interaction(social_strat, repl, scenario)
+      colour = "Avoiding",
+      group = interaction(scenario)
     ),
+    show.legend = F,
     alpha = 0.8
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Reds 2"
+  )+
+  scale_colour_discrete_qualitative(
+    palette = "Dark 2", l1 = 10
   )+
   scale_x_continuous(
     # trans = "sqrt",
@@ -85,19 +102,20 @@ plot_agent_avoid =
     ),
     scales = "free"
   )+
+  theme_test()+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(
       face = "italic"
     ),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    ),
     legend.background = element_blank(),
-    legend.position = "top",
-    panel.grid.major.y = element_line(
-      size = 0.2
-    )
+    legend.position = "top"
   )+
   labs(
-    y = "% Agent strategy",
+    y = "% Agents",
     x = "Generation"
   )
 ```
@@ -111,19 +129,30 @@ data[, scenario := fcase(
   scenario == "endemic", 2,
   scenario == "spillover", 3
 )]
-data[, gen_round := plyr::round_any(gen, 250)]
+data[, gen_round := plyr::round_any(gen, 400)]
 ```
 
 
 ```{r}
 plot_assoc =
   ggplot(data)+
+  geom_bin2d(
+    aes(
+      gen, assoc.mean
+    ),
+    show.legend = F
+  )+
   stat_summary(
+    data = data,
+    fun = mean,
+    fun.min = ci_lower, 
+    fun.max = ci_upper,
     aes(
       gen_round, assoc.mean,
-      group = repl,
-      colour = "assoc"
+      colour = "Assoc"
     ),
+    position = position_dodge(width = 100),
+    show.legend = F,
     alpha = 0.8
   )+
   geom_vline(
@@ -136,8 +165,11 @@ plot_assoc =
     ),
     lty = 2
   )+
+  scale_fill_continuous_sequential(
+    palette = "Blues 2"
+  )+
   scale_colour_discrete_qualitative(
-    palette = "Harmonic"
+    palette = "Cold", l1 = 20
   )+
   scale_x_continuous(
     breaks = c(1, 1000, 2500, 5000),
@@ -154,19 +186,22 @@ plot_assoc =
     ),
     scales = "free"
   )+
+  theme_test(
+    
+  )+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(
       face = "italic"
     ),
-    panel.grid.major = element_line(
-      size = 0.2
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
     ),
     legend.position = "top"
   )+
   coord_cartesian(
     expand = T,
-    ylim = c(50, 20e3)
+    ylim = c(50, 30e3)
   )+
   labs(
     x = "Generation",
@@ -187,6 +222,7 @@ fig_2 = wrap_plots(
   ) &
   theme(
     legend.position = "top",
+    legend.key.height = unit(1, units = "mm"),
     plot.tag = element_text(
       face = "bold",
       size = 10
@@ -196,8 +232,8 @@ fig_2 = wrap_plots(
 ggsave(
   fig_2,
   filename = "figures/fig_02.png",
-  height = 6,
-  width = 7
+  height = 5,
+  width = 5.5
 )
 ```
 
