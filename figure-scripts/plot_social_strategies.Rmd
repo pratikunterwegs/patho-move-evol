@@ -63,7 +63,7 @@ plot_agent_avoid =
       group = interaction(scenario)
     ),
     show.legend = F,
-    alpha = 0.8
+    shape = 17, alpha = 0.8
   )+
   scale_fill_continuous_sequential(
     palette = "Reds 2"
@@ -80,7 +80,7 @@ plot_agent_avoid =
     labels = scales::percent
   )+
   scale_colour_discrete_qualitative(
-    palette = "Dynamic"
+    palette = "Dynamic", l1 = 20
   )+
   geom_vline(
     data = data.table(
@@ -153,7 +153,7 @@ plot_assoc =
     ),
     position = position_dodge(width = 100),
     show.legend = F,
-    alpha = 0.8
+    shape = 16, alpha = 0.8
   )+
   geom_vline(
     data = data.table(
