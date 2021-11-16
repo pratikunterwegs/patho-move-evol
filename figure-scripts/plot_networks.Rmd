@@ -4,12 +4,13 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Plot network data
+# Plot networks in final generations
 
 ```{r}
 library(data.table)
 library(tidygraph)
 library(ggraph)
+library(colorspace)
 ```
 
 ```{r}
@@ -17,22 +18,112 @@ load("data/results/data_networks.Rds")
 ```
 
 ```{r}
-ntwks = data_ntwk[c(1, 6)]
+labels = c(
+  "0" = "Sc. 1: No pathogen",
+  "1" = "Sc. 2: Endemic pathogen",
+  "2" = "Sc. 3: Spillover pathogen"
+)
+```
+
+```{r}
+# subset basic networks
+# ntwks = data_ntwk[names(data_ntwk) %in% c("spillover")]
+# get last gen
+ntwks = lapply(data_ntwk, last)
+
+# get betweenness
+ntwks = lapply(ntwks, function(df) {
+  df = mutate(df, btwn = tidygraph::centrality_betweenness())
+  as_tibble(df)
+}) |> rbindlist()
+```
+
+```{r}
+# melt data and split
+ntwks = select(ntwks, repl, scenario, degree, btwn)
+setDT(ntwks)
+
+ntwks = melt(
+  ntwks,
+  id.vars = c("scenario", "repl")
+)
+
+ntwks = split(ntwks, by = "variable")
 ```
 
 
 ```{r}
-networkplots = lapply(
+plots = Map(
+  ntwks, names(ntwks),
+  f = function(df, varb) {
+    p = ggplot(df)+
+      geom_histogram(
+        aes(value),
+        position = "identity",
+        show.legend = F
+      )+
+      facet_wrap(
+        ~scenario,
+        labeller = labeller(
+          scenario = labels
+        )
+      )+
+      scale_x_continuous(
+        trans = ggallin::pseudolog10_trans,
+        breaks = 10 ^ seq(0, 4, 1),
+        labels = label_parsed(
+          labels = c(10 ^ seq(0, 2, 1), sprintf("10^%i", seq(3, 4, 1)))
+        )
+      )+
+      scale_y_sqrt(
+        labels = scales::comma
+      )+
+      theme_test()+
+      theme(
+        strip.background = element_blank(),
+        strip.text = element_text(
+          face = "italic"
+        ),
+        axis.text.y = element_text(
+          angle = 90,
+          hjust = 0.5
+        )
+      )
+  }
+)
+
+plots = wrap_plots(plots, ncol = 1)
+plots
+```
+
+### Network plots
+
+```{r}
+ntwks = data_ntwk[c(1, 7)]
+ntwks = lapply(ntwks, last)
+ntwks$nopatho = ntwks$nopatho %>% 
+  activate(edges) %>% 
+  filter(weight > 97) %>% 
+  activate(nodes)
+```
+
+
+```{r}
+networkplots_basic = lapply(
   ntwks, function(n) {
-    ggraph(last(n), x = x, y = y)+
+    ggraph(n, x = x, y = y)+
       geom_edge_fan(
         edge_width = 0.2,
-        edge_alpha = 0.1
+        edge_alpha = 0.3,
+        edge_color = "grey"
       )+
       geom_node_point(
-        aes(fill = t_infec, shape = social_strat,
-            size = assoc),
-        size = 3,
+        aes(
+          fill = t_infec, 
+          size = assoc
+        ),
+        shape = 21,
+        # size = 3,
         alpha = 1,
         show.legend = F
       )+
@@ -40,19 +131,25 @@ networkplots = lapply(
         values = c(21, 22, 23, 24)
       )+
       scale_fill_viridis_c(
-        option = "A",
+        option = "F",
         limit = c(1, NA),
+        direction = -1,
         na.value = "lightblue"
         # trans = "sqrt"
+      )+
+      theme_graph(
+        background = "white"
       )+
       theme(
         legend.position = "top"
       )
   })
 
-# networkplots = 
-  wrap_plots(networkplots, ncol = 2)
+networkplots_basic = wrap_plots(networkplots_basic, ncol = 2)
 ```
+
+
+
 
 ```{r}
 fig = wrap_plots(
