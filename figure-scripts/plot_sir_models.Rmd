@@ -26,11 +26,24 @@ labels = c(
 
 ```{r}
 sir_basic = fread("data/results/data_sir_basic.csv")
-sir_basic$mean = sir_basic$mean / 500
-sir_basic = sir_basic[gamma == 1]
-sir_basic[, tround := plyr::round_any(time, 1)]
+# sir_basic$mean = sir_basic$mean / 500
+sir_basic = sir_basic[gamma == 1 & beta == 6]
+sir_basic[, tround := fifelse(time < 5, time, round(time, 0))]
 sir_basic$scenario = factor(sir_basic$scenario, 
                             levels = c("nopatho", "endemic"))
+```
+
+```{r}
+ggplot(sir_basic[class %in% c("NI", "NR")])+
+  stat_summary(
+    fun.data = mean_se,
+    aes(tround, mean,
+        # group = interaction(repl, class, scenario, sc_repl, beta, gamma),
+        col = class),
+    # alpha = 0.2
+  )+
+  scale_x_sqrt()+
+  facet_grid(class~scenario, scales = "free_y")
 ```
 
 
