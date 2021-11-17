@@ -3,7 +3,7 @@ editor_options:
   chunk_output_type: console
 ---
   
-# Plot SIR models
+# Plot networks and SIR models
   
 ```{r}
 library(data.table)
@@ -27,67 +27,72 @@ labels = c(
 ```{r}
 sir_basic = fread("data/results/data_sir_basic.csv")
 sir_basic$mean = sir_basic$mean / 500
-sir_basic = sir_basic[beta == 6 & gamma == 1]
+sir_basic = sir_basic[gamma == 1]
 sir_basic[, tround := plyr::round_any(time, 1)]
-sir_basic$scenario = factor(sir_basic$scenario, levels = c("nopatho", "endemic"))
+sir_basic$scenario = factor(sir_basic$scenario, 
+                            levels = c("nopatho", "endemic"))
 ```
 
 
-
 ```{r}
-ggplot(sir_basic[class == "NR"])+
+# plot_sir_basic =
+  ggplot(sir_basic[class == "NR"])+
   geom_bin2d(
     aes(
       time, mean
     ),
+    # binwidth = c(0.25, 0.02),
     show.legend = F
   )+
   stat_summary(
+    fun = mean,
+    fun.max = ci_upper,
+    fun.min = ci_lower,
     aes(
       tround, mean,
     ),
     show.legend = F,
-    col = "grey",
-    geom = "line"
-  )+
-  stat_summary(
-    aes(
-      tround, mean,
-    ),
-    show.legend = F,
-    alpha = 1
+    alpha = 0.8,
+    colour = "grey30"
   )+
   scale_fill_continuous_sequential(
-    palette = "Heat 2"
+    palette = "Reds",
+    # rev = F,
+    trans = "sqrt"
   )+
-  theme_classic()+
+  theme_test()+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(
       face = "italic"
     ),
-    panel.grid.major.y = element_line(
-      size = 0.2
-    )
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5
+    ),
   )+
-  facet_wrap(
-    ~scenario,
+  facet_grid(
+    beta~scenario,
     scales = "free",
     labeller = labeller(
       scenario = labels
     )
   )+
-  scale_y_sqrt(
-    
+  scale_x_sqrt(
+    breaks = c(0, 1, seq(5, 15, 5))
+  )+
+  scale_y_continuous(
+    labels = scales::percent,
+    breaks = c(0.01, 0.5, 1)
   )+
   coord_cartesian(
-    expand = F,
-    xlim = c(-1, 15),
+    expand = T,
+    # xlim = c(0, 5),
     ylim = c(0, 1)
   )+
   labs(
-    x = "Time",
-    y = "# Individuals"
+    x = "SIR simulation time",
+    y = "% Agents"
   )
 ```
 
@@ -97,37 +102,69 @@ ggplot(sir_basic[class == "NR"])+
 ```{r}
 # spillover data and rounding
 sir_spillover = fread("data/results/data_sir_spillover.csv")
-sir_spillover = sir_spillover[beta == 6 & gamma == 1]
+sir_spillover$mean = sir_spillover$mean / 500
+sir_spillover = sir_spillover[gamma == 1]
 sir_spillover[, tround := plyr::round_any(time, 1)]
 ```
 
 ```{r}
 ggplot(sir_spillover[class == "NR"])+
-  stat_summary(
+  geom_bin2d(
     aes(
-      tround, mean, 
-      colour = sc_repl,
-      # shape = class
-      group = interaction(class, sc_repl)
+      time, mean
     ),
-    geom = "line",
-    alpha = 1
+    # binwidth = c(0.25, 0.02),
+    show.legend = F
   )+
   stat_summary(
+    fun = mean,
+    fun.max = ci_upper,
+    fun.min = ci_lower,
     aes(
-      tround, mean, 
-      colour = sc_repl,
-      # shape = class
-      group = interaction(class, sc_repl)
+      tround, mean,
     ),
-    # geom = "line",
-    alpha = 1
+    show.legend = F,
+    alpha = 0.8,
+    colour = "grey30"
   )+
-  facet_grid(~type)+
-  scale_y_sqrt()+
+  scale_fill_continuous_sequential(
+    palette = "Reds",
+    # rev = F,
+    trans = "sqrt"
+  )+
+  theme_bw()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5
+    ),
+  )+
+  facet_grid(
+    beta~type,
+    scales = "free",
+    labeller = labeller(
+      scenario = labels
+    )
+  )+
+  scale_x_sqrt(
+    breaks = c(0, 1, seq(5, 15, 5))
+  )+
+  scale_y_continuous(
+    labels = scales::percent,
+    breaks = c(0.01, 0.5, 1)
+  )+
   coord_cartesian(
-    xlim = c(0, 15),
-    ylim = c(0, 500)
+    expand = T,
+    # xlim = c(0, 5),
+    ylim = c(0, 1)
+  )+
+  labs(
+    x = "SIR simulation time",
+    y = "% Agents"
   )
 ```
 

@@ -15,6 +15,8 @@ library(colorspace)
 
 ```{r}
 load("data/results/data_networks.Rds")
+# get last gen
+ntwks = lapply(data_ntwk, last)
 ```
 
 ```{r}
@@ -25,97 +27,26 @@ labels = c(
 )
 ```
 
-```{r}
-# subset basic networks
-# ntwks = data_ntwk[names(data_ntwk) %in% c("spillover")]
-# get last gen
-ntwks = lapply(data_ntwk, last)
-
-# get betweenness
-ntwks = lapply(ntwks, function(df) {
-  df = mutate(df, btwn = tidygraph::centrality_betweenness())
-  as_tibble(df)
-}) |> rbindlist()
-```
+## Network plots
 
 ```{r}
-# melt data and split
-ntwks = select(ntwks, repl, scenario, degree, btwn)
-setDT(ntwks)
-
-ntwks = melt(
-  ntwks,
-  id.vars = c("scenario", "repl")
-)
-
-ntwks = split(ntwks, by = "variable")
-```
-
-
-```{r}
-plots = Map(
-  ntwks, names(ntwks),
-  f = function(df, varb) {
-    p = ggplot(df)+
-      geom_histogram(
-        aes(value),
-        position = "identity",
-        show.legend = F
-      )+
-      facet_wrap(
-        ~scenario,
-        labeller = labeller(
-          scenario = labels
-        )
-      )+
-      scale_x_continuous(
-        trans = ggallin::pseudolog10_trans,
-        breaks = 10 ^ seq(0, 4, 1),
-        labels = label_parsed(
-          labels = c(10 ^ seq(0, 2, 1), sprintf("10^%i", seq(3, 4, 1)))
-        )
-      )+
-      scale_y_sqrt(
-        labels = scales::comma
-      )+
-      theme_test()+
-      theme(
-        strip.background = element_blank(),
-        strip.text = element_text(
-          face = "italic"
-        ),
-        axis.text.y = element_text(
-          angle = 90,
-          hjust = 0.5
-        )
-      )
-  }
-)
-
-plots = wrap_plots(plots, ncol = 1)
-plots
-```
-
-### Network plots
-
-```{r}
-ntwks = data_ntwk[c(1, 7)]
-ntwks = lapply(ntwks, last)
-ntwks$nopatho = ntwks$nopatho %>% 
+ntwks_basic = ntwks[c(1, 9)]
+# ntwks = lapply(ntwks, last)
+ntwks_basic$nopatho = ntwks_basic$nopatho %>% 
   activate(edges) %>% 
-  filter(weight > 97) %>% 
+  filter(weight > 25) %>% 
   activate(nodes)
 ```
 
 
 ```{r}
 networkplots_basic = lapply(
-  ntwks, function(n) {
+  ntwks_basic, function(n) {
     ggraph(n, x = x, y = y)+
       geom_edge_fan(
         edge_width = 0.2,
-        edge_alpha = 0.3,
-        edge_color = "grey"
+        edge_alpha = 0.2,
+        edge_color = "grey50"
       )+
       geom_node_point(
         aes(
@@ -130,10 +61,10 @@ networkplots_basic = lapply(
       scale_shape_manual(
         values = c(21, 22, 23, 24)
       )+
-      scale_fill_viridis_c(
-        option = "F",
+      scale_fill_continuous_sequential(
+        palette = "Heat 2",
         limit = c(1, NA),
-        direction = -1,
+        # direction = -1,
         na.value = "lightblue"
         # trans = "sqrt"
       )+
@@ -148,23 +79,28 @@ networkplots_basic = lapply(
 networkplots_basic = wrap_plots(networkplots_basic, ncol = 2)
 ```
 
-
-
+## Data SIR
 
 ```{r}
-fig = wrap_plots(
-  networkplots,
-  sirplots,
-  guides = "collect",
-  ncol=1
-) &
-  theme(
-    legend.position = "top"
-  )
-  
-ggsave(
-  fig,
-  filename = "figures/fig_sir.png"
-)
+data_sir_basic = fread("data/results/data_sir_basic.csv")
+data_sir_basic = data_sir_basic[class != "NS",]
+data_sir_basic[, time_round := plyr::round_any(time, 0.5)]
+# data_sir_basic = data_sir_basic[, list(
+#   mean = mean(mean),
+#   sd = sd(mean)
+# ), by = c("")]
+```
+
+```{r}
+ggplot(data_sir_basic[class == "NR" & gamma == 1 & beta == 6])+
+  stat_summary(
+    aes(
+      time_round, mean,
+      colour = class, 
+      group = interaction(class, repl, sc_repl, scenario)
+    ),
+    geom = "line"
+  )+
+  facet_grid(sc_repl~scenario)
 ```
 
