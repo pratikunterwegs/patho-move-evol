@@ -80,7 +80,7 @@ plot_soc_out = Map(
         labels = c("Agent\navoiding", "Handler\ntracking", "Other\nstrategy")
       )+
       scale_fill_continuous_sequential(
-        palette = "Red-Yellow"
+        palette = "Oranges"
       )+
       scale_colour_discrete_diverging(
         palette = "Blue-Red 3",
