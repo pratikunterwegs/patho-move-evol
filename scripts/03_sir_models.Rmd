@@ -51,7 +51,7 @@ data_basic = Map(
     data = igraph::sir(
       graph = last(ntwk), beta = beta, gamma = gamma, no.sim = 25
     ) |>
-      handle_sir_data()
+      handle_sir_data(digits = 0)
     
     data$scenario = scenario
     data$sc_repl = sc_repl
