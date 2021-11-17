@@ -19,7 +19,7 @@ library(patchwork)
 ## Prepare parameters
 
 ```{r}
-beta = c(1, seq(2, 10, 2))
+beta = c(1, 5, 10)
 gamma = c(seq(0, 1))
 ```
 
@@ -43,10 +43,10 @@ parameters = CJ(
 ## Run basic models
 
 ```{r}
-repl = rep(seq(5), 2)
+sc_repl = rep(seq(5), 2)
 data_basic = Map(
   parameters$ntwk_basic, parameters$scenario, 
-  parameters$beta, parameters$gamma, repl,
+  parameters$beta, parameters$gamma, sc_repl,
   f = function(ntwk, scenario, beta, gamma, sc_repl) {
     data = igraph::sir(
       graph = last(ntwk), beta = beta, gamma = gamma, no.sim = 25
@@ -84,15 +84,17 @@ parameters = CJ(
   scenario = "spillover", 
   sorted = F
 )
+sc_repl = seq(5)
+
 data_spillover = Map(
   parameters$ntwk_spillover, parameters$scenario, 
-  parameters$beta, parameters$gamma, repl,
+  parameters$beta, parameters$gamma, sc_repl,
   f = function(ntwk, scenario, beta, gamma, sc_repl) {
     # data pre disease
     data_pre_disease = igraph::sir(
       graph = ntwk[[6]], beta = beta, gamma = gamma, no.sim = 25
     ) |>
-      handle_sir_data()
+      handle_sir_data(digits = 0)
     data_pre_disease$type = "pre"
     
     # data post disease
@@ -119,7 +121,7 @@ data_spillover = rbindlist(data_spillover)
 # save data
 fwrite(
   data_spillover,
-  file = "data/results/data_sir_spildata_spillover.csv"
+  file = "data/results/data_sir_spillover.csv"
 )
 ```
 
