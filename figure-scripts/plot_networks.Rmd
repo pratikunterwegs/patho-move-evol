@@ -15,8 +15,6 @@ library(colorspace)
 
 ```{r}
 load("data/results/data_networks.Rds")
-# get last gen
-ntwks = lapply(data_ntwk, last)
 ```
 
 ```{r}
@@ -27,12 +25,23 @@ labels = c(
 )
 ```
 
-## Network plots
+## Basic scenario network plots
 
 ```{r}
-ntwks_basic = ntwks[c(1, 9)]
-# ntwks = lapply(ntwks, last)
+# select nice endemic and nopatho networks
+ntwks_basic = data_ntwk[c(9, 1)]
+
+# get last gen
+ntwks_basic = lapply(ntwks_basic, last)
+
+# reduce edges in the nopatho network for plotting
 ntwks_basic$nopatho = ntwks_basic$nopatho %>% 
+  activate(edges) %>% 
+  filter(weight > 25) %>% 
+  activate(nodes)
+
+# reduce some edges in the endemic network too
+ntwks_basic$endemic = ntwks_basic$endemic %>% 
   activate(edges) %>% 
   filter(weight > 25) %>% 
   activate(nodes)
@@ -46,7 +55,7 @@ networkplots_basic = lapply(
       geom_edge_fan(
         edge_width = 0.2,
         edge_alpha = 0.2,
-        edge_color = "grey50"
+        edge_color = "grey20"
       )+
       geom_node_point(
         aes(
@@ -55,52 +64,155 @@ networkplots_basic = lapply(
         ),
         shape = 21,
         # size = 3,
-        alpha = 1,
-        show.legend = F
+        # colour = "grey",
+        # colour = "transparent", # "grey50",
+        alpha = 0.9,
+        show.legend = T
       )+
-      scale_shape_manual(
-        values = c(21, 22, 23, 24)
+      scale_size(
+        range = c(0.5, 4)
       )+
       scale_fill_continuous_sequential(
-        palette = "Heat 2",
-        limit = c(1, NA),
+        palette = "Heat",
+        limit = c(1, 100),
+        na.value = "lightblue"
+        # trans = "sqrt"
+      )+
+      theme_graph(
+        background = "white",
+        plot_margin = margin(rep(0, 3))
+      )+
+      theme(
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "top",
+        legend.key.height = unit(1, units = "mm"),
+        # panel.border = element_rect(
+        #   colour = "grey",
+        #   fill = "transparent"
+        # )
+      )+
+      coord_fixed(
+        # xlim = c(-5, 65),
+        # ylim = c(-5, 65)
+      )+
+      labs(
+        fill = "Time infected"
+      )+
+      guides(
+        size = "none"
+      )
+  })
+
+networkplots_basic = wrap_plots(
+  networkplots_basic, ncol = 2
+)
+```
+
+## Spillover scenario network plots
+
+```{r}
+# select nice network
+ntwks_spillover = data_ntwk[[12]]
+
+# select before and after disease
+ntwk_pre = ntwks_spillover[[6]] %>% 
+  activate(edges) %>% 
+  filter(weight > 25) %>% 
+  activate(nodes)
+
+ntwk_post = ntwks_spillover[[7]] %>% 
+  activate(edges) %>% 
+  filter(weight > 5) %>% 
+  activate(nodes)
+```
+
+```{r}
+networkplots_spillover = lapply(
+  list(ntwk_pre, ntwk_post), function(n) {
+    ggraph(n, x = x, y = y)+
+      geom_edge_fan(
+        edge_width = 0.2,
+        edge_alpha = 0.2,
+        edge_color = "grey20"
+      )+
+      geom_node_point(
+        aes(
+          fill = t_infec, 
+          size = assoc
+        ),
+        shape = 21,
+        # size = 3,
+        # colour = "transparent",# "grey50",
+        alpha = 0.9,
+        show.legend = T
+      )+
+      scale_size(
+        range = c(0.5, 4)
+      )+
+      scale_fill_continuous_sequential(
+        palette = "Heat",
+        limit = c(1, 100),
         # direction = -1,
         na.value = "lightblue"
         # trans = "sqrt"
       )+
       theme_graph(
-        background = "white"
+        background = "white",
+        plot_margin = margin(rep(0, 3))
       )+
       theme(
-        legend.position = "top"
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "top",
+        legend.key.height = unit(1, units = "mm"),
+        # panel.border = element_rect(
+        #   colour = "grey",
+        #   fill = "transparent"
+        # )
+      )+
+      coord_fixed(
+        # xlim = c(-5, 65),
+        # ylim = c(-5, 65)
+      )+
+      labs(
+        fill = "Time infected"
+      )+
+      guides(
+        size = "none"
       )
   })
 
-networkplots_basic = wrap_plots(networkplots_basic, ncol = 2)
-```
-
-## Data SIR
-
-```{r}
-data_sir_basic = fread("data/results/data_sir_basic.csv")
-data_sir_basic = data_sir_basic[class != "NS",]
-data_sir_basic[, time_round := plyr::round_any(time, 0.5)]
-# data_sir_basic = data_sir_basic[, list(
-#   mean = mean(mean),
-#   sd = sd(mean)
-# ), by = c("")]
+networkplots_spillover = wrap_plots(
+  networkplots_spillover, ncol = 2, tag_level = "new"
+)
 ```
 
 ```{r}
-ggplot(data_sir_basic[class == "NR" & gamma == 1 & beta == 6])+
-  stat_summary(
-    aes(
-      time_round, mean,
-      colour = class, 
-      group = interaction(class, repl, sc_repl, scenario)
+plot_network =
+  wrap_plots(
+  networkplots_basic,
+  networkplots_spillover, ncol = 1,
+  guides = "collect"
+) &
+  plot_annotation(
+    tag_levels = c("A", 1)
+  ) &
+  theme(
+    plot.tag = element_text(
+      face = "bold"
     ),
-    geom = "line"
-  )+
-  facet_grid(sc_repl~scenario)
+    legend.position = "bottom"
+  )
+
+ggsave(
+  plot = plot_network,
+  filename = "figures/fig_04.png",
+  height = 180,
+  width = 180,
+  units = "mm"
+)
 ```
 
