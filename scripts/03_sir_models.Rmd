@@ -19,8 +19,8 @@ library(patchwork)
 ## Prepare parameters
 
 ```{r}
-beta = c(1, 5, 10)
-gamma = c(seq(0, 1))
+beta = rep(c(5, 10), 2)
+gamma = c(seq(0, 1), 1, 0)
 ```
 
 ## Load networks
@@ -31,34 +31,36 @@ load("data/results/data_networks.Rds")
 
 ```{r}
 ntwk_basic = data_ntwk[names(data_ntwk) %in% c("nopatho", "endemic")]
-parameters = CJ(
-  beta, 
-  gamma, 
-  ntwk_basic, 
-  scenario = names(ntwk_basic), 
-  sorted = F
-)
+ntwk_basic = lapply(ntwk_basic, last)
 ```
 
 ## Run basic models
 
 ```{r}
 sc_repl = rep(seq(5), 2)
+
 data_basic = Map(
-  parameters$ntwk_basic, parameters$scenario, 
-  parameters$beta, parameters$gamma, sc_repl,
-  f = function(ntwk, scenario, beta, gamma, sc_repl) {
-    data = igraph::sir(
-      graph = last(ntwk), beta = beta, gamma = gamma, no.sim = 25
+  ntwk_basic, names(ntwk_basic), sc_repl,
+  f = function(ntwk, scenario, sc_repl) {
+    
+    # map over params
+    d = Map(
+      beta, gamma,
+      f = function(b, g) {
+        data = igraph::sir(
+          graph = ntwk, beta = b, gamma = g, no.sim = 25
+        ) |>
+          handle_sir_data(digits = 1)
+        
+        data[, c("beta", "gamma") := list(b, g)]
+        data
+      }
     ) |>
-      handle_sir_data(digits = 0)
+      rbindlist()
     
-    data$scenario = scenario
-    data$sc_repl = sc_repl
-    data$beta = beta
-    data$gamma = gamma
+    d[, c("scenario", "sc_repl") := list(scenario, sc_repl)]
+    d
     
-    data
   }
 )
 
@@ -76,43 +78,51 @@ fwrite(
 ```{r}
 ntwk_spillover = data_ntwk[names(data_ntwk) %in% c("spillover")]
 
-# parameter combinations
-parameters = CJ(
-  beta, 
-  gamma, 
-  ntwk_spillover, 
-  scenario = "spillover", 
-  sorted = F
-)
 sc_repl = seq(5)
 
 data_spillover = Map(
-  parameters$ntwk_spillover, parameters$scenario, 
-  parameters$beta, parameters$gamma, sc_repl,
-  f = function(ntwk, scenario, beta, gamma, sc_repl) {
-    # data pre disease
-    data_pre_disease = igraph::sir(
-      graph = ntwk[[6]], beta = beta, gamma = gamma, no.sim = 25
-    ) |>
-      handle_sir_data(digits = 0)
-    data_pre_disease$type = "pre"
+  ntwk_spillover, names(ntwk_spillover), sc_repl,
+  f = function(ntwk, scenario, sc_repl) {
     
-    # data post disease
-    data_post_disease = igraph::sir(
-      graph = last(ntwk), beta = beta, gamma = gamma, no.sim = 25
+    # pre disease
+    d_pre = Map(
+      beta, gamma,
+      f = function(b, g) {
+        d_pre_ = igraph::sir(
+          graph = ntwk[[6]], beta = b, gamma = g, no.sim = 25
+        ) |>
+          handle_sir_data(digits = 1)
+        d_pre_$type = "pre"
+        d_pre_$beta = b
+        d_pre_$gamma = g
+        d_pre_
+      }
     ) |>
-      handle_sir_data()
-    data_post_disease$type = "post"
+      rbindlist()
+    
+    # post disease
+    d_post = Map(
+      beta, gamma,
+      f = function(b, g) {
+        d_post_ = igraph::sir(
+          graph = last(ntwk), beta = b, gamma = g, no.sim = 25
+        ) |>
+          handle_sir_data(digits = 1)
+        d_post_$type = "post"
+        d_post_$beta = b
+        d_post_$gamma = g
+        d_post_
+      }
+    ) |>
+      rbindlist()
     
     data = rbindlist(
-      list(data_pre_disease, data_post_disease)
+      list(d_pre, d_post)
     )
-    data$scenario = scenario
-    data$sc_repl = sc_repl
-    data$beta = beta
-    data$gamma = gamma
     
+    data[, c("scenario", "sc_repl") := list(scenario, sc_repl)]
     data
+    
   }
 )
 
