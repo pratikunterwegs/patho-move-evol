@@ -8,12 +8,9 @@ editor_options:
 Load libraries.
 
 ```{r}
-library(igraph)
 library(data.table)
-
-library(ggplot2)
-library(ggraph)
-library(patchwork)
+library(igraph)
+library(tidygraph)
 ```
 
 ## Prepare parameters
@@ -54,14 +51,21 @@ data_basic = Map(
     
     # map over params
     d = Map(
-      beta, gamma,
-      f = function(b, g) {
+      beta, gamma, threshold,
+      f = function(b, g, thr) {
+        # filter for threshold associations
+        nt = ntwk %>% 
+          activate(edges) %>% 
+          filter(weight > thr) %>% 
+          activate(nodes)
+        
+        # run sir model
         data = igraph::sir(
-          graph = ntwk, beta = b, gamma = g, no.sim = 25
+          graph = nt, beta = b, gamma = g, no.sim = 25
         ) |>
           handle_sir_data(digits = 1)
         
-        data[, c("beta", "gamma") := list(b, g)]
+        data[, c("beta", "gamma", "threshold") := list(b, g, thr)]
         data
       }
     ) |>
