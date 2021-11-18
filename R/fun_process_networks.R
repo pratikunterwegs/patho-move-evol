@@ -94,7 +94,7 @@ handle_sir_data = function(data, digits = 1) {
     value.name = "agents",
     variable.name = "class"
   )
-  d[, time := fifelse(times < 2, times, round(times, digits))]
+  d[, time := round(times, digits)]
   
   # summarise over time bins
   d = d[, list(mean = mean(agents)), by = c("time", "class", "repl")]
