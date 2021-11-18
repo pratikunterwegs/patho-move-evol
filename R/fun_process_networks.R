@@ -62,11 +62,7 @@ get_networks = function(datafile, assoc_threshold = 5) {
       nodes = n,
       edges = edges,
       directed = FALSE
-    ) |>
-      tidygraph::mutate(
-        degree = tidygraph::centrality_degree(weights = weight),
-        isolated = tidygraph::node_is_isolated()
-      )
+    )
   })
   names(g) = genseq
   
