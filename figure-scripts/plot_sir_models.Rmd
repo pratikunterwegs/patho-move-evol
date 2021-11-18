@@ -27,86 +27,36 @@ labels = c(
 ```{r}
 sir_basic = fread("data/results/data_sir_basic.csv")
 # sir_basic$mean = sir_basic$mean / 500
-sir_basic = sir_basic[gamma == 1 & beta == 6]
-sir_basic[, tround := fifelse(time < 5, time, round(time, 0))]
+sir_basic = sir_basic[gamma == 1]
+# sir_basic[, tround := atanh(time)]
 sir_basic$scenario = factor(sir_basic$scenario, 
                             levels = c("nopatho", "endemic"))
 ```
 
 ```{r}
-ggplot(sir_basic[class %in% c("NI", "NR")])+
-  stat_summary(
-    fun.data = mean_se,
-    aes(tround, mean,
-        # group = interaction(repl, class, scenario, sc_repl, beta, gamma),
-        col = class),
-    # alpha = 0.2
-  )+
-  scale_x_sqrt()+
-  facet_grid(class~scenario, scales = "free_y")
-```
-
-
-```{r}
-# plot_sir_basic =
-  ggplot(sir_basic[class == "NR"])+
-  geom_bin2d(
+ggplot(sir_basic[class %in% c("NR")])+
+  geom_jitter(
     aes(
-      time, mean
+      time, mean,
+      col = as.factor(beta)
     ),
-    # binwidth = c(0.25, 0.02),
-    show.legend = F
+    alpha = 0.2
   )+
-  stat_summary(
-    fun = mean,
-    fun.max = ci_upper,
-    fun.min = ci_lower,
-    aes(
-      tround, mean,
-    ),
-    show.legend = F,
-    alpha = 0.8,
-    colour = "grey30"
-  )+
+  # geom_bin2d(
+  #   aes(
+  #     time, mean
+  #   ),
+  #   binwidth = c(0.1, 10)
+  # )+
   scale_fill_continuous_sequential(
-    palette = "Reds",
-    # rev = F,
-    trans = "sqrt"
+    palette = "Plasma",
+    trans = "log10"
   )+
-  theme_test()+
-  theme(
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "italic"
-    ),
-    axis.text.y = element_text(
-      angle = 90,
-      hjust = 0.5
-    ),
+  scale_y_sqrt()+
+  scale_x_continuous(
+    trans = ggallin::pseudolog10_trans
   )+
-  facet_grid(
-    beta~scenario,
-    scales = "free",
-    labeller = labeller(
-      scenario = labels
-    )
-  )+
-  scale_x_sqrt(
-    breaks = c(0, 1, seq(5, 15, 5))
-  )+
-  scale_y_continuous(
-    labels = scales::percent,
-    breaks = c(0.01, 0.5, 1)
-  )+
-  coord_cartesian(
-    expand = T,
-    # xlim = c(0, 5),
-    ylim = c(0, 1)
-  )+
-  labs(
-    x = "SIR simulation time",
-    y = "% Agents"
-  )
+  facet_grid(~scenario, scales = "free_y")
 ```
 
 
@@ -115,69 +65,39 @@ ggplot(sir_basic[class %in% c("NI", "NR")])+
 ```{r}
 # spillover data and rounding
 sir_spillover = fread("data/results/data_sir_spillover.csv")
-sir_spillover$mean = sir_spillover$mean / 500
-sir_spillover = sir_spillover[gamma == 1]
-sir_spillover[, tround := plyr::round_any(time, 1)]
+# sir_spillover$mean = sir_spillover$mean / 500
+sir_spillover = sir_spillover[gamma == 1 & beta == 5]
+
+
+sir_spillover[, tround := atanh(time)]
+sir_spillover[, tround := fifelse(tround < 1, round(tround, 1), round(tround, 1))]
 ```
 
 ```{r}
-ggplot(sir_spillover[class == "NR"])+
+ggplot(sir_spillover[class %in% c("NR")])+
   geom_bin2d(
     aes(
       time, mean
     ),
-    # binwidth = c(0.25, 0.02),
-    show.legend = F
+    binwidth = c(0.1, 10)
   )+
-  stat_summary(
-    fun = mean,
-    fun.max = ci_upper,
-    fun.min = ci_lower,
-    aes(
-      tround, mean,
-    ),
-    show.legend = F,
-    alpha = 0.8,
-    colour = "grey30"
-  )+
+  # stat_summary(
+  #   fun.data = mean_se,
+  #   aes(tround, mean,
+  #       group = interaction(class),
+  #       col = class),
+  #   # geom = "point",
+  #   # alpha = 0.2
+  # )+
   scale_fill_continuous_sequential(
-    palette = "Reds",
-    # rev = F,
-    trans = "sqrt"
+    palette = "Plasma",
+    trans = "log10"
   )+
-  theme_bw()+
-  theme(
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "italic"
-    ),
-    axis.text.y = element_text(
-      angle = 90,
-      hjust = 0.5
-    ),
-  )+
-  facet_grid(
-    beta~type,
-    scales = "free",
-    labeller = labeller(
-      scenario = labels
-    )
-  )+
-  scale_x_sqrt(
-    breaks = c(0, 1, seq(5, 15, 5))
-  )+
-  scale_y_continuous(
-    labels = scales::percent,
-    breaks = c(0.01, 0.5, 1)
-  )+
-  coord_cartesian(
-    expand = T,
-    # xlim = c(0, 5),
-    ylim = c(0, 1)
-  )+
-  labs(
-    x = "SIR simulation time",
-    y = "% Agents"
-  )
+  # scale_x_continuous(
+  #   trans = ggallin::pseudolog10_trans
+  # )+
+  # scale_x_sqrt()+
+  # scale_y_sqrt()+
+  facet_grid(~type, scales = "free_y")
 ```
 
