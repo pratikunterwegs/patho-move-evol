@@ -103,7 +103,7 @@ plot_intake =
     lty = 2,
     col = "indianred"
   )+
-  theme_test()+
+  theme_test(base_family = "Arial")+
   theme(
     legend.position = c(0.2, 0.2),
     legend.background = element_blank(),
@@ -176,7 +176,7 @@ plot_movement =
     breaks = c(1, 1000, 2500, 5000),
     labels = scales::comma
   )+
-  theme_test()+
+  theme_test(base_family = "Arial")+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(
@@ -221,6 +221,7 @@ plot_agent_avoid =
     aes(
       gen, prop
     ),
+    binwidth = c(100, 0.02),
     show.legend = F
   )+
   stat_summary(
@@ -247,7 +248,7 @@ plot_agent_avoid =
     labels = c("All agents", "Successful foragers")
   )+
   scale_fill_continuous_sequential(
-    palette = "Heat 2"
+    palette = "Reds 2"
   )+
   scale_x_continuous(
     # trans = "sqrt",
@@ -284,7 +285,7 @@ plot_agent_avoid =
   coord_cartesian(
     ylim = c(0, 1)
   )+
-  theme_test()+
+  theme_test(base_family = "Arial")+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(
@@ -314,6 +315,7 @@ plot_assoc =
     aes(
       gen, assoc.mean
     ),
+    binwidth = c(100, 0.05),
     show.legend = F
   )+
   stat_summary(
@@ -343,10 +345,10 @@ plot_assoc =
     col = "indianred"
   )+
   scale_fill_continuous_sequential(
-    palette = "Sunset"
+    palette = "Light Grays"
   )+
   scale_colour_manual(
-    values = c("navy")
+    values = c("grey20")
   )+
   scale_x_continuous(
     breaks = c(1, 1000, 2500, 5000),
@@ -356,7 +358,7 @@ plot_assoc =
     trans = "log10",
     labels = scales::comma
   )+
-  theme_test()+
+  theme_test(base_family = "Arial")+
   theme(
     strip.background = element_blank(),
     strip.text = element_text(
@@ -406,8 +408,7 @@ wrap_plots(
 ggsave(
   fig_1,
   filename = "figures/fig_01.png",
-  height = 5.5,
-  width = 5.5
+  height = 174, width = 174, units = "mm"
 )
 ```
 
