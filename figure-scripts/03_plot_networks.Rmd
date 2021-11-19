@@ -1,0 +1,126 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plot networks in final generations
+
+```{r}
+library(data.table)
+library(tidygraph)
+library(ggraph)
+library(colorspace)
+```
+
+```{r}
+load("data/results/data_networks.Rds")
+```
+
+```{r}
+labels = c(
+  "0" = "Sc. 1: No pathogen",
+  "1" = "Sc. 2: Endemic pathogen",
+  "2" = "Sc. 3: Spillover pathogen"
+)
+```
+
+## Spillover scenario network plots
+
+```{r}
+# select nice network
+ntwks_spillover = data_ntwk[[12]]
+
+# select before and after disease
+ntwk_pre = ntwks_spillover[[6]] %>% 
+  activate(edges) %>% 
+  filter(weight > 25) %>% 
+  activate(nodes)
+
+ntwk_post = ntwks_spillover[[7]] %>% 
+  activate(edges) %>% 
+  filter(weight > 5) %>% 
+  activate(nodes)
+```
+
+```{r}
+networkplots_spillover = lapply(
+  list(ntwk_pre, ntwk_post), function(n) {
+    ggraph(n, x = x, y = y)+
+      geom_edge_fan(
+        edge_width = 0.2,
+        edge_alpha = 0.2,
+        edge_color = "grey20"
+      )+
+      geom_node_point(
+        aes(
+          fill = t_infec, 
+          size = assoc
+        ),
+        stroke = 0.3,
+        shape = 21,
+        # size = 3,
+        # colour = "transparent",# "grey50",
+        alpha = 0.9,
+        show.legend = T
+      )+
+      scale_size(
+        range = c(0.5, 2)
+      )+
+      scale_fill_continuous_sequential(
+        palette = "Heat",
+        limit = c(1, 100),
+        # direction = -1,
+        na.value = "lightblue"
+        # trans = "sqrt"
+      )+
+      theme_graph(
+        base_family = "Arial",
+        background = "white",
+        base_size = 10,
+        plot_margin = margin(rep(0, 3))
+      )+
+      theme(
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.position = "top",
+        legend.key.height = unit(1, units = "mm"),
+        # panel.border = element_rect(
+        #   colour = "grey",
+        #   fill = "transparent"
+        # )
+      )+
+      labs(
+        fill = "Time infected"
+      )+
+      guides(
+        size = "none"
+      )
+  })
+
+networkplots_spillover = wrap_plots(
+  networkplots_spillover, ncol = 2,
+  guides = "collect"
+) &
+  plot_annotation(
+    tag_levels = c("A")
+  ) &
+  theme(
+    plot.tag = element_text(
+      face = "bold"
+    ),
+    legend.position = "bottom"
+  )
+```
+
+```{r}
+ggsave(
+  plot = networkplots_spillover,
+  filename = "figures/fig_03.png",
+  height = 87,
+  width = 114,
+  units = "mm"
+)
+```
+
