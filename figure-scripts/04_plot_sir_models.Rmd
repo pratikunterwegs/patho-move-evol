@@ -41,11 +41,11 @@ lapply(sir_spillover, function(df) {
       fun.min = ci_lower,
       aes(
         tround, mean/500, 
-        fill = type,
+        colour = type,
         shape = type,
         group = interaction(type, threshold)
       ),
-      col = "grey20",
+      fill = "grey90",
       stroke = 0.8,
       size = 0.3,
       alpha = 0.7,
@@ -61,10 +61,10 @@ lapply(sir_spillover, function(df) {
         threshold = label_both
       )
     )+
-    scale_fill_manual(
+    scale_colour_manual(
       values = c(
         "pre" = "steelblue",
-        "post" = "orange"
+        "post" = "brown"
       ),
       breaks = c("pre", "post"),
       labels = c("Pre-spillover", "Post-spillover")
