@@ -1,0 +1,413 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plot intake and movement outcomes in Scenario 3
+
+```{r}
+library(data.table)
+
+library(ggplot2)
+library(patchwork)
+library(colorspace)
+```
+
+Load data.
+
+```{r}
+# load data
+data = fread("data/results/data_gen.csv")
+data = data[scenario == "spillover"]
+
+# summarise etc
+data[, gen_round := plyr::round_any(gen, 400)]
+data[, energy.mean := fifelse(scenario == "spillover" & gen < 3334, NA_real_, energy.mean)]
+```
+
+## Intake and energy
+
+```{r}
+plot_intake =
+  ggplot(data)+
+  geom_bin2d(
+    aes(
+      gen, intake.mean,
+    ),
+    binwidth = c(100, 0.25),
+    show.legend = F,
+    # alpha = 0.8
+  )+
+  stat_summary(
+    fun = mean,
+    fun.min = ci_lower,
+    fun.max = ci_upper,
+    aes(
+      gen_round, intake.mean,
+      group = interaction(scenario),
+      colour = "Intake",
+      shape = "Intake"
+    ),
+    stroke = 1.5,
+    fill = "grey90"
+  )+
+  stat_summary(
+    fun = mean,
+    fun.min = ci_lower,
+    fun.max = ci_upper,
+    aes(
+      gen_round, energy.mean,
+      group = interaction(scenario),
+      colour = "Energy",
+      shape = "Energy"
+    ),
+    stroke = 1.5,
+    fill = "grey90"
+  )+
+  scale_shape_manual(
+    values = c(
+      "Intake" = 21, 
+      "Energy" = 24
+      ),
+    breaks = c("Energy", "Intake"),
+    labels = c("Net energy", "Intake")
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Greens 2"
+  )+
+  scale_colour_manual(
+    values = c(
+      "Intake" = "darkgreen", 
+      "Energy" = "brown"
+      ),
+    breaks = c("Energy", "Intake"),
+    labels = c("Net energy", "Intake")
+  )+
+  scale_x_continuous(
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  geom_hline(
+    yintercept = 0,
+    size = 0.2,
+    lty = 2
+  )+
+  geom_vline(
+    data = data.table(
+      x = 0.667 * 5000,
+      scenario = 3
+    ),
+    aes(
+      xintercept = x
+    ),
+    lty = 2,
+    col = "indianred"
+  )+
+  theme_test()+
+  theme(
+    legend.position = c(0.2, 0.2),
+    legend.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    )
+  )+
+  coord_cartesian(
+    ylim = c(-1, 15)
+  )+
+  labs(
+    x = "Generation",
+    y = "Mean per-capita value",
+    colour = NULL,
+    shape = NULL
+  )
+```
+
+## Movement
+
+```{r}
+plot_movement =
+  ggplot(data)+
+  geom_bin2d(
+    aes(
+      gen, moved.mean,
+    ),
+    binwidth = c(100, 1),
+    show.legend = F,
+    # alpha = 0.8
+  )+
+  stat_summary(
+    fun = mean,
+    fun.min = ci_lower,
+    fun.max = ci_upper,
+    aes(
+      gen_round, moved.mean,
+      group = interaction(scenario),
+      colour = "Distance",
+    ),
+    show.legend = F,
+    stroke = 1.5,
+    fill = "grey90",
+    shape = 22, alpha = 0.8
+  )+
+  geom_hline(
+    yintercept = 0,
+    size = 0.2,
+    lty = 2
+  )+
+  geom_vline(
+    data = data.table(
+      x = 0.667 * 5000,
+      scenario = 3
+    ),
+    aes(
+      xintercept = x
+    ),
+    lty = 2,
+    col = "indianred"
+  )+
+  scale_colour_manual(
+    values = c("midnightblue")
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Blues 2", rev = T
+  )+
+  scale_x_continuous(
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  theme_test()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    )
+  )+
+  coord_cartesian(
+    ylim = c(35, 90),
+  )+
+  labs(
+    x = "Generation",
+    y = "Mean distance moved",
+    colour = NULL
+  )
+```
+
+## Social information use
+
+```{r}
+# get morph data
+data_si = fread("data/results/data_morphs.csv")
+data_si = data_si[scenario == "spillover"]
+data_si[, gen_round := plyr::round_any(gen, 400)]
+
+# get social information strategies
+data_si = data_si[, list(prop = .N / 500), 
+               by = c("gen", "social_strat", "scenario", "repl", "gen_round")]
+data_si[, scenario := fcase(
+  scenario == "nopatho", 1,
+  scenario == "endemic", 2,
+  scenario == "spillover", 3
+)]
+```
+
+```{r}
+plot_agent_avoid =
+  ggplot(
+    data = data_si[social_strat %in% c("handler tracking", "agent tracking")]
+  )+
+  geom_bin2d(
+    data = data_si[social_strat %in% c("handler tracking")],
+    aes(
+      gen, prop
+    ),
+    show.legend = F
+  )+
+  stat_summary(
+    fun = median,
+    fun.min = ci_lower,
+    fun.max = ci_upper,
+    aes(
+      gen_round, prop,
+      colour = social_strat,
+      shape = social_strat,
+      group = interaction(scenario, social_strat)
+    ),
+    show.legend = T,
+    stroke = 1.5,
+    fill = "grey90",
+    position = position_dodge(width = 200),
+  )+
+  scale_shape_manual(
+    values = c(
+      "agent tracking" = 21, 
+      "handler tracking" = 24
+      ),
+    breaks = c("agent tracking", "handler tracking"),
+    labels = c("All agents", "Successful foragers")
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Heat 2"
+  )+
+  scale_x_continuous(
+    # trans = "sqrt",
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  scale_y_continuous(
+    labels = scales::percent
+  )+
+  scale_colour_manual(
+    values = c(
+      "agent tracking" = "steelblue", 
+      "handler tracking" = "brown"
+    ),
+    breaks = c("agent tracking", "handler tracking"),
+    labels = c("All agents", "Successful foragers")
+  )+
+  geom_hline(
+    yintercept = 0,
+    size = 0.2,
+    lty = 2
+  )+
+  geom_vline(
+    data = data.table(
+      x = 0.667 * 5000,
+      scenario = 3
+    ),
+    aes(
+      xintercept = x
+    ),
+    lty = 2,
+    col = "indianred"
+  )+
+  coord_cartesian(
+    ylim = c(0, 1)
+  )+
+  theme_test()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    ),
+    legend.background = element_blank(),
+    legend.position = "top",
+    legend.justification = "right"
+  )+
+  labs(
+    y = "% Agents tracking",
+    x = "Generation",
+    shape = NULL,
+    colour = NULL
+  )
+```
+
+## Associations
+
+```{r}
+plot_assoc =
+  ggplot(data)+
+  geom_bin2d(
+    aes(
+      gen, assoc.mean
+    ),
+    show.legend = F
+  )+
+  stat_summary(
+    data = data,
+    fun = mean,
+    fun.min = ci_lower, 
+    fun.max = ci_upper,
+    aes(
+      gen_round, assoc.mean,
+      colour = "Assoc"
+    ),
+    position = position_dodge(width = 100),
+    show.legend = F,
+    fill = "grey90",
+    stroke = 1.5,
+    shape = 22
+  )+
+  geom_vline(
+    data = data.table(
+      x = 0.667 * 5000,
+      scenario = 3
+    ),
+    aes(
+      xintercept = x
+    ),
+    lty = 2,
+    col = "indianred"
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Sunset"
+  )+
+  scale_colour_manual(
+    values = c("navy")
+  )+
+  scale_x_continuous(
+    breaks = c(1, 1000, 2500, 5000),
+    labels = scales::comma
+  )+
+  scale_y_continuous(
+    trans = "log10",
+    labels = scales::comma
+  )+
+  theme_test()+
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    ),
+    legend.position = "top"
+  )+
+  coord_cartesian(
+    expand = T,
+    ylim = c(50, 30e3)
+  )+
+  labs(
+    x = "Generation",
+    y = "Mean per-capita encounters",
+    fill = NULL
+  )
+```
+
+
+## Make Figure 1
+
+```{r}
+fig_1 =
+wrap_plots(
+  plot_intake, 
+  plot_movement,
+  plot_agent_avoid,
+  plot_assoc,
+  ncol = 2
+  # guides = "collect"
+) &
+  plot_annotation(
+    tag_levels = c("A", 1)
+  ) &
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(1, units = "mm"),
+    plot.tag = element_text(
+      face = "bold",
+      size = 10
+    )
+  )
+
+ggsave(
+  fig_1,
+  filename = "figures/fig_01.png",
+  height = 5.5,
+  width = 5.5
+)
+```
+
