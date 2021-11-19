@@ -109,22 +109,27 @@ sir_plot_basic =
 sir_spillover = fread("data/results/data_sir_spillover.csv")
 # sir_spillover$mean = sir_spillover$mean / 500
 sir_spillover = sir_spillover[class != "NS" & gamma == 1 & 
-                        beta == 1 & threshold %in% c(1, 10) ]
-sir_spillover[, tround := plyr::round_any(time, 0.2)]
+                        beta == 5 & threshold %in% c(1, 10) ]
+sir_spillover[, tround := plyr::round_any(time, 0.25)]
 sir_spillover[, type := factor(type, levels = c("pre", "post"))]
 ```
 
 ```{r}
-plot_sir_spillover = 
-  sir_spillover %>% 
+plot_sir_spillover =
+  sir_spillover |> 
   ggplot()+
   stat_summary(
+    fun = mean,
+    fun.max = ci_upper,
+    fun.min = ci_lower,
     aes(
       tround, mean/500, 
       col = type,
       shape = type
     ),
-    alpha = 0.8
+    stroke = 0.2,
+    alpha = 0.7,
+    position = position_dodge(width = 0.1)
   )+
   facet_grid(
     threshold ~ class,
@@ -149,12 +154,12 @@ plot_sir_spillover =
     breaks = c("pre", "post"),
     labels = c("Pre-spillover", "Post-spillover")
   )+
-  scale_y_sqrt(
+  scale_y_continuous(
     labels = scales::percent,
-    breaks = c(0.01, 0.33, 0.67, 1)
+    # breaks = c(0.01, 0.33, 0.67, 1)
   )+
   scale_x_sqrt()+
-  theme_test()+
+  theme_test(base_size = 10)+
   theme(
     legend.position = "top",
     strip.background = element_blank(),
@@ -173,7 +178,7 @@ plot_sir_spillover =
     )
   )+
   coord_cartesian(
-    xlim = c(0, 15),
+    xlim = c(0, 10),
     ylim = c(0, 1)
   )+
   labs(
