@@ -50,50 +50,44 @@ plot_soc_out = Map(
   data_summary, names(data_summary),
   f = function(df, varb) {
     p = ggplot(df)+
-      ggdist::stat_gradientinterval(
+      ggdist::stat_histinterval(
         aes(
           social_strat, value,
-          fill = stat(pdf),
-          slab_alpha = 0.6
+          fill = social_strat,
+          slab_alpha = 0.8,
+          slab_colour = "grey20"
         ),
         n = 25,
+        slab_size = 0.3,
         show.legend = F,
         width = 0.8,
         colour = "grey20"
         # colour = "grey",
         # size = 0.2
       )+
-      # geom_boxplot(
-      #   aes(
-      #     social_strat, value,
-      #     # col = social_strat
-      #   ),
-      #   fill = alpha("grey", 0.3),
-      #   col = "grey20",
-      #   show.legend = F,
-      #   size = 1,
-      #   width = 0.3,
-      #   outlier.size = 0.1
-      # ) +
       scale_x_discrete(
         breaks = c("agent avoiding", "handler tracking", "other"),
         labels = c("Agent\navoiding", "Handler\ntracking", "Other\nstrategy")
       )+
-      scale_fill_continuous_sequential(
-        palette = "Oranges"
+      scale_fill_manual(
+        values = c(
+          "agent avoiding" = "seagreen",
+          "handler tracking" = "firebrick1",
+          "other" = "steelblue"
+          )
       )+
       scale_colour_discrete_diverging(
         palette = "Blue-Red 3",
         order = c(2, 1),
         l1 = 30
       )+
-      # facet_wrap(
-      #   ~scenario,
-      #   labeller = labeller(
-      #     scenario = labels
-      #   )
-      # )+
-      theme_test()+
+      scale_alpha_binned(
+        range = c(0.5, 1), trans = "sqrt"
+      )+
+      theme_test(
+        base_family = "Arial",
+        base_size = 10
+      )+
       theme(
         strip.background = element_blank(),
         strip.text = element_text(
@@ -110,6 +104,9 @@ plot_soc_out = Map(
           color = "grey"
         )
       )+
+      scale_y_continuous(
+        limits = c(60, NA)
+      )+
       labs(
         x = NULL,
         y = "Distance moved"
@@ -119,7 +116,8 @@ plot_soc_out = Map(
       p = p + 
         scale_y_continuous(
           trans = "log10",
-          labels = scales::comma_format(accuracy = 1)
+          labels = scales::comma_format(accuracy = 1),
+          limits = c(10, NA)
         ) +
         labs(
           y = "Per-capita encounters"
@@ -127,7 +125,7 @@ plot_soc_out = Map(
     } else if(varb == "prop.infected") {
       p = p + 
         scale_y_continuous(
-          # trans = "sqrt",
+          trans = "sqrt",
           breaks = c(0.01, seq(0.25, 1, 0.25)),
           labels = scales::percent
         ) +
@@ -139,16 +137,24 @@ plot_soc_out = Map(
   }
 )
 
-plot_soc_out = wrap_plots(plot_soc_out)
-plot_soc_out
+plot_soc_out = wrap_plots(plot_soc_out) &
+  plot_annotation(
+    tag_levels = "A"
+  ) &
+  theme(
+    plot.tag = element_text(
+      face = "bold"
+    )
+  )
 ```
 
 ```{r}
 ggsave(
-  plot_soc_out,
-  file = "figures/fig_03.png",
-  height = 3.,
-  width = 6
+  plot = plot_soc_out,
+  file = "figures/fig_02.png",
+  height = 87,
+  width = 178,
+  units = "mm"
 )
 ```
 
