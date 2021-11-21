@@ -63,7 +63,7 @@ lapply(sir_spillover, function(df) {
     )+
     scale_colour_manual(
       values = c(
-        "pre" = "steelblue",
+        "pre" = "royalblue",
         "post" = "brown"
       ),
       breaks = c("pre", "post"),

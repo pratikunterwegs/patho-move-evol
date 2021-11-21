@@ -36,7 +36,7 @@ plot_intake =
     ),
     binwidth = c(100, 0.25),
     show.legend = F,
-    # alpha = 0.8
+    alpha = 0.8
   )+
   stat_summary(
     fun = mean,
@@ -73,7 +73,7 @@ plot_intake =
     labels = c("Net energy", "Intake")
   )+
   scale_fill_continuous_sequential(
-    palette = "Greens 2"
+    palette = "Batlow"
   )+
   scale_colour_manual(
     values = c(
@@ -170,7 +170,7 @@ plot_movement =
     values = c("midnightblue")
   )+
   scale_fill_continuous_sequential(
-    palette = "Blues 2", rev = T
+    palette = "Purple-Yellow",
   )+
   scale_x_continuous(
     breaks = c(1, 1000, 2500, 5000),
@@ -222,6 +222,7 @@ plot_agent_avoid =
       gen, prop
     ),
     binwidth = c(100, 0.02),
+    alpha = 0.8,
     show.legend = F
   )+
   stat_summary(
@@ -248,7 +249,7 @@ plot_agent_avoid =
     labels = c("All agents", "Successful foragers")
   )+
   scale_fill_continuous_sequential(
-    palette = "Reds 2"
+    palette = "Lajolla", rev = F
   )+
   scale_x_continuous(
     # trans = "sqrt",
@@ -315,6 +316,7 @@ plot_assoc =
     aes(
       gen, assoc.mean
     ),
+    alpha = 0.8,
     binwidth = c(100, 0.05),
     show.legend = F
   )+
@@ -345,7 +347,7 @@ plot_assoc =
     col = "indianred"
   )+
   scale_fill_continuous_sequential(
-    palette = "Light Grays"
+    palette = "Sunset"
   )+
   scale_colour_manual(
     values = c("grey20")
