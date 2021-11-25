@@ -73,11 +73,11 @@ plot_intake =
     labels = c("Net energy", "Intake")
   )+
   scale_fill_continuous_sequential(
-    palette = "Heat 2"
+    palette = "Batlow"
   )+
   scale_colour_manual(
     values = c(
-      "Intake" = "seagreen", 
+      "Intake" = "darkgreen", 
       "Energy" = "brown"
       ),
     breaks = c("Energy", "Intake"),
@@ -148,8 +148,7 @@ plot_movement =
     show.legend = F,
     stroke = 1.5,
     fill = "grey90",
-    shape = 22
-    # alpha = 0.8
+    shape = 22, alpha = 0.8
   )+
   geom_hline(
     yintercept = 0,
@@ -168,10 +167,10 @@ plot_movement =
     col = "indianred"
   )+
   scale_colour_manual(
-    values = c("steelblue")
+    values = c("midnightblue")
   )+
   scale_fill_continuous_sequential(
-    palette = "Heat 2",
+    palette = "Purple-Yellow",
   )+
   scale_x_continuous(
     breaks = c(1, 1000, 2500, 5000),
@@ -250,7 +249,7 @@ plot_agent_avoid =
     labels = c("All agents", "Successful foragers")
   )+
   scale_fill_continuous_sequential(
-    palette = "Heat 2", rev = T
+    palette = "Lajolla", rev = F
   )+
   scale_x_continuous(
     # trans = "sqrt",
@@ -348,10 +347,10 @@ plot_assoc =
     col = "indianred"
   )+
   scale_fill_continuous_sequential(
-    palette = "Heat 2"
+    palette = "Sunset"
   )+
   scale_colour_manual(
-    values = c("steelblue")
+    values = c("grey20")
   )+
   scale_x_continuous(
     breaks = c(1, 1000, 2500, 5000),
@@ -389,9 +388,9 @@ plot_assoc =
 ```{r}
 fig_1 =
 wrap_plots(
-  plot_agent_avoid,
   plot_intake, 
   plot_movement,
+  plot_agent_avoid,
   plot_assoc,
   ncol = 2
   # guides = "collect"
