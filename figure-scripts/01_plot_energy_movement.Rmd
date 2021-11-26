@@ -132,7 +132,7 @@ ggplot(data[variable %in% c("intake.mean", "energy.mean")])+
   )+
   labs(
     x = NULL,
-    y = "Mean per-capita value",
+    y = "Per-capita intake",
     colour = NULL,
     shape = NULL
   )
@@ -233,7 +233,7 @@ ggplot(data[variable %in% c("moved.mean")])+
   )+
   labs(
     x = NULL,
-    y = "Mean per-capita value",
+    y = "Distance moved",
     colour = NULL,
     shape = NULL
   )
@@ -478,7 +478,7 @@ ggplot(data[variable %in% c("assoc.mean")])+
   )+
   labs(
     x = NULL,
-    y = "Mean per-capita value",
+    y = "Encounters w/ individuals",
     colour = NULL,
     shape = NULL
   )
