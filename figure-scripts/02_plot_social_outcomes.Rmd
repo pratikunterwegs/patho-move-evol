@@ -109,7 +109,7 @@ plot_move_encounter =
     ylim = c(10, NA)
     # ratio = 40
   )+
-  theme_test(
+  theme_light(
     base_family = "Arial"
   )+
   theme(
