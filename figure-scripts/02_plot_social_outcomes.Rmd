@@ -42,8 +42,156 @@ data_summary$social_strat = fifelse(
 )
 
 # split by variable
-data_summary = split(data_summary, by = "variable")
+# data_summary = split(data_summary, by = "variable")
 ```
+
+```{r}
+data_summary = dcast(
+  data_summary,
+  formula = gen + repl + social_strat ~ variable,
+  value.var = "value",
+  fun.aggregate = mean
+)
+
+plot_move_encounter =
+  ggplot(data_summary)+
+  geom_point(
+    aes(
+      moved.mean, assoc.mean,
+      shape = social_strat,
+      col = social_strat
+    ),
+    alpha = 0.2,
+    fill = "transparent",
+    show.legend = T
+  )+
+  geom_smooth(
+    # data = data_summary[social_strat != "handler tracking"],
+    aes(
+      moved.mean, assoc.mean,
+      # group = social_strat != "handler",
+      col = social_strat
+    ),
+    se = T,
+    method = "glm",
+    # alpha = 0.5,
+    show.legend = F
+  )+
+  scale_colour_manual(
+    values = c(
+      "indianred",
+      "midnightblue",
+      "olivedrab"
+    ),
+    name = NULL,
+    labels = c(
+      "Avoids \nall agents",
+      "Tracks \nhandlers",
+      "Other social\ninformation strategy"
+    )
+    # h1 = 20
+  )+
+  scale_shape_manual(
+    values = c(1, 2, 0),
+    name = NULL,
+    labels = c(
+      "Avoids \nall agents",
+      "Tracks \nhandlers",
+      "Other social\ninformation strategy"
+    )
+  )+
+  scale_y_continuous(
+    trans = "log10",
+    labels = scales::comma_format()
+  )+
+  coord_cartesian(
+    xlim = c(60, 100),
+    ylim = c(10, NA)
+    # ratio = 40
+  )+
+  theme_test(
+    base_family = "Arial"
+  )+
+  theme(
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5
+    ),
+    legend.position = "top",
+    legend.justification = "right"
+  )+
+  labs(
+    x = "Distance moved",
+    y = "Encounters w/ individuals"
+  )+
+  guides(
+    colour = guide_legend(
+      override.aes = list(
+        alpha = 1,
+        stroke = 1
+      )
+    )
+  )
+
+ggsave(
+  plot = plot_move_encounter,
+  file = "figures/fig_02.png",
+  height = 87,
+  width = 87,
+  units = "mm"
+)
+```
+
+
+
+```{r}
+# ggplot(data_summary)+
+#   geom_point(
+#     aes(
+#       assoc.mean, prop.infected,
+#       shape = social_strat,
+#       col = social_strat
+#     ),
+#     binwidth = c(0.5, 0.05),
+#     # show.legend = F
+#   )+
+#   scale_shape_manual(
+#     values = c(21, 22, 24),
+#     name = NULL,
+#     labels = c(
+#       "Avoids \nall agents",
+#       "Tracks \nhandlers",
+#       "Other social\ninformation strategy"
+#     )
+#   )+
+#   scale_colour_discrete_sequential(
+#     palette = "Batlow",
+#     # l1 = 0, 
+#     l2 = 70,
+#     name = NULL,
+#     na.value = "seagreen",
+#     labels = c(
+#       "Avoids \nall agents",
+#       "Tracks \nhandlers",
+#       "Other social\ninformation strategy"
+#     )
+#     # h1 = 20
+#   )+
+#   scale_x_continuous(
+#     trans = "log10"
+#   )+
+#   scale_y_sqrt()+
+#   coord_cartesian(
+#     xlim = c(10, NA),
+#     # ylim = c(10, NA)
+#     # ratio = 40
+#   )+
+#   theme_test()+
+#   theme(
+#     legend.position = "top"
+#   )
+```
+
 
 ```{r}
 plot_soc_out = Map(
@@ -147,14 +295,3 @@ plot_soc_out = wrap_plots(plot_soc_out) &
     )
   )
 ```
-
-```{r}
-ggsave(
-  plot = plot_soc_out,
-  file = "figures/fig_02.png",
-  height = 87,
-  width = 178,
-  units = "mm"
-)
-```
-
