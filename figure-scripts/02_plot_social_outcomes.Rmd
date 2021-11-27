@@ -78,7 +78,7 @@ plot_move_encounter =
     show.legend = F
   )+
   scale_colour_discrete_diverging(
-    palette = "Blue-Red 2", 
+    palette = "Blue-Red 3", 
     rev = T,
     l2 = 30,
     c1 = 70,
