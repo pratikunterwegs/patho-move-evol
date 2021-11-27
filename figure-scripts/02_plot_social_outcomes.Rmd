@@ -77,12 +77,12 @@ plot_move_encounter =
     # alpha = 0.5,
     show.legend = F
   )+
-  scale_colour_manual(
-    values = c(
-      "indianred",
-      "midnightblue",
-      "olivedrab"
-    ),
+  scale_colour_discrete_diverging(
+    palette = "Blue-Red 2", 
+    rev = T,
+    l2 = 30,
+    c1 = 70,
+    l1 = 50,
     name = NULL,
     labels = c(
       "Avoids \nall agents",
@@ -109,7 +109,7 @@ plot_move_encounter =
     ylim = c(10, NA)
     # ratio = 40
   )+
-  theme_light(
+  theme_bw(
     base_family = "Arial"
   )+
   theme(
