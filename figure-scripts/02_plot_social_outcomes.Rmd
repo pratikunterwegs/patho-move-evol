@@ -55,19 +55,23 @@ data_summary = dcast(
 
 plot_move_encounter =
   ggplot(data_summary)+
-  geom_bin2d(
+  geom_point(
     aes(
       moved.mean, assoc.mean,
       fill = social_strat,
-      group = social_strat,
-      alpha = ..density..
+      shape = social_strat,
+      col = social_strat
+      # group = social_strat,
+      # alpha = ..density..
     ),
-    position = position_identity(),
-    binwidth = c(0.75, 0.05)
+    # position = position_identity(),
+    # binwidth = c(0.75, 0.05),
+    alpha = 0.2
   )+
-  scale_fill_discrete_sequential(
-    palette = "Hawaii",
-    l1 = 10, l2 = 40,
+  scale_fill_manual(
+    values = c(
+      "indianred1", "midnightblue", "olivedrab"
+    ),
     name = NULL,
     labels = c(
       "Avoids \nall agents",
@@ -87,12 +91,10 @@ plot_move_encounter =
     # alpha = 0.5,
     show.legend = F
   )+
-  scale_colour_discrete_sequential(
-    palette = "Hawaii", 
-    # rev = T,
-    l2 = 40,
-    # c1 = 70,
-    l1 = 20,
+  scale_colour_manual(
+    values = c(
+      "darkred", "midnightblue", "darkgreen"
+    ),
     name = NULL,
     labels = c(
       "Avoids \nall agents",
@@ -102,7 +104,7 @@ plot_move_encounter =
     # h1 = 20
   )+
   scale_shape_manual(
-    values = c(1, 2, 0),
+    values = c(21, 22, 24),
     name = NULL,
     labels = c(
       "Avoids \nall agents",
