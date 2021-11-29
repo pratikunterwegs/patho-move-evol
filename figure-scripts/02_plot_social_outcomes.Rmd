@@ -52,26 +52,28 @@ data_summary = dcast(
   value.var = "value",
   fun.aggregate = mean
 )
+```
 
+## Plot move and encounters
+
+```{r}
 plot_move_encounter =
   ggplot(data_summary)+
-  geom_point(
+   geom_bin2d(
     aes(
       moved.mean, assoc.mean,
       fill = social_strat,
-      shape = social_strat,
-      col = social_strat
-      # group = social_strat,
-      # alpha = ..density..
+      group = social_strat,
+      alpha = ..density..
     ),
-    # position = position_identity(),
-    # binwidth = c(0.75, 0.05),
-    alpha = 0.2
+    show.legend = T,
+    position = position_identity(),
+    binwidth = c(0.75, 0.05)
   )+
-  scale_fill_manual(
-    values = c(
-      "indianred1", "midnightblue", "olivedrab"
-    ),
+  scale_fill_discrete_sequential(
+    palette = "Viridis",
+    l1 = 10, l2 = 70,
+    rev = F,
     name = NULL,
     labels = c(
       "Avoids \nall agents",
@@ -80,31 +82,18 @@ plot_move_encounter =
     )
   )+
   geom_smooth(
-    # data = data_summary[social_strat != "handler tracking"],
     aes(
       moved.mean, assoc.mean,
-      # group = social_strat != "handler",
       col = social_strat
     ),
     se = T,
     method = "glm",
-    # alpha = 0.5,
     show.legend = F
   )+
-  scale_colour_manual(
-    values = c(
-      "darkred", "midnightblue", "darkgreen"
-    ),
-    name = NULL,
-    labels = c(
-      "Avoids \nall agents",
-      "Tracks \nhandlers",
-      "Other social\ninformation strategy"
-    )
-    # h1 = 20
-  )+
-  scale_shape_manual(
-    values = c(21, 22, 24),
+  scale_colour_discrete_sequential(
+    palette = "Viridis",
+    l1 = 10, l2 = 70,
+    rev = F,
     name = NULL,
     labels = c(
       "Avoids \nall agents",
@@ -113,7 +102,7 @@ plot_move_encounter =
     )
   )+
   scale_alpha_continuous(
-    range = c(0.1, 1)
+    range = c(0.2, 1)
   )+
   scale_y_continuous(
     trans = "log10",
@@ -142,203 +131,87 @@ plot_move_encounter =
     y = "Encounters w/ individuals"
   )+
   guides(
-    colour = guide_legend(
-      override.aes = list(
-        alpha = 1
-      )
-    ),
-    alpha = "none"
+    alpha = "none",
+    shape = "none",
+    colour = "none"
   )
-
-ggsave(
-  plot = plot_move_encounter,
-  file = "figures/fig_02.png",
-  height = 87,
-  width = 87,
-  units = "mm"
-)
 ```
 
 ```{r}
-ggplot(data_summary)+
-  geom_bin2d(
+plot_infected =
+  ggplot(data_summary)+
+  ggdist::stat_histinterval(
     aes(
-      moved.mean, assoc.mean,
+      social_strat, prop.infected,
+      # colour = social_strat,
       fill = social_strat,
       group = social_strat,
-      alpha = ..density..
-    ),
-    position = position_identity(),
-    binwidth = c(0.75, 0.05)
+      # alpha = ..pdf..
+    ), 
+    n = 31,
+    show.legend = F
   )+
   scale_fill_discrete_sequential(
-    palette = "Hawaii",
-    l1 = 10, l2 = 70
+    palette = "Viridis",
+    l1 = 10, l2 = 70,
+    rev = F,
+    name = NULL,
+    labels = c(
+      "Avoids \nall agents",
+      "Tracks \nhandlers",
+      "Other social\ninformation strategy"
+    )
   )+
-  scale_y_continuous(
-    trans = "log10",
-    labels = scales::comma_format()
+  scale_y_sqrt(
+    labels = scales::percent,
+    breaks = c(0.01, 0.25, 0.5, 1)
   )+
-  coord_cartesian(
-    xlim = c(60, 100),
-    ylim = c(10, NA)
-    # ratio = 40
+  scale_x_discrete(
+    labels = c(
+      "Avoids \nall agents",
+      "Tracks \nhandlers",
+      "Other\nstrategy"
+    )
   )+
-  theme_test(
-    base_family = "Arial"
+  theme_test()+
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(0.5, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5
+    ),
+    axis.text.x = element_blank()
+  )+
+  labs(
+    x = "Social information\nstrategy",
+    y = "% Infected"
   )
 ```
 
-
-
 ```{r}
-# ggplot(data_summary)+
-#   geom_point(
-#     aes(
-#       assoc.mean, prop.infected,
-#       shape = social_strat,
-#       col = social_strat
-#     ),
-#     binwidth = c(0.5, 0.05),
-#     # show.legend = F
-#   )+
-#   scale_shape_manual(
-#     values = c(21, 22, 24),
-#     name = NULL,
-#     labels = c(
-#       "Avoids \nall agents",
-#       "Tracks \nhandlers",
-#       "Other social\ninformation strategy"
-#     )
-#   )+
-#   scale_colour_discrete_sequential(
-#     palette = "Batlow",
-#     # l1 = 0, 
-#     l2 = 70,
-#     name = NULL,
-#     na.value = "seagreen",
-#     labels = c(
-#       "Avoids \nall agents",
-#       "Tracks \nhandlers",
-#       "Other social\ninformation strategy"
-#     )
-#     # h1 = 20
-#   )+
-#   scale_x_continuous(
-#     trans = "log10"
-#   )+
-#   scale_y_sqrt()+
-#   coord_cartesian(
-#     xlim = c(10, NA),
-#     # ylim = c(10, NA)
-#     # ratio = 40
-#   )+
-#   theme_test()+
-#   theme(
-#     legend.position = "top"
-#   )
-```
-
-
-```{r}
-plot_soc_out = Map(
-  data_summary, names(data_summary),
-  f = function(df, varb) {
-    p = ggplot(df)+
-      ggdist::stat_histinterval(
-        aes(
-          social_strat, value,
-          fill = social_strat,
-          slab_alpha = 0.8,
-          slab_colour = "grey20"
-        ),
-        n = 25,
-        slab_size = 0.3,
-        show.legend = F,
-        width = 0.8,
-        colour = "grey20"
-        # colour = "grey",
-        # size = 0.2
-      )+
-      scale_x_discrete(
-        breaks = c("agent avoiding", "handler tracking", "other"),
-        labels = c("Agent\navoiding", "Handler\ntracking", "Other\nstrategy")
-      )+
-      scale_fill_manual(
-        values = c(
-          "agent avoiding" = "seagreen",
-          "handler tracking" = "firebrick1",
-          "other" = "steelblue"
-          )
-      )+
-      scale_colour_discrete_diverging(
-        palette = "Blue-Red 3",
-        order = c(2, 1),
-        l1 = 30
-      )+
-      scale_alpha_binned(
-        range = c(0.5, 1), trans = "sqrt"
-      )+
-      theme_test(
-        base_family = "Arial",
-        base_size = 10
-      )+
-      theme(
-        strip.background = element_blank(),
-        strip.text = element_text(
-          face = "italic"
-        ),
-        axis.text.y = element_text(
-          angle = 90,
-          hjust = 0.5
-        ),
-        panel.grid.major.x = element_line(
-          # colour = "grey",
-          size = 0.3,
-          linetype = 2,
-          color = "grey"
-        )
-      )+
-      scale_y_continuous(
-        limits = c(60, NA)
-      )+
-      labs(
-        x = NULL,
-        y = "Distance moved"
-      )
-    
-    if(varb == "assoc.mean") {
-      p = p + 
-        scale_y_continuous(
-          trans = "log10",
-          labels = scales::comma_format(accuracy = 1),
-          limits = c(10, NA)
-        ) +
-        labs(
-          y = "Per-capita encounters"
-        )
-    } else if(varb == "prop.infected") {
-      p = p + 
-        scale_y_continuous(
-          trans = "sqrt",
-          breaks = c(0.01, seq(0.25, 1, 0.25)),
-          labels = scales::percent
-        ) +
-        labs(
-          y = "% Agents infected"
-        )
-    }
-    p
-  }
-)
-
-plot_soc_out = wrap_plots(plot_soc_out) &
+plot_soc_out =
+wrap_plots(
+  plot_move_encounter, plot_infected,
+  guides = "collect",
+  design = "AAB"
+  ) &
   plot_annotation(
     tag_levels = "A"
   ) &
   theme(
+    legend.position = "top",
     plot.tag = element_text(
       face = "bold"
     )
   )
+
+ggsave(
+  plot = plot_soc_out,
+  file = "figures/fig_02.png",
+  height = 87,
+  width = 130,
+  units = "mm"
+)
 ```
