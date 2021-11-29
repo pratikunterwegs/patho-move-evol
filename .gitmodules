@@ -4,3 +4,6 @@
 [submodule "ms-pathomove"]
 	path = ms-pathomove
 	url = https://git.overleaf.com/618924fc553aeaa2b60a63d2
+[submodule "ms-pnas"]
+	path = ms-pnas
+	url = ./ms-pnas
