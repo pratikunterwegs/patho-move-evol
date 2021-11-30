@@ -114,6 +114,56 @@ networkplots_spillover = wrap_plots(
   )
 ```
 
+## Network metrics
+
+```{r}
+data_spillover = data_ntwk[names(data_ntwk) == "spillover"]
+
+data_spillover = lapply(
+  data_spillover, function(le) {
+    list(
+      pre = le[[6]],
+      post = le[[7]]
+    )
+  }
+)
+
+data_pre = lapply(
+  data_spillover, function(le) {
+    le[["pre"]] |> 
+      mutate(
+        degree = tidygraph::centrality_degree()
+      )
+  }
+)
+
+data_post = lapply(
+  data_spillover, function(le) {
+    le[["post"]] |> 
+      mutate(
+        degree = tidygraph::centrality_degree()
+      )
+  }
+)
+```
+
+```{r}
+data_pre = lapply(data_pre, as_tibble) |> 
+  rbindlist()
+data_post = lapply(data_post, as_tibble) |> 
+  rbindlist()
+```
+
+```{r}
+ggplot(data_pre)+
+  geom_histogram(
+    aes(
+      assoc
+    )
+  )
+```
+
+
 ```{r}
 ggsave(
   plot = networkplots_spillover,
