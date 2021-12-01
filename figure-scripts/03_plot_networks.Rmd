@@ -132,7 +132,11 @@ data_pre = lapply(
   data_spillover, function(le) {
     le[["pre"]] |> 
       mutate(
-        degree = tidygraph::centrality_degree()
+        degree = tidygraph::centrality_degree(
+          weights = weight
+        ),
+        wt_between = tidygraph::centrality_betweenness(weights = weight),
+        type = "pre"
       )
   }
 )
@@ -141,7 +145,11 @@ data_post = lapply(
   data_spillover, function(le) {
     le[["post"]] |> 
       mutate(
-        degree = tidygraph::centrality_degree()
+        degree = tidygraph::centrality_degree(
+          weights = weight
+        ),
+        wt_between = tidygraph::centrality_betweenness(weights = weight),
+        type = "post"
       )
   }
 )
@@ -152,17 +160,70 @@ data_pre = lapply(data_pre, as_tibble) |>
   rbindlist()
 data_post = lapply(data_post, as_tibble) |> 
   rbindlist()
+
+data = rbindlist(list(data_pre, data_post))
 ```
 
 ```{r}
-ggplot(data_pre)+
-  geom_histogram(
+ggplot(data)+
+  ggdist::stat_histinterval(
     aes(
-      assoc
+      type, assoc
     )
-  )
+  )+
+  scale_y_log10()
 ```
 
+```{r}
+ggplot(data)+
+  ggdist::stat_histinterval(
+    aes(
+      type, degree / 500,
+      fill = type
+    ),
+    # fill = "transparent",
+    show.legend = F
+  )+
+  scale_alpha(
+    # range = c(0, 0.5)
+  )+
+  scale_fill_discrete_diverging(
+    palette = "Blue-Yellow 3",
+    rev = T
+  )+
+  scale_x_discrete(
+    limits = c("pre", "post"),
+    breaks = c("pre", "post"),
+    labels = c(
+      "Pre\nspillover", "Post\nspillover"
+    )
+  )+
+  scale_y_continuous(
+    trans = ggallin::ssqrt_trans,
+    labels = scales::percent
+  )+
+  labs(
+    x = NULL,
+    y = "% individuals encountered"
+  )+
+  theme_test(
+    base_family = "Arial"
+  )+
+  theme(
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5
+    ),
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(1, "mm"),
+    legend.position = "top",
+    legend.justification = "right"
+  )+
+  labs(
+    x = NULL,
+    y = "% Individuals encountered"
+  )
+```
 
 ```{r}
 ggsave(
