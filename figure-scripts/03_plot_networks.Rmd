@@ -133,9 +133,8 @@ data_pre = lapply(
     le[["pre"]] |> 
       mutate(
         degree = tidygraph::centrality_degree(
-          weights = weight
+          # weights = weight
         ),
-        wt_between = tidygraph::centrality_betweenness(weights = weight),
         type = "pre"
       )
   }
@@ -146,9 +145,8 @@ data_post = lapply(
     le[["post"]] |> 
       mutate(
         degree = tidygraph::centrality_degree(
-          weights = weight
+          # weights = weight
         ),
-        wt_between = tidygraph::centrality_betweenness(weights = weight),
         type = "post"
       )
   }
@@ -168,10 +166,66 @@ data = rbindlist(list(data_pre, data_post))
 ggplot(data)+
   ggdist::stat_histinterval(
     aes(
-      type, assoc
+      type, degree/ assoc
+    )
+  )
+  # scale_y_log10()
+```
+
+```{r}
+ggplot(data)+
+  geom_jitter(
+    aes(
+      assoc, degree / 500,
+      col = type,
+      shape = type
+    ),
+    alpha = 0.5
+  )+
+  scale_colour_discrete_diverging(
+    palette = "Blue-Yellow 3",
+    rev = F,
+    limits = c("pre", "post"),
+    breaks = c("pre", "post"),
+    labels = c(
+      "Pre\nspillover", "Post\nspillover"
     )
   )+
-  scale_y_log10()
+  scale_shape(
+    limits = c("pre", "post"),
+    breaks = c("pre", "post"),
+    labels = c(
+      "Pre\nspillover", "Post\nspillover"
+    )
+  )+
+  scale_y_log10()+
+  scale_x_continuous(
+    # trans = "log10",
+    labels = scales::comma_format(),
+    # breaks = c(0, seq(2500, 7500, 2500))
+  )+
+  coord_cartesian(
+    # xlim = c(1, 7500)
+  )+
+  theme_test(
+    base_family = "Arial"
+  )+
+  theme(
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5
+    ),
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(1, "mm"),
+    legend.position = "top",
+    legend.justification = "right"
+  )+
+  labs(
+    colour = NULL,
+    shape = NULL,
+    y = "Unique individuals",
+    x = "Encounters"
+  )
 ```
 
 ```{r}
