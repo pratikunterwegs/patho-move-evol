@@ -180,13 +180,13 @@ plot_dist_weight = lapply(
           distance, weight,
           # fill = ..density..
         ),
-        binwidth= c(0.5, 0.1),
+        binwidth= c(1, 2),
         show.legend = F
       )+
       scale_fill_continuous_sequential(
         palette = "Batlow"
       )+
-      scale_y_sqrt()+
+      # scale_y_sqrt()+
       coord_cartesian(
         xlim = c(0, 25),
         expand = F
@@ -199,8 +199,6 @@ plot_dist_weight = lapply(
   }
 ) |>
   wrap_plots()
-
-plot_dist_weight
 ```
 
 
@@ -215,18 +213,17 @@ data = rbindlist(list(data_pre, data_post))
 
 ```{r}
 ggplot(data)+
-  ggdist::stat_histinterval(
+  geom_histogram(
     aes(
-      type, degree / assoc
-    )
+      degree,
+      fill = type
+    ),
+    position = "identity"
   )+
-  scale_x_discrete(
-    limits = c("pre", "post")
-  )+
+  scale_x_sqrt()+
   scale_y_continuous(
     # labels = scales::percent
   )
-  # scale_y_log10()
 ```
 
 ```{r}
