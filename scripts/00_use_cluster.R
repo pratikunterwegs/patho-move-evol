@@ -1,6 +1,8 @@
 
 # load libraries
 library(snevo)
+library(stringr)
+library(glue)
 
 # param file name
 date = Sys.time() |> str_replace_all(" |:", "_")
@@ -25,7 +27,7 @@ snevo::make_parameter_file(
   initialInfections = 20,
   costInfect = 0.25,
   nThreads = 2,
-  replicates = 5,
+  replicates = 3,
   which_file = param_file
 )
 
@@ -33,7 +35,7 @@ snevo::make_parameter_file(
 snevo::use_cluster(
   ssh_con = "p284074@peregrine.hpc.rug.nl",
   password = password, 
-  script = "scripts/do_sim_cluster.R", 
+  script = "scripts/do_sim_snevo.R", 
   template_job = "bash/main_job_maker.sh", 
-  parameter_file = "data/parameters/parameters_test.csv"
+  parameter_file = param_file
 )
