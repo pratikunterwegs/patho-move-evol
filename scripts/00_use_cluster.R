@@ -17,7 +17,7 @@ snevo::make_parameter_file(
   nClusters = 60,
   clusterSpread = 1,
   tmax = 100,
-  genmax = 5000,
+  genmax = 2000,
   range_food = 2,
   range_agents = 2,
   range_move = 1,
