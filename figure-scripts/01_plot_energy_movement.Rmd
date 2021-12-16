@@ -229,7 +229,7 @@ ggplot(data[variable %in% c("moved.mean")])+
     )
   )+
   coord_cartesian(
-    ylim = c(35, 85)
+    ylim = c(75, 90)
   )+
   labs(
     x = NULL,
@@ -263,7 +263,21 @@ data_si[, scenario := fcase(
   scenario == "endemic", 2,
   scenario == "spillover", 3
 )]
+```
 
+```{r}
+ggplot(data_si)+
+  geom_line(
+    aes(gen, prop, col = social_strat),
+    position = "identity"
+  )+
+  facet_grid(
+    rows = "repl"
+  )
+```
+
+
+```{r}
 # subset data
 data_si = data_si[social_strat %in% c("handler tracking", "agent tracking")]
 data_si[, gen_abs := gen - 3334]

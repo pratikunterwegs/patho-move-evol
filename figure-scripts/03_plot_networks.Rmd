@@ -30,12 +30,12 @@ labels = c(
 
 ```{r}
 # select nice network
-ntwks_spillover = data_ntwk[[12]]
+ntwks_spillover = data_ntwk[[1]]
 
 # select before and after disease
 ntwk_pre = ntwks_spillover[[6]] %>% 
   activate(edges) %>% 
-  filter(weight > 25) %>% 
+  filter(weight > 5) %>% 
   activate(nodes)
 
 ntwk_post = ntwks_spillover[[7]] %>% 
