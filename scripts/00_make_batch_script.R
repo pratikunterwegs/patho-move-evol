@@ -10,7 +10,7 @@ param_file = glue("data/parameters/parameters_{date}.csv")
 
 # vis landscape
 d = snevo::get_test_landscape(
-  nItems = 1440,
+  nItems = 10800,
   landsize = 60,
   nClusters = 60,
   clusterSpread = 1,
@@ -21,7 +21,7 @@ ggplot(d)+
   geom_point(
     aes(x,y,col=tAvail),
     alpha = 0.5,
-    size = 2
+    size = 1
   )+
   scale_colour_viridis_b(
     option = "H"
@@ -30,9 +30,9 @@ ggplot(d)+
 
 # make parameter combinations
 snevo::make_parameter_file(
-  scenario = c(0, 1, 2),
+  scenario = 2,
   popsize = 500,
-  nItems = 1440,
+  nItems = 7200,
   landsize = 60,
   nClusters = 60,
   clusterSpread = 1,

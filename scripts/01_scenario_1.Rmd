@@ -84,6 +84,16 @@ data = Map(
 fwrite(data, file = "data/results/data_gen.csv")
 ```
 
+```{r}
+data |>
+  ggplot()+
+  geom_point(
+    aes(
+      gen, intake.mean
+    )
+  )
+```
+
 ## Individual level data
 
 ```{r}
