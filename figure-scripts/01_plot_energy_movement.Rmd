@@ -3,7 +3,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Plot intake and movement outcomes in Scenario 3
+# Plot evolutionary consequences of spillover
 
 ```{r}
 library(data.table)
@@ -14,6 +14,73 @@ library(colorspace)
 ```
 
 Load data.
+
+```{r}
+data = fread("data/results/data_si_morphs.csv")
+data = data[social_strat != "non-handler tracking"]
+```
+
+```{r}
+fig1 = 
+  ggplot(data)+
+  geom_area(
+    aes(
+      gen, N / 2500, fill = social_strat
+    )
+  )+
+  geom_vline(
+    xintercept = 3334,
+    lty = 2,
+    size = 0.2
+  )+
+  scale_fill_discrete_sequential(
+    palette = "Viridis", 
+    rev = F,
+    l1 = 30,
+    name = NULL
+  )+
+  scale_x_continuous(
+    breaks = 3334,
+    labels = "Spillover",
+    name = "Producitivity"
+  )+
+  scale_y_continuous(
+    labels = scales::percent,
+    breaks = NULL,
+    name = "Disease cost",
+    sec.axis = dup_axis(
+      breaks = c(0.25, 0.75),
+      labels = scales::percent,
+      name = "% Individuals"
+    )
+  )+
+  facet_grid(
+    cost ~ regen, 
+    as.table = F, 
+    switch = c("both"),
+    labeller = labeller(
+      cost = label_both
+    )
+  )+
+  coord_cartesian(
+    expand = F,
+    xlim = c(1, 5000)
+  )+
+  theme_test(
+    base_size = 10
+  )+
+  theme(
+    legend.position = "top", strip.placement = "outside"
+  )
+
+ggsave(
+  plot = fig1,
+  filename = "figures/fig_1_new.png"
+)
+```
+
+
+Load generation data.
 
 ```{r}
 # load data
