@@ -28,6 +28,7 @@ scenarios = str_extract_all(files, pattern = "scenario_(\\w+)_") |>
 data_sim = vector("list", length = length(files))
 repl = c()
 cost = c()
+regen = c()
 
 # spread = c()
 for (i in seq(length(files))) {
@@ -35,6 +36,7 @@ for (i in seq(length(files))) {
   data_sim[[i]] = data[["gen_data"]]
   repl = c(repl, data[["replicate"]])
   cost = c(cost, data[["costInfect"]])
+  regen = c(regen, data[["regen_time"]])
 }
 ```
 
@@ -43,10 +45,10 @@ for (i in seq(length(files))) {
 ```{r}
 # simulation wise data
 data = Map(
-  data_sim, repl, cost, scenarios,
+  data_sim, repl, cost, regen, scenarios,
   
   # map over simulations
-  f = function(le, repl, cost, scenario) {
+  f = function(le, repl, cost, regen, scenario) {
     # map over generations
     le = Map(le[["pop_data"]], le[["gens"]],
         f = function(l, g) {
@@ -63,6 +65,9 @@ data = Map(
       rbindlist()
     
     le$scenario = scenario
+    le$cost = cost
+    le$regen = regen
+    
     # assign disease cost
     get_total_energy(le, cost_disease = cost)
     # summarise within sim
@@ -75,13 +80,28 @@ data = Map(
       }), recursive = FALSE
     ), 
     .SDcols = c("energy", "intake", "moved", "assoc", "cost_disease"),
-    by = c("gen", "repl", "scenario")]
+    by = c("gen", "repl", "scenario", "regen", "cost")]
   }
 ) |>
   rbindlist()
 
 # save
 fwrite(data, file = "data/results/data_gen.csv")
+```
+
+```{r}
+data |>
+  ggplot()+
+  geom_bin_2d(
+    aes(
+      gen, intake.mean
+    )
+  )+
+  scale_fill_viridis_c()+
+  facet_grid(
+    cost ~ regen,
+    labeller = label_both
+  )
 ```
 
 ## Individual level data
@@ -113,13 +133,15 @@ data = Map(
 ```{r}
 # get movement morphs
 data_morphs = Map(
-  data, repl, scenarios,
-  f = function(d, repl, scenario) {
-    assign_movement_types(d)
+  data, repl, cost, regen, scenarios,
+  f = function(d, repl, cost, regen, scenario) {
+    # assign_movement_types(d)
     get_social_strategy(d)
     d$repl = repl
+    d$cost = cost
+    d$regen = regen
     # d$scenario = scenario
-    d
+    d[, .N, by = c("gen", "social_strat", "repl", "cost", "regen")]
   }
 )
 
@@ -128,5 +150,47 @@ data_morphs = rbindlist(data_morphs)
 # data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl")]
 
 # save
-fwrite(data_morphs, file = "data/results/data_morphs.csv")
+fwrite(data_morphs, file = "data/results/data_si_morphs.csv")
 ```
+
+```{r}
+# get importance of social information
+data_si_imp = Map(
+  data, repl, cost, regen, scenarios,
+  f = function(d, repl, cost, regen, scenario) {
+    # assign_movement_types(d)
+    d[, si_imp := abs(sH) + abs(sN) ]
+    d[, si_bin := plyr::round_any(si_imp, 0.05)]
+    d$repl = repl
+    d$cost = cost
+    d$regen = regen
+    # d$scenario = scenario
+    d[, .N, by = c("repl", "cost", "regen", "si_imp")]
+  }
+)
+
+# bind and count morphs
+data_si_imp = rbindlist(data_si_imp)
+# data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl")]
+
+# save
+fwrite(data_morphs, file = "data/results/data_si_imp.csv")
+```
+
+
+```{r}
+data_morphs |>
+  ggplot()+
+  geom_point(
+    aes(
+      gen, N,
+      col = social_strat
+    ),
+    size = 0.2
+  )+
+  facet_grid(
+    cost ~ regen,
+    labeller = label_both
+  )
+```
+

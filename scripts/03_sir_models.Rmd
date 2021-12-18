@@ -43,47 +43,47 @@ ntwk_basic = lapply(ntwk_basic, last)
 ## Run basic models
 
 ```{r}
-sc_repl = rep(seq(5), 2)
-
-data_basic = Map(
-  ntwk_basic, names(ntwk_basic), sc_repl,
-  f = function(ntwk, scenario, sc_repl) {
-    
-    # map over params
-    d = Map(
-      beta, gamma, threshold,
-      f = function(b, g, thr) {
-        # filter for threshold associations
-        nt = ntwk %>% 
-          activate(edges) %>% 
-          filter(weight > thr) %>% 
-          activate(nodes)
-        
-        # run sir model
-        data = igraph::sir(
-          graph = nt, beta = b, gamma = g, no.sim = 25
-        ) |>
-          handle_sir_data(digits = 1)
-        
-        data[, c("beta", "gamma", "threshold") := list(b, g, thr)]
-        data
-      }
-    ) |>
-      rbindlist()
-    
-    d[, c("scenario", "sc_repl") := list(scenario, sc_repl)]
-    d
-    
-  }
-)
-
-data_basic = rbindlist(data_basic)
-
-# save data
-fwrite(
-  data_basic,
-  file = "data/results/data_sir_basic.csv"
-)
+# sc_repl = rep(seq(5), 2)
+# 
+# data_basic = Map(
+#   ntwk_basic, names(ntwk_basic), sc_repl,
+#   f = function(ntwk, scenario, sc_repl) {
+#     
+#     # map over params
+#     d = Map(
+#       beta, gamma, threshold,
+#       f = function(b, g, thr) {
+#         # filter for threshold associations
+#         nt = ntwk %>% 
+#           activate(edges) %>% 
+#           filter(weight > thr) %>% 
+#           activate(nodes)
+#         
+#         # run sir model
+#         data = igraph::sir(
+#           graph = nt, beta = b, gamma = g, no.sim = 25
+#         ) |>
+#           handle_sir_data(digits = 1)
+#         
+#         data[, c("beta", "gamma", "threshold") := list(b, g, thr)]
+#         data
+#       }
+#     ) |>
+#       rbindlist()
+#     
+#     d[, c("scenario", "sc_repl") := list(scenario, sc_repl)]
+#     d
+#     
+#   }
+# )
+# 
+# data_basic = rbindlist(data_basic)
+# 
+# # save data
+# fwrite(
+#   data_basic,
+#   file = "data/results/data_sir_basic.csv"
+# )
 ```
 
 ## Run on scenario 3
