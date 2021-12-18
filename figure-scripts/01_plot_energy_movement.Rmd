@@ -101,7 +101,7 @@ fig1 =
 
 ggsave(
   plot = fig1,
-  filename = "figures/fig_1_new.png",
+  filename = "figures/fig_01_new.png",
   height = 114, width = 114, units = "mm"
 )
 ```
@@ -112,7 +112,7 @@ Load generation data.
 ```{r}
 # load data
 data = fread("data/results/data_gen.csv")
-data = data[scenario == "spillover"]
+data = data[scenario == "spillover" & regen == 50 & cost == 0.25]
 
 # summarise etc
 data[, gen_round := plyr::round_any(gen, 10)]
@@ -136,7 +136,7 @@ data = melt(
 
 ```{r}
 plot_intake =
-ggplot(data[variable %in% c("intake.mean", "energy.mean")])+
+ggplot(data[variable %in% c("intake.mean")])+
   geom_bin2d(
     data = data[variable == "intake.mean"],
     aes(
@@ -145,10 +145,6 @@ ggplot(data[variable %in% c("intake.mean", "energy.mean")])+
     binwidth = c(0.2, 0.25),
     show.legend = F,
     alpha = 0.8
-  )+
-  geom_hline(
-    yintercept = 0,
-    lty = 3
   )+
   geom_vline(
     data = data.table(
@@ -169,10 +165,11 @@ ggplot(data[variable %in% c("intake.mean", "energy.mean")])+
       colour = variable,
     ),
     geom = "line",
-    alpha = 0.8
+    alpha = 0.8,
+    show.legend = F
   )+
   stat_summary(
-    data = data[variable %in% c("intake.mean", "energy.mean") & 
+    data = data[variable %in% c("intake.mean") & 
            between(gen_abs, -25, 25)],
     fun = mean,
     fun.min = ci_lower,
@@ -182,7 +179,8 @@ ggplot(data[variable %in% c("intake.mean", "energy.mean")])+
       colour = variable,
       shape = variable
     ),
-    fill = "grey99"
+    fill = "grey99",
+    show.legend = F
   )+
   scale_fill_continuous_sequential(
     palette = "Batlow",
@@ -190,13 +188,13 @@ ggplot(data[variable %in% c("intake.mean", "energy.mean")])+
   )+
   scale_shape_manual(
     values = c(21, 24),
-    breaks = c("energy.mean", "intake.mean"),
-    labels = c("Net energy", "Intake")
+    breaks = c("intake.mean"),
+    labels = c("Intake")
   )+
   scale_colour_manual(
-    values = c("indianred", "darkgreen"),
-    breaks = c("energy.mean", "intake.mean"),
-    labels = c("Net energy", "Intake")
+    values = c("darkgreen"),
+    breaks = c("intake.mean"),
+    labels = c("Intake")
   )+
   scale_x_continuous(
     trans = ggallin::pseudolog10_trans,
@@ -216,7 +214,7 @@ ggplot(data[variable %in% c("intake.mean", "energy.mean")])+
   )+
   theme_test(base_family = "Arial")+
   theme(
-    legend.position = c(0.2, 0.15),
+    # legend.position = c(0.2, 0.15),
     legend.key = element_blank(),
     legend.background = element_blank(),
     strip.background = element_blank(),
@@ -314,7 +312,7 @@ ggplot(data[variable %in% c("moved.mean")])+
   )+
   theme_test(base_family = "Arial")+
   theme(
-    legend.position = c(0.2, 0.15),
+    # legend.position = c(0.2, 0.15),
     legend.key = element_blank(),
     legend.background = element_blank(),
     strip.background = element_blank(),
@@ -323,7 +321,7 @@ ggplot(data[variable %in% c("moved.mean")])+
     )
   )+
   coord_cartesian(
-    ylim = c(75, 90)
+    ylim = c(30, 90)
   )+
   labs(
     x = NULL,
@@ -345,7 +343,7 @@ ggsave(
 
 ```{r}
 # get morph data
-data_si = fread("data/results/data_morphs.csv")
+data_si = fread("data/results/data_si_imp.csv")
 data_si = data_si[scenario == "spillover"]
 data_si[, gen_round := plyr::round_any(gen, 400)]
 
@@ -603,11 +601,11 @@ ggsave(
 ## Make Figure 1
 
 ```{r}
-fig_1 =
+fig_2 =
 wrap_plots(
-  plot_agent_avoid,
-  plot_intake, 
+  # plot_agent_avoid,
   plot_movement,
+  plot_intake, 
   plot_assoc,
   ncol = 2
   # guides = "collect"
@@ -625,8 +623,8 @@ wrap_plots(
   )
 
 ggsave(
-  fig_1,
-  filename = "figures/fig_01.png",
+  fig_2,
+  filename = "figures/fig_02_new.png",
   height = 174, width = 174, units = "mm"
 )
 ```
