@@ -14,8 +14,8 @@ library(colorspace)
 
 ```{r}
 # load data
-data = fread("data/results/data_morphs.csv")
-data = data[scenario == "spillover" & gen > 4000]
+data = fread("data/results/data_si_morphs.csv")
+data = data[gen > 4000]
 ```
 
 ## Summarise metrics by social strategy
@@ -27,7 +27,7 @@ data_summary = data[, list(
   moved.mean = mean(moved),
   assoc.mean = mean(assoc),
   prop.infected = sum(t_infec > 0) / length(t_infec)
-), by = c("gen", "repl", "social_strat")]
+), by = c("gen", "repl", "social_strat", "cost", "regen")]
 
 # melt data
 data_summary = melt(
