@@ -339,161 +339,6 @@ ggsave(
 )
 ```
 
-## Social information use
-
-```{r}
-# get morph data
-data_si = fread("data/results/data_si_imp.csv")
-data_si = data_si[scenario == "spillover"]
-data_si[, gen_round := plyr::round_any(gen, 400)]
-
-# get social information strategies
-data_si = data_si[, list(prop = .N / 500), 
-               by = c("gen", "social_strat", "scenario", "repl", "gen_round")]
-data_si[, scenario := fcase(
-  scenario == "nopatho", 1,
-  scenario == "endemic", 2,
-  scenario == "spillover", 3
-)]
-```
-
-```{r}
-ggplot(data_si)+
-  geom_line(
-    aes(gen, prop, col = social_strat),
-    position = "identity"
-  )+
-  facet_grid(
-    rows = "repl"
-  )
-```
-
-
-```{r}
-# subset data
-data_si = data_si[social_strat %in% c("handler tracking", "agent tracking")]
-data_si[, gen_abs := gen - 3334]
-
-data_si = data_si[, c("gen_abs", "prop", "social_strat")]
-```
-
-```{r}
-plot_agent_avoid =
-  ggplot(
-    data_si
-  )+
-  geom_bin2d(
-    data = data_si[social_strat %in% c("handler tracking")],
-    aes(
-      gen_abs, prop
-    ),
-    binwidth = c(0.2, 0.02),
-    alpha = 0.8,
-    show.legend = F
-  )+
-  stat_summary(
-    fun = median,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
-    aes(
-      gen_abs, prop,
-      colour = social_strat,
-    ),
-    show.legend = T,
-    geom = "line",
-    position = position_identity()
-  )+
-  stat_summary(
-    data = data_si[between(gen_abs, -25, 25)],
-    fun = median,
-    # fun.min = ci_lower,
-    # fun.max = ci_upper,
-    aes(
-      gen_abs, prop,
-      colour = social_strat,
-      shape = social_strat,
-    ),
-    show.legend = T,
-    fill = "grey99",
-    # position = position_dodge(width = 200),
-  )+
-  scale_shape_manual(
-    values = c(
-      "agent tracking" = 21, 
-      "handler tracking" = 24
-      ),
-    breaks = c("agent tracking", "handler tracking"),
-    labels = c("All agents", "Successful foragers")
-  )+
-  scale_x_continuous(
-    trans = ggallin::pseudolog10_trans,
-    breaks = c(-3000, -100, -5, 5, 100, 1500),
-    labels = scales::comma_format(
-      accuracy = 1
-    ),
-    name = "Gens. since spillover",
-    sec.axis = sec_axis(
-      trans = function(x) x + 3334,
-      breaks = c(0, 3000, 3334, 5000),
-      labels = scales::comma_format(
-        accuracy = 1
-      ),
-      name = "Generations"
-    )
-  )+
-  theme_test(base_family = "Arial")+
-  scale_y_continuous(
-    labels = scales::percent
-  )+
-  scale_colour_manual(
-    values = c(
-      "agent tracking" = "steelblue", 
-      "handler tracking" = "indianred"
-    ),
-    breaks = c("agent tracking", "handler tracking"),
-    labels = c("All agents", "Successful foragers")
-  )+
-  scale_fill_continuous_sequential(
-    palette = "Heat 2"
-  )+
-  geom_hline(
-    yintercept = 0,
-    lty = 3
-  )+
-  geom_vline(
-    data = data.table(
-      x = 0, # 0.667 * 5000,
-      scenario = 3
-    ),
-    aes(
-      xintercept = x
-    ),
-    lty = 3
-  )+
-  coord_cartesian(
-    ylim = c(0, 1)
-  )+
-  theme_test(base_family = "Arial")+
-  theme(
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "italic"
-    ),
-    axis.text.y = element_text(
-      angle = 90, hjust = 0.5
-    ),
-    legend.background = element_blank(),
-    legend.position = "top",
-    legend.justification = "right"
-  )+
-  labs(
-    y = "% Agents tracking",
-    x = "Generation",
-    shape = NULL,
-    colour = NULL
-  )
-```
-
 ## Associations
 
 ```{r}
@@ -607,7 +452,7 @@ wrap_plots(
   plot_movement,
   plot_intake, 
   plot_assoc,
-  ncol = 2
+  ncol = 3
   # guides = "collect"
 ) &
   plot_annotation(
@@ -625,7 +470,7 @@ wrap_plots(
 ggsave(
   fig_2,
   filename = "figures/fig_02_new.png",
-  height = 174, width = 174, units = "mm"
+  height = 69, width = 174, units = "mm"
 )
 ```
 
