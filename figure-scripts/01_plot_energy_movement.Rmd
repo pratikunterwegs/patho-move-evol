@@ -58,7 +58,8 @@ fig1 =
     sec.axis = dup_axis(
       breaks = c(1000, 3000, 5000),
       labels = scales::comma_format(
-        accuracy = 1, scale = 1/1000, suffix = "K"
+        accuracy = 1
+        # scale = 1/1000, suffix = "K"
       ),
       name = "Generations"
     )
@@ -95,7 +96,7 @@ fig1 =
     legend.position = "top", 
     legend.key.height = unit(1, "mm"),
     strip.placement = "outside",
-    axis.text.x = element_text(hjust = 0.5)
+    axis.text.x = element_text(hjust = 0.5, size = 8)
   )
 
 ggsave(
