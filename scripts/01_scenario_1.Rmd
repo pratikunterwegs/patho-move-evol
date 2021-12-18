@@ -160,11 +160,12 @@ data_si_imp = Map(
   f = function(d, repl, cost, regen, scenario) {
     # assign_movement_types(d)
     d[, si_imp := abs(sH) + abs(sN) ]
+    d[, si_bin := plyr::round_any(si_imp, 0.05)]
     d$repl = repl
     d$cost = cost
     d$regen = regen
     # d$scenario = scenario
-    d
+    d[, .N, by = c("repl", "cost", "regen", "si_imp")]
   }
 )
 
