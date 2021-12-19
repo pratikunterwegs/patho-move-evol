@@ -141,7 +141,14 @@ data_morphs = Map(
     d$cost = cost
     d$regen = regen
     # d$scenario = scenario
-    d[, .N, by = c("gen", "social_strat", "repl", "cost", "regen")]
+    d[, list(
+      N = length(moved),
+      mean_move = mean(moved),
+      mean_assoc = mean(assoc),
+      mean_intake = mean(intake),
+      prop_infec = sum(t_infec > 0) / length(t_infec)
+    ), by = c("gen", "social_strat", 
+                   "repl", "cost", "regen")]
   }
 )
 
@@ -174,7 +181,7 @@ data_si_imp = rbindlist(data_si_imp)
 # data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl")]
 
 # save
-fwrite(data_morphs, file = "data/results/data_si_imp.csv")
+fwrite(data_si_imp, file = "data/results/data_si_imp.csv")
 ```
 
 

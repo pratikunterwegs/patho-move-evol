@@ -12,6 +12,8 @@ get_networks = function(datafile, assoc_threshold = 5) {
   # scenario
   scenario = data[["scenario"]]
   repl = data[["replicate"]]
+  cost = data[["costInfect"]]
+  regen = data[["regen_time"]]
   
   # edgelist collection and work
   el = data[["edgeLists"]]
@@ -46,6 +48,8 @@ get_networks = function(datafile, assoc_threshold = 5) {
     # assign scenario etc
     n$scenario = scenario
     n$repl = repl
+    n$cost = cost
+    n$regen = regen
     assign_movement_types(n)
     get_social_strategy(n)
     n
