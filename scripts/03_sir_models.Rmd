@@ -168,7 +168,7 @@ data_spillover = rbindlist(data_spillover)
 
 ```{r}
 # sanity check
-data_spillover[class != "NS" & beta == 1 & gamma == 0 & threshold != 2] %>% 
+data_spillover[class != "NS" & beta == 1 & gamma == 1 & threshold != 2] %>% 
 ggplot()+
   stat_summary(aes(time, mean, col = type))+
   facet_grid(

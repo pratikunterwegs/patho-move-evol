@@ -25,7 +25,7 @@ scenarios = str_extract_all(files, "scenario_(\\w+)_") |>
   str_remove_all("scenario|_")
 
 # use the get networks function
-data_ntwk = lapply(files, get_networks, assoc_threshold = 1)
+data_ntwk = lapply(files, get_networks, assoc_threshold = 5)
 names(data_ntwk) = scenarios
 ```
 
