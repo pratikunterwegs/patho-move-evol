@@ -289,7 +289,7 @@ ggplot(data[variable %in% c("moved.mean")])+
       gen_abs, value,
       shape = variable
     ),
-    colour = "navy",
+    colour = "grey20",
     fill = "grey99",
     shape = 21
   )+
