@@ -11,6 +11,9 @@ library(data.table)
 library(ggplot2)
 library(patchwork)
 library(colorspace)
+
+# custom functions
+devtools::load_all()
 ```
 
 Load data.
@@ -183,7 +186,7 @@ ggplot(data[variable %in% c("intake.mean")])+
     show.legend = F
   )+
   scale_fill_continuous_sequential(
-    palette = "Batlow",
+    palette = "Viridis",
     trans = "sqrt"
   )+
   scale_shape_manual(
@@ -192,7 +195,7 @@ ggplot(data[variable %in% c("intake.mean")])+
     labels = c("Intake")
   )+
   scale_colour_manual(
-    values = c("darkgreen"),
+    values = c("grey20"),
     breaks = c("intake.mean"),
     labels = c("Intake")
   )+
@@ -272,7 +275,7 @@ ggplot(data[variable %in% c("moved.mean")])+
     aes(
       gen_abs, value,
     ),
-    colour = "navy",
+    colour = "grey20",
     geom = "line",
     alpha = 0.8
   )+
@@ -291,7 +294,7 @@ ggplot(data[variable %in% c("moved.mean")])+
     shape = 21
   )+
   scale_fill_continuous_sequential(
-    palette = "Purple-Yellow",
+    palette = "Mako",
     trans = "sqrt"
   )+
   scale_x_continuous(
@@ -392,7 +395,7 @@ ggplot(data[variable %in% c("assoc.mean")])+
     shape = 21
   )+
   scale_fill_continuous_sequential(
-    palette = "Sunset"
+    palette = "Inferno"
   )+
   scale_x_continuous(
     trans = ggallin::pseudolog10_trans,
@@ -464,6 +467,9 @@ wrap_plots(
     plot.tag = element_text(
       face = "bold",
       size = 10
+    ),
+    axis.text.x = element_text(
+      size = 7
     )
   )
 
