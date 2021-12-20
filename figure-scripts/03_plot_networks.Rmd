@@ -18,14 +18,6 @@ library(patchwork)
 load("data/results/data_networks.Rds")
 ```
 
-```{r}
-labels = c(
-  "0" = "Sc. 1: No pathogen",
-  "1" = "Sc. 2: Endemic pathogen",
-  "2" = "Sc. 3: Spillover pathogen"
-)
-```
-
 ## Subset for reference combination
 
 ```{r}
