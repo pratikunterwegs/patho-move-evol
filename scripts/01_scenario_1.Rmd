@@ -29,7 +29,26 @@ data_sim = vector("list", length = length(files))
 repl = c()
 cost = c()
 regen = c()
+```
 
+## Sanity check
+
+```{r}
+f = files[21]
+load(f)
+names(data)
+
+move_pre = rbindlist(data[["move_pre"]])
+
+ggplot(move_pre)+
+  geom_point(
+    aes(x, y, group = id, col = as.factor(id)),
+    show.legend = F,
+    size = 0.3
+  )
+```
+
+```{r}
 # spread = c()
 for (i in seq(length(files))) {
   load(files[i])
