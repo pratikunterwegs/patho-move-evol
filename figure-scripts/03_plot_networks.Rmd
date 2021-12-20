@@ -26,12 +26,36 @@ labels = c(
 )
 ```
 
+## Subset for reference combination
+
+```{r}
+key = lapply(data_ntwk, function(le) {
+  tmp = first(le) |>
+    as_tibble()
+  
+  cost = unique(tmp$cost)
+  regen = unique(tmp$regen)
+  
+  list(cost = cost, regen = regen)
+})
+
+key = vapply(key, function(le) {
+  le[["cost"]] == 0.25 & le [["regen"]] == 50
+}, FUN.VALUE = c(T))
+```
+
+```{r}
+data_ntwk = data_ntwk[key]
+```
+
 ## Spillover scenario network plots
 
 ```{r}
 # select nice network
-ntwks_spillover = data_ntwk[[1]]
+ntwks_spillover = data_ntwk[[3]]
+```
 
+```{r}
 # select before and after disease
 ntwk_pre = ntwks_spillover[[6]] %>% 
   activate(edges) %>% 
@@ -45,9 +69,15 @@ ntwk_post = ntwks_spillover[[7]] %>%
 ```
 
 ```{r}
+plot(
+  ntwk_pre, vertex.size = 3, vertex.label = NA
+)
+```
+
+```{r}
 networkplots_spillover = lapply(
   list(ntwk_pre, ntwk_post), function(n) {
-    ggraph(n, x = x, y = y)+
+    ggraph(n, x = xn, y = yn)+
       geom_edge_fan(
         edge_width = 0.2,
         edge_alpha = 0.2,
@@ -100,6 +130,7 @@ networkplots_spillover = lapply(
       )
   })
 
+# wrap plots
 networkplots_spillover = wrap_plots(
   networkplots_spillover, ncol = 2,
   guides = "collect"
