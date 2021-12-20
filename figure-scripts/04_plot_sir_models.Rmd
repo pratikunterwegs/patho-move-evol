@@ -21,13 +21,16 @@ sir_spillover = fread("data/results/data_sir_spillover.csv")
 # sir_spillover$mean = sir_spillover$mean / 500
 sir_spillover = sir_spillover[class != "NS" & gamma == 1 & 
                         beta == 5 & threshold %in% c(1, 10) ]
+
+# select scenario
+sir_spillover = sir_spillover[regen == 50 & cost == 0.25]
+
 sir_spillover[, tround := plyr::round_any(time, 0.25)]
 sir_spillover[, type := factor(type, levels = c("pre", "post"))]
 ```
 
 ```{r}
 sir_spillover = split(sir_spillover, by = "threshold")
-
 ```
 
 
@@ -45,14 +48,14 @@ lapply(sir_spillover, function(df) {
         shape = type,
         group = interaction(type, threshold)
       ),
-      fill = "grey90",
+      fill = "white",
       stroke = 0.8,
       size = 0.3,
-      alpha = 0.7,
       position = position_dodge(width = 0.1)
     )+
     facet_grid(
       rows = vars(class),
+      # cost ~ regen,
       labeller = labeller(
         class = c(
           "NI" = "Infected",
@@ -61,16 +64,14 @@ lapply(sir_spillover, function(df) {
         threshold = label_both
       )
     )+
-    scale_colour_manual(
-      values = c(
-        "pre" = "royalblue",
-        "post" = "brown"
-      ),
+    scale_colour_discrete_diverging(
+      l2 = 40,
+      palette = "Blue-Red 2",
       breaks = c("pre", "post"),
       labels = c("Pre-spillover", "Post-spillover")
     )+
     scale_shape_manual(
-      values = c(21, 22),
+      values = c(21, 24),
       breaks = c("pre", "post"),
       labels = c("Pre-spillover", "Post-spillover")
     )+
@@ -110,10 +111,10 @@ lapply(sir_spillover, function(df) {
       shape = NULL
     )
 })
-```
 
-```{r}
-plot_sir_spillover = wrap_plots(
+
+plot_sir_spillover =
+  wrap_plots(
   plot_sir_spillover,
   guides = "collect",
   ncol = 2
@@ -134,7 +135,7 @@ plot_sir_spillover = wrap_plots(
 ```{r}
 ggsave(
   plot_sir_spillover,
-  filename = "figures/fig_04.png",
+  filename = "figures/fig_05_new.png",
   height = 87,
   width = 114,
   units = "mm"
