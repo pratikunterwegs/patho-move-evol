@@ -52,14 +52,12 @@ data_ntwk = data_ntwk[key]
 
 ```{r}
 # select nice network
-ntwks_spillover = data_ntwk[[3]]
-```
+ntwks_spillover = data_ntwk[[5]]
 
-```{r}
 # select before and after disease
 ntwk_pre = ntwks_spillover[[6]] %>% 
   activate(edges) %>% 
-  filter(weight > 5) %>% 
+  filter(weight > 25) %>% 
   activate(nodes)
 
 ntwk_post = ntwks_spillover[[7]] %>% 
@@ -70,7 +68,7 @@ ntwk_post = ntwks_spillover[[7]] %>%
 
 ```{r}
 plot(
-  ntwk_pre, vertex.size = 3, vertex.label = NA
+  ntwk_post, vertex.size = 3, vertex.label = NA
 )
 ```
 
@@ -78,6 +76,15 @@ plot(
 networkplots_spillover = lapply(
   list(ntwk_pre, ntwk_post), function(n) {
     ggraph(n, x = xn, y = yn)+
+    # ggplot(as_tibble(n))+
+    #   geom_segment(
+    #     aes(
+    #       x = x, y = y,
+    #       xend = xn, yend = yn
+    #     ),
+    #     size = 0.2,
+    #     col = "indianred"
+    #   )+
       geom_edge_fan(
         edge_width = 0.2,
         edge_alpha = 0.2,
@@ -85,7 +92,7 @@ networkplots_spillover = lapply(
       )+
       geom_node_point(
         aes(
-          fill = t_infec, 
+          fill = t_infec,
           size = assoc
         ),
         stroke = 0.3,
@@ -99,28 +106,31 @@ networkplots_spillover = lapply(
         range = c(0.5, 2)
       )+
       scale_fill_continuous_sequential(
-        palette = "Heat",
+        palette = "Inferno",
         limit = c(1, 100),
+        breaks = c(1, 10, 30, 100),
         # direction = -1,
-        na.value = "lightblue"
-        # trans = "sqrt"
+        na.value = "lightblue",
+        trans = "sqrt"
+      )+
+      coord_equal(
+        expand = T
       )+
       theme_graph(
         base_family = "Arial",
         background = "white",
-        base_size = 10,
+        base_size = 8,
         plot_margin = margin(rep(0, 3))
       )+
       theme(
         axis.ticks = element_blank(),
         axis.text = element_blank(),
         axis.title = element_blank(),
+        legend.margin = margin(rep(0, 4)),
         legend.position = "top",
+        legend.title = element_text(size = 6),
         legend.key.height = unit(1, units = "mm"),
-        # panel.border = element_rect(
-        #   colour = "grey",
-        #   fill = "transparent"
-        # )
+        legend.key.width = unit(3, units = "mm")
       )+
       labs(
         fill = "Time infected"
@@ -146,229 +156,11 @@ networkplots_spillover = wrap_plots(
   )
 ```
 
-## Network metrics
-
-```{r}
-data_spillover = data_ntwk[names(data_ntwk) == "spillover"]
-
-data_spillover = lapply(
-  data_spillover, function(le) {
-    list(
-      pre = le[[6]],
-      post = le[[7]]
-    )
-  }
-)
-
-data_pre = lapply(
-  data_spillover, function(le) {
-    le[["pre"]] |> 
-      mutate(
-        degree = tidygraph::centrality_degree(
-          # weights = weight
-        ),
-        type = "pre"
-      )
-  }
-)
-
-data_post = lapply(
-  data_spillover, function(le) {
-    le[["post"]] |> 
-      mutate(
-        degree = tidygraph::centrality_degree(
-          # weights = weight
-        ),
-        type = "post"
-      )
-  }
-)
-```
-
-## Edge data
-
-```{r}
-data_pre_edge = lapply(
-  data_pre, function(le) {
-    get_edge_distance(le)
-  }
-) |> rbindlist()
-
-data_post_edge = lapply(
-  data_post, function(le) {
-    get_edge_distance(le)
-  }
-) |> rbindlist()
-```
-
-```{r}
-plot_dist_weight = lapply(
-  list(data_pre_edge, data_post_edge), function(df) {
-    ggplot()+
-      geom_bin2d(
-        data = df,
-        aes(
-          distance, weight,
-          # fill = ..density..
-        ),
-        binwidth= c(1, 2),
-        show.legend = F
-      )+
-      scale_fill_continuous_sequential(
-        palette = "Batlow"
-      )+
-      # scale_y_sqrt()+
-      coord_cartesian(
-        xlim = c(0, 25),
-        expand = F
-      )+
-      theme_minimal()+
-      labs(
-        x = "Distance",
-        y = "Connection strength"
-      )
-  }
-) |>
-  wrap_plots()
-```
-
-
-```{r}
-data_pre = lapply(data_pre, as_tibble) |> 
-  rbindlist()
-data_post = lapply(data_post, as_tibble) |> 
-  rbindlist()
-
-data = rbindlist(list(data_pre, data_post))
-```
-
-```{r}
-ggplot(data)+
-  geom_histogram(
-    aes(
-      degree,
-      fill = type
-    ),
-    position = "identity"
-  )+
-  scale_x_sqrt()+
-  scale_y_continuous(
-    # labels = scales::percent
-  )
-```
-
-```{r}
-ggplot(data)+
-  geom_jitter(
-    aes(
-      assoc, degree / 500,
-      col = type,
-      shape = type
-    ),
-    alpha = 0.5
-  )+
-  scale_colour_discrete_diverging(
-    palette = "Blue-Yellow 3",
-    rev = F,
-    limits = c("pre", "post"),
-    breaks = c("pre", "post"),
-    labels = c(
-      "Pre\nspillover", "Post\nspillover"
-    )
-  )+
-  scale_shape(
-    limits = c("pre", "post"),
-    breaks = c("pre", "post"),
-    labels = c(
-      "Pre\nspillover", "Post\nspillover"
-    )
-  )+
-  scale_y_log10()+
-  scale_x_continuous(
-    # trans = "log10",
-    labels = scales::comma_format(),
-    # breaks = c(0, seq(2500, 7500, 2500))
-  )+
-  coord_cartesian(
-    # xlim = c(1, 7500)
-  )+
-  theme_test(
-    base_family = "Arial"
-  )+
-  theme(
-    axis.text.y = element_text(
-      angle = 90,
-      hjust = 0.5
-    ),
-    legend.key.height = unit(1, "mm"),
-    legend.key.width = unit(1, "mm"),
-    legend.position = "top",
-    legend.justification = "right"
-  )+
-  labs(
-    colour = NULL,
-    shape = NULL,
-    y = "Unique individuals",
-    x = "Encounters"
-  )
-```
-
-```{r}
-ggplot(data)+
-  ggdist::stat_histinterval(
-    aes(
-      type, degree / 500,
-      fill = type
-    ),
-    # fill = "transparent",
-    show.legend = F
-  )+
-  scale_alpha(
-    # range = c(0, 0.5)
-  )+
-  scale_fill_discrete_diverging(
-    palette = "Blue-Yellow 3",
-    rev = T
-  )+
-  scale_x_discrete(
-    limits = c("pre", "post"),
-    breaks = c("pre", "post"),
-    labels = c(
-      "Pre\nspillover", "Post\nspillover"
-    )
-  )+
-  scale_y_continuous(
-    trans = ggallin::ssqrt_trans,
-    labels = scales::percent
-  )+
-  labs(
-    x = NULL,
-    y = "% individuals encountered"
-  )+
-  theme_test(
-    base_family = "Arial"
-  )+
-  theme(
-    axis.text.y = element_text(
-      angle = 90,
-      hjust = 0.5
-    ),
-    legend.key.height = unit(1, "mm"),
-    legend.key.width = unit(1, "mm"),
-    legend.position = "top",
-    legend.justification = "right"
-  )+
-  labs(
-    x = NULL,
-    y = "% Individuals encountered"
-  )
-```
-
 ```{r}
 ggsave(
   plot = networkplots_spillover,
-  filename = "figures/fig_03.png",
-  height = 87,
+  filename = "figures/fig_04_new.png",
+  height = 69,
   width = 114,
   units = "mm"
 )
