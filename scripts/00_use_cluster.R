@@ -10,14 +10,14 @@ param_file = glue("data/parameters/parameters_{date}.csv")
 
 # make parameter combinations
 snevo::make_parameter_file(
-  scenario = c(0, 1, 2),
+  scenario = 2,
   popsize = 500,
   nItems = 1440,
   landsize = 60,
   nClusters = 60,
   clusterSpread = 1,
-  tmax = 100,
-  genmax = 2000,
+  tmax = 10,
+  genmax = 20,
   range_food = 2,
   range_agents = 2,
   range_move = 1,
