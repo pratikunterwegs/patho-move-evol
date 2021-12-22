@@ -74,14 +74,15 @@ fig_movement =
     as.table = F, 
     switch = c("both"),
     labeller = labeller(
-      cost = label_both,
-      regen = label_both
+      cost = function(x) sprintf("δE = %s", x),
+      regen = function(x) sprintf("T<sub>R</sub> = %s", x)
     )
   )+
   theme(
     legend.position = "top", 
     legend.key.height = unit(1, "mm"),
     strip.placement = "outside",
+    strip.text = ggtext::element_markdown(),
     axis.text.x = element_text(hjust = 0.5, size = 8)
   )
 
@@ -138,14 +139,15 @@ fig_intake =
     as.table = F, 
     switch = c("both"),
     labeller = labeller(
-      cost = label_both,
-      regen = label_both
+      cost = function(x) sprintf("δE = %s", x),
+      regen = function(x) sprintf("T<sub>R</sub> = %s", x)
     )
   )+
   theme(
     legend.position = "top", 
     legend.key.height = unit(1, "mm"),
     strip.placement = "outside",
+    strip.text = ggtext::element_markdown(),
     axis.text.x = element_text(hjust = 0.5, size = 8)
   )
 
@@ -203,14 +205,15 @@ fig_assoc =
     as.table = F, 
     switch = c("both"),
     labeller = labeller(
-      cost = label_both,
-      regen = label_both
+      cost = function(x) sprintf("δE = %s", x),
+      regen = function(x) sprintf("T<sub>R</sub> = %s", x)
     )
   )+
   theme(
     legend.position = "top", 
     legend.key.height = unit(1, "mm"),
     strip.placement = "outside",
+    strip.text = ggtext::element_markdown(),
     axis.text.x = element_text(hjust = 0.5, size = 8)
   )
 
