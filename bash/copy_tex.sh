@@ -8,6 +8,7 @@ cp figures/fig_0*.png ms-pathomove/figures
 cd ms-pathomove
 pdflatex manuscript.tex
 bibtex manuscript.aux
+bibtex manuscript.aux
 pdflatex manuscript.tex
 
 cd ..
