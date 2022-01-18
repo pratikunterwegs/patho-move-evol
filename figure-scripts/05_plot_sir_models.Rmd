@@ -1,0 +1,144 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plot networks and SIR models
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+library(patchwork)
+library(colorspace)
+```
+
+## Spillover
+
+```{r}
+# spillover data and rounding
+sir_spillover = fread("data/results/data_sir_spillover.csv")
+# sir_spillover$mean = sir_spillover$mean / 500
+sir_spillover = sir_spillover[class != "NS" & gamma == 1 & 
+                        beta == 5 & threshold %in% c(1, 10) ]
+
+# select scenario
+sir_spillover = sir_spillover[regen == 50 & cost == 0.25]
+
+sir_spillover[, tround := plyr::round_any(time, 0.25)]
+sir_spillover[, type := factor(type, levels = c("pre", "post"))]
+```
+
+```{r}
+sir_spillover = split(sir_spillover, by = "threshold")
+```
+
+
+```{r}
+plot_sir_spillover =
+lapply(sir_spillover, function(df) {
+  ggplot(df)+
+    stat_summary(
+      fun = mean,
+      fun.max = ci_upper,
+      fun.min = ci_lower,
+      aes(
+        tround, mean/500, 
+        colour = type,
+        shape = type,
+        group = interaction(type, threshold)
+      ),
+      fill = "white",
+      stroke = 0.8,
+      size = 0.3,
+      position = position_dodge(width = 0.1)
+    )+
+    facet_grid(
+      rows = vars(class),
+      # cost ~ regen,
+      labeller = labeller(
+        class = c(
+          "NI" = "Infected",
+          "NR" = "Recovered"
+        ),
+        threshold = label_both
+      )
+    )+
+    scale_colour_discrete_diverging(
+      l2 = 40,
+      palette = "Blue-Red 2",
+      breaks = c("pre", "post"),
+      labels = c("Pre-spillover", "Post-spillover")
+    )+
+    scale_shape_manual(
+      values = c(21, 24),
+      breaks = c("pre", "post"),
+      labels = c("Pre-spillover", "Post-spillover")
+    )+
+    scale_y_continuous(
+      labels = scales::percent,
+      # breaks = c(0.01, 0.33, 0.67, 1)
+    )+
+    scale_x_sqrt()+
+    theme_test(base_size = 10, base_family = "Arial")+
+    theme(
+      legend.position = "top",
+      strip.background = element_blank(),
+      strip.text = element_text(
+        face = "italic"
+      ),
+      axis.text.y = element_text(
+        angle = 90,
+        hjust = 0.5,
+        size = 6
+      ),
+      panel.grid.major.y = element_line(
+        # colour = "grey",
+        size = 0.3,
+        linetype = 2,
+        color = "grey"
+      )
+    )+
+    coord_cartesian(
+      xlim = c(0, 10),
+      ylim = c(0, 1)
+    )+
+    labs(
+      x = "SIR model simulation time",
+      y = "% Agents",
+      fill = NULL,
+      colour = NULL,
+      shape = NULL
+    )
+})
+
+
+plot_sir_spillover =
+  wrap_plots(
+  plot_sir_spillover,
+  guides = "collect",
+  ncol = 2
+) &
+  plot_annotation(
+    tag_levels = "A"
+  ) &
+  theme(
+    legend.position = "bottom",
+    plot.tag = element_text(
+      face = "bold"
+    ),
+    legend.margin = margin(rep(0, 4)),
+    plot.margin = margin(rep(1, 4))
+  )
+```
+
+```{r}
+ggsave(
+  plot_sir_spillover,
+  filename = "figures/fig_05_new.png",
+  height = 87,
+  width = 114,
+  units = "mm"
+)
+```
+

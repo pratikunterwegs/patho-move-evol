@@ -1,0 +1,204 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Run SIR models
+
+Load libraries.
+
+```{r}
+library(data.table)
+library(igraph)
+library(tidygraph)
+```
+
+## Prepare parameters
+
+```{r}
+# disease parameters
+beta = c(1, 5, 10)
+gamma = c(0, 1)
+threshold = c(1, 5, 10)
+
+# make combinations
+params = CJ(beta, gamma, threshold)
+
+beta = params$beta
+gamma = params$gamma
+threshold = params$threshold
+```
+
+## Load networks
+
+```{r}
+load("data/results/data_networks.Rds")
+```
+
+```{r}
+ntwk_basic = data_ntwk[names(data_ntwk) %in% c("nopatho", "endemic")]
+ntwk_basic = lapply(ntwk_basic, last)
+```
+
+## Run basic models
+
+```{r}
+# sc_repl = rep(seq(5), 2)
+# 
+# data_basic = Map(
+#   ntwk_basic, names(ntwk_basic), sc_repl,
+#   f = function(ntwk, scenario, sc_repl) {
+#     
+#     # map over params
+#     d = Map(
+#       beta, gamma, threshold,
+#       f = function(b, g, thr) {
+#         # filter for threshold associations
+#         nt = ntwk %>% 
+#           activate(edges) %>% 
+#           filter(weight > thr) %>% 
+#           activate(nodes)
+#         
+#         # run sir model
+#         data = igraph::sir(
+#           graph = nt, beta = b, gamma = g, no.sim = 25
+#         ) |>
+#           handle_sir_data(digits = 1)
+#         
+#         data[, c("beta", "gamma", "threshold") := list(b, g, thr)]
+#         data
+#       }
+#     ) |>
+#       rbindlist()
+#     
+#     d[, c("scenario", "sc_repl") := list(scenario, sc_repl)]
+#     d
+#     
+#   }
+# )
+# 
+# data_basic = rbindlist(data_basic)
+# 
+# # save data
+# fwrite(
+#   data_basic,
+#   file = "data/results/data_sir_basic.csv"
+# )
+```
+
+## Run on scenario 3
+
+```{r}
+ntwk_spillover = data_ntwk[names(data_ntwk) %in% c("spillover")]
+
+sc_repl = seq(5)
+
+data_spillover = Map(
+  ntwk_spillover, names(ntwk_spillover), sc_repl,
+  f = function(ntwk, scenario, sc_repl) {
+    
+    # pre disease
+    d_pre = Map(
+      beta, gamma, threshold,
+      f = function(b, g, thr) {
+        
+        nt = ntwk[[6]] # hardcoded for now
+        
+        nt_ = as_tibble(nt)
+        cost = unique(nt_$cost)
+        regen = unique(nt_$regen)
+        
+        # filter for threshold
+        nt = nt %>% 
+          activate(edges) %>% 
+          filter(weight > thr) %>% 
+          activate(nodes)
+        
+        d_pre_ = igraph::sir(
+          graph = nt, beta = b, gamma = g, no.sim = 25
+        ) |>
+          handle_sir_data(digits = 1)
+        d_pre_$type = "pre"
+        
+        # add parameters
+        d_pre_$beta = b
+        d_pre_$gamma = g
+        d_pre_$threshold = thr
+        d_pre_$cost = cost
+        d_pre_$regen = regen
+        
+        d_pre_
+      }
+    ) |>
+      rbindlist()
+    
+    # post disease
+    d_post = Map(
+      beta, gamma, threshold,
+      f = function(b, g, thr) {
+        
+        nt = ntwk[[7]] # hardcoded for now
+        
+        nt_ = as_tibble(nt)
+        cost = unique(nt_$cost)
+        regen = unique(nt_$regen)
+        
+        # filter for threshold
+        nt = nt %>% 
+          activate(edges) %>% 
+          filter(weight > thr) %>% 
+          activate(nodes)
+        
+        d_post_ = igraph::sir(
+          graph = nt, beta = b, gamma = g, no.sim = 25
+        ) |>
+          handle_sir_data(digits = 1)
+        d_post_$type = "post"
+        
+        # add parameters
+        d_post_$beta = b
+        d_post_$gamma = g
+        d_post_$threshold = thr
+        d_post_$cost = cost
+        d_post_$regen = regen
+        
+        d_post_
+      }
+    ) |>
+      rbindlist()
+    
+    data = rbindlist(
+      list(d_pre, d_post)
+    )
+    
+    data[, c("scenario", "sc_repl") := list(scenario, sc_repl)]
+    data
+    
+  }
+)
+
+data_spillover = rbindlist(data_spillover)
+```
+
+```{r}
+# sanity check
+data_spillover[class != "NS" & beta == 1 & gamma == 1 & threshold != 2] %>% 
+ggplot()+
+  stat_summary(aes(time, mean, col = type))+
+  facet_grid(
+    threshold ~ class,
+    labeller = label_both
+  )+
+  scale_y_sqrt()+
+  scale_x_sqrt()
+```
+
+
+```{r}
+# save data
+fwrite(
+  data_spillover,
+  file = "data/results/data_sir_spillover.csv"
+)
+```
+

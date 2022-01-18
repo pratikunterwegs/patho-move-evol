@@ -1,0 +1,292 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plot networks in final generations
+
+```{r}
+library(data.table)
+library(tidygraph)
+library(ggraph)
+library(colorspace)
+library(patchwork)
+```
+
+```{r}
+load("data/results/data_networks.Rds")
+```
+
+## Subset for reference combination
+
+```{r}
+key = lapply(data_ntwk, function(le) {
+  tmp = first(le) |>
+    as_tibble()
+  
+  cost = unique(tmp$cost)
+  regen = unique(tmp$regen)
+  
+  list(cost = cost, regen = regen)
+})
+
+key = vapply(key, function(le) {
+  le[["cost"]] == 0.25 & le [["regen"]] == 50
+}, FUN.VALUE = c(T))
+```
+
+```{r}
+data_ntwk = data_ntwk[key]
+```
+
+## Degree distribution
+
+```{r}
+degree_data = lapply(
+  data_ntwk, function(le) {
+    le_pre = le[[6]]
+    le_post = le[[7]]
+    # pre pathogen degree
+    le_pre = mutate(
+      le_pre, degree = tidygraph::centrality_degree(
+        normalized = F
+      ),
+      type = "pre"
+    ) |>
+      as_tibble()
+    
+    # post pathogen degree
+    le_post = mutate(
+      le_post, degree = tidygraph::centrality_degree(
+        normalized = F
+      ),
+      type = "post"
+    ) |>
+      as_tibble()
+    
+    rbindlist(
+      list(
+        le_pre,
+        le_post
+      )
+    )
+  }
+) |>
+  rbindlist()
+```
+
+```{r}
+degree_data$type = factor(degree_data$type, levels = c("pre", "post"))
+```
+
+
+```{r}
+fig_degree =
+ggplot(degree_data)+
+  geom_histogram(
+    aes(
+      degree,
+      fill = type,
+      y = ..count.. / 2500
+    ),
+    bins = 15,
+    col = NA,
+    show.legend = F
+  )+
+  geom_vline(
+    xintercept = 50,
+    lty = 2,
+    size = 0.2
+  )+
+  scale_fill_discrete_diverging(
+    palette = "Blue-Red",
+    rev = F,
+    l1 = 50
+  )+
+  scale_x_continuous(
+    trans = ggallin::pseudolog10_trans,
+    breaks = c(0, 10, 100, 500)
+  )+
+  scale_y_continuous(
+    breaks = c(0, 0.1, 0.25),
+    labels = scales::percent
+  )+
+  facet_grid(
+    ~type,
+    labeller = labeller(
+      type = c(post = "B: Post-spill.", pre = "A: Pre-spill.")
+    )
+  )+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(0.5, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5,
+      size = 5
+    ),
+    axis.text.x = element_text(
+      size = 5
+    ),
+    plot.background = element_blank(),
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "bold"
+    )
+    # axis.text.x = element_blank()
+  )+
+  labs(
+    x = "Degree",
+    y = "% Indiv."
+  )+
+  # coord_cartesian(
+  #   expand = F,
+  #   xlim = c(0.8, 3),
+  #   ylim = c(0, 410)
+  # )+
+  guides(
+    fill = guide_legend()
+  )
+```
+
+
+## Spillover scenario network plots
+
+```{r}
+# select nice network
+ntwks_spillover = data_ntwk[[5]]
+
+# select before and after disease
+ntwk_pre = ntwks_spillover[[6]] %>% 
+  activate(edges) %>% 
+  filter(weight > 5) %>% 
+  activate(nodes)
+
+ntwk_post = ntwks_spillover[[7]] %>% 
+  activate(edges) %>% 
+  filter(weight > 5) %>% 
+  activate(nodes)
+```
+
+```{r}
+plot(
+  ntwk_post, vertex.size = 3, vertex.label = NA
+)
+```
+
+```{r}
+networkplots_spillover = lapply(
+  list(ntwk_pre, ntwk_post), function(n) {
+    ggraph(n, x = xn, y = yn)+
+    # ggplot()+
+      # geom_segment(
+      #   data = as_tibble(n),
+      #   aes(
+      #     x = x, y = y,
+      #     xend = xn, yend = yn
+      #   ),
+      #   size = 0.1,
+      #   col = "indianred"
+      # )+
+      geom_edge_fan(
+        edge_width = 0.2,
+        aes(
+          edge_alpha = weight
+        ),
+        edge_color = "grey40",
+        show.legend = F
+      )+
+      geom_node_point(
+        aes(
+          fill = t_infec,
+          size = assoc
+        ),
+        stroke = 0.3,
+        shape = 21,
+        # size = 3,
+        # colour = "transparent",# "grey50",
+        alpha = 0.9,
+        show.legend = T
+      )+
+      scale_size(
+        range = c(0.5, 2)
+      )+
+      scale_fill_continuous_sequential(
+        palette = "Inferno",
+        limit = c(1, 100),
+        breaks = c(1, 10, 30, 100),
+        # direction = -1,
+        na.value = "lightblue",
+        trans = "sqrt"
+      )+
+      coord_equal(
+        expand = T
+      )+
+      theme_graph(
+        base_family = "Arial",
+        background = "white",
+        base_size = 8,
+        plot_margin = margin(rep(0, 3))
+      )+
+      theme(
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.margin = margin(rep(0, 4)),
+        legend.position = "top",
+        legend.title = element_text(size = 6),
+        legend.key.height = unit(1, units = "mm"),
+        legend.key.width = unit(3, units = "mm")
+      )+
+      labs(
+        fill = "Time infected"
+      )+
+      guides(
+        size = "none",
+        edge_alpha = "none"
+      )
+  })
+
+# add inset to plot 1
+networkplots_spillover[[1]] = networkplots_spillover[[1]] +
+  annotation_custom(
+    grob = ggplot2::ggplotGrob(fig_degree),
+    xmin = 0,
+    xmax = 50,
+    ymin = -15,
+    ymax = 20
+  )
+
+# wrap plots
+networkplots_spillover = wrap_plots(
+  networkplots_spillover, ncol = 2,
+  guides = "collect"
+) &
+  plot_annotation(
+    tag_levels = c("A")
+  ) &
+  theme(
+    plot.tag = element_text(
+      face = "bold"
+    ),
+    legend.position = "bottom"
+  )
+```
+
+```{r}
+ggsave(
+  plot = networkplots_spillover,
+  filename = "figures/fig_04.png",
+  height = 69,
+  width = 114,
+  units = "mm"
+)
+```
+

@@ -1,5 +1,5 @@
-Package: snevo
-Title: Runs the Evolved Social Networks Simulations
+Package: mspathomove
+Title: Analysis code for the pathomove model.
 Version: 0.0.0.9000
 Authors@R:
     c(person(given = "Pratik",
@@ -7,26 +7,13 @@ Authors@R:
            role = c("aut", "cre"),
            email = "p.r.gupte@rug.nl",
            comment = c(ORCID = "https://orcid.org/0000-0001-5294-7819")))
-Description: Runs the evolved social networks simulations.
+Description: Analysis code for the pathomove model.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
-Depends:igraph
-LinkingTo: 
-    Rcpp,
-    RcppParallel,
-    BH,
-    testthat
 Imports: 
-    Rcpp,
-    RcppParallel,
-    assertthat,
     data.table,
+    assertthat,
     glue
-Suggests: 
-    testthat,
-    ssh,
-    xml2
-SystemRequirements: GNU make

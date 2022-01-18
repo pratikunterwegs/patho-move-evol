@@ -1,5 +1,3 @@
-# Continuous-space discrete-item movement with Rcpp
+# Evolution of simple movement rules in the presence of an infectious pathogen
 
-<!-- badges: start -->
-  [![R build status](https://github.com/pratikunterwegs/snevo/workflows/R-CMD-check/badge.svg)](https://github.com/pratikunterwegs/snevo/actions)
-<!-- badges: end -->
+WIP.
