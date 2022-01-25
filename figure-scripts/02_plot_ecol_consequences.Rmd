@@ -91,7 +91,8 @@ ggplot(data[variable %in% c("intake.mean")])+
     show.legend = F
   )+
   scale_fill_continuous_sequential(
-    palette = "Viridis",
+    palette = "Oslo",
+    rev = T,
     trans = "sqrt"
   )+
   scale_shape_manual(
