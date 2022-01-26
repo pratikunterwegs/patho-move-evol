@@ -36,7 +36,7 @@ snevo::make_parameter_file(
   landsize = 60,
   nClusters = 60,
   clusterSpread = 1,
-  tmax = 100,
+  tmax = 500,
   genmax = 5000,
   range_food = 1,
   range_agents = 1,
