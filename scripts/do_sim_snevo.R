@@ -16,10 +16,10 @@ message(
 
 params = read.csv(param_file)
 
-library(snevo)
+library(pathomove)
 
 # run simulation
-data = snevo::run_pathomove(
+data = pathomove::run_pathomove(
   scenario = params$scenario[row_n],
 
   popsize = params$popsize[row_n],
