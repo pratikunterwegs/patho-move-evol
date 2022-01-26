@@ -1,4 +1,4 @@
-#### script to make batch scripts for snevo ####
+#### script to make batch scripts for pathomove ####
 library(data.table)
 library(glue)
 library(stringr)
@@ -9,7 +9,7 @@ date = Sys.time() |> str_replace_all(" |:", "_")
 param_file = glue("data/parameters/parameters_{date}.csv")
 
 # vis landscape
-d = snevo::get_test_landscape(
+d = pathomove::get_test_landscape(
   nItems = 1200,
   landsize = 60,
   nClusters = 60,
@@ -29,7 +29,7 @@ ggplot(d)+
   coord_equal()
 
 # make parameter combinations
-snevo::make_parameter_file(
+pathomove::make_parameter_file(
   scenario = 2,
   popsize = 500,
   nItems = 1800,
@@ -55,7 +55,7 @@ snevo::make_parameter_file(
 Rbin = file.path(R.home("bin"), "Rscript.exe")
 
 # file to run
-rscript = "scripts/do_sim_snevo.R"
+rscript = "scripts/do_sim_pathomove.R"
 
 # nrow of parameter file
 row_number = seq(nrow(fread(param_file)))
@@ -67,5 +67,5 @@ lines = c("cd ../", glue("{Rbin} {rscript} {param_file} {row_number}"))
 # write batch file
 writeLines(
     text = as.character(lines),
-    con = glue("scripts/snevo_runs_{date}_sc_all.bat")
+    con = glue("scripts/pathomove_runs_{date}_sc_all.bat")
 )
