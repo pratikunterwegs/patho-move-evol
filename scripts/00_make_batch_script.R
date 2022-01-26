@@ -38,7 +38,7 @@ pathomove::make_parameter_file(
   clusterSpread = 1,
   tmax = 300,
   genmax = 3000,
-  gen_init = 2000,
+  g_patho_init = 2000,
   range_food = 1,
   range_agents = 1,
   range_move = 1,
