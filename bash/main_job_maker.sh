@@ -3,9 +3,9 @@
 #SBATCH --partition=regular
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --job-name=snevo_simulation
+#SBATCH --job-name=pathomove_simulation
 #SBATCH --array=1-n_array
-#SBATCH --output=/home/p284074/patho-move-evol/data/output/snevo_output_%a.log
+#SBATCH --output=/home/p284074/patho-move-evol/data/output/pathomove_output_%a.log
 #SBATCH --mem=8000
 
 pwd
