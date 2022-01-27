@@ -17,7 +17,7 @@ pathomove::make_parameter_file(
   landsize = 60,
   nClusters = 60,
   clusterSpread = 1,
-  tmax = 500,
+  tmax = 300,
   genmax = 5000,
   g_patho_init = 3000,
   range_food = 1,
