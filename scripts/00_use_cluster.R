@@ -37,7 +37,7 @@ pathomove::make_parameter_file(
 pathomove::use_cluster(
   ssh_con = "p284074@peregrine.hpc.rug.nl",
   password = password, 
-  script = "scripts/do_sim_cluster.R",
+  script = "scripts/do_sim_pathomove.R",
   folder = "patho-move-evol", 
   template_job = "bash/main_job_maker.sh", 
   parameter_file = param_file
