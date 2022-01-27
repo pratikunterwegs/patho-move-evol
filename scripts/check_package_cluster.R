@@ -37,7 +37,7 @@ pathomove::use_cluster(
   ssh_con = "p284074@peregrine.hpc.rug.nl",
   password = password, 
   folder = "patho-move-evol",
-  script = "scripts/do_sim_cluster.R", 
+  script = "scripts/do_sim_pathomove.R", 
   template_job = "bash/main_job_maker.sh", 
   parameter_file = "data/parameters/parameters_test.csv"
 )
