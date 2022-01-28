@@ -25,24 +25,29 @@ data = data[social_strat != "non-handler tracking"]
 # summarise
 data[, gen_round := plyr::round_any(gen, 25)]
 # handle for 5 replicates, and 5 obs over 25 gens
-data_si_evo = data[, list(sum = sum(N) / (500 * 5 * 5)), 
-                   by = c("social_strat", "cost", "regen", "gen_round")]
+data_si_evo = data[, list(mean = mean(N) / 500), 
+                   by = c("social_strat", "cost", "regen", "gen")]
+
+gen_time = 300
+
+# plot regen as rate per generation timesteps
+data_si_evo[, regen_r := gen_time / regen]
 
 # levels of productivity
-data_si_evo[, regen := factor(regen, levels = c("100", "50", "20"))]
+# data_si_evo[, regen := factor(regen, levels = c("100", "50", "20"))]
 ```
 
 ```{r}
-fig1 =
+# fig1 =
   ggplot(data_si_evo)+
   geom_area(
     aes(
-      gen_round, sum, 
+      gen, mean, 
       fill = social_strat
     )
   )+
   geom_vline(
-    xintercept = 3334,
+    xintercept = 3000,
     lty = 2,
     size = 0.3
     # col = c("grey", "black", "grey")
@@ -78,21 +83,21 @@ fig1 =
     )
   )+
   facet_grid(
-    cost ~ regen, 
+    cost ~ regen_r, 
     as.table = F, 
     switch = c("both"),
     labeller = labeller(
       cost = function(x) sprintf("δE = %s", x),
-      regen = function(x) sprintf("T<sub>R</sub> = %s", x)
+      regen_r = function(x) sprintf("R = %s times/gen", x)
     )
   )+
   coord_cartesian(
     expand = F,
-    # ylim = c(0, 1),
+    ylim = c(0, 1),
     xlim = c(1, 5000)
   )+
   theme_test(
-    base_size = 11,
+    base_size = 11, 
     base_family = "Arial"
   )+
   theme(
