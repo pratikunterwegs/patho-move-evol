@@ -40,12 +40,17 @@ names(data)
 
 move_pre = rbindlist(data[["move_pre"]])
 
-ggplot(move_pre)+
-  geom_point(
-    aes(x, y, group = id, col = as.factor(id)),
+ggplot(move_pre[id < 50,])+
+  geom_path(
+    aes(
+      x, y, 
+      group = id, 
+      col = as.factor(id)
+    ),
     show.legend = F,
-    size = 0.3
-  )
+    size = 0.2
+  )+
+  coord_equal()
 ```
 
 ```{r}
