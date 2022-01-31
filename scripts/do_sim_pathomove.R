@@ -16,6 +16,8 @@ message(
 
 params = read.csv(param_file)
 
+head(params)
+
 library(pathomove)
 
 # run simulation
@@ -43,7 +45,9 @@ data = pathomove::run_pathomove(
 
   initialInfections = params$initialInfections[row_n],
   costInfect = params$costInfect[row_n],
-  nThreads = params$nThreads[row_n]
+  nThreads = params$nThreads[row_n],
+  local_dispersal = params$local_dispersal[row_n],
+  infect_percent = params$infect_percent[row_n]
 )
 
 # get params as named vector
