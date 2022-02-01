@@ -8,6 +8,7 @@ editor_options:
 ```{r}
 library(data.table)
 library(stringr)
+library(ggplot2)
 
 # load local funs
 devtools::load_all()
@@ -92,8 +93,6 @@ data = Map(
     le$cost = cost
     le$regen = regen
     
-    # assign disease cost
-    get_total_energy(le, cost_disease = cost)
     # summarise within sim
     le = le[, unlist(
       lapply(.SD, function(x) {
@@ -103,7 +102,7 @@ data = Map(
         )
       }), recursive = FALSE
     ), 
-    .SDcols = c("energy", "intake", "moved", "assoc", "cost_disease"),
+    .SDcols = c("energy", "intake", "moved", "assoc"),
     by = c("gen", "repl", "scenario", "regen", "cost")]
   }
 ) |>
@@ -116,7 +115,7 @@ fwrite(data, file = "data/results/data_gen.csv")
 ```{r}
 data |>
   ggplot()+
-  geom_bin_2d(
+  geom_point(
     aes(
       gen, intake.mean
     )
@@ -124,6 +123,7 @@ data |>
   scale_fill_viridis_c()+
   facet_grid(
     cost ~ regen,
+    scales = "free_y",
     labeller = label_both
   )
 ```
@@ -191,7 +191,7 @@ data_si_imp = Map(
   f = function(d, repl, cost, regen, scenario) {
     # assign_movement_types(d)
     d[, si_imp := (abs(sH) + abs(sN)) / (abs(sH) + abs(sN) + abs(sF))]
-    d[, si_bin := plyr::round_any(si_imp, 0.05)]
+    d[, si_bin := plyr::round_any(si_imp, 0.01)]
     d$repl = repl
     d$cost = cost
     d$regen = regen
@@ -217,21 +217,29 @@ data_si_imp %>%
       fill = N
     )
   )+
+  scale_fill_viridis_c()+
   facet_grid(
-    regen + repl ~ cost
+    cost ~ regen,
+    labeller = label_both
   )
 ```
 
 ```{r}
-data_morphs |>
+data_morphs[
+  # social_strat != "non-handler tracking"
+] |>
   ggplot()+
-  geom_point(
+  geom_area(
     aes(
       gen, N,
-      col = social_strat
+      fill = social_strat
     ),
     size = 0.2
   )+
+  geom_vline(
+    xintercept = 700
+  )+
+  scale_fill_viridis_d()+
   facet_grid(
     cost ~ regen,
     labeller = label_both
