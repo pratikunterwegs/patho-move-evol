@@ -30,6 +30,7 @@ data_sim = vector("list", length = length(files))
 repl = c()
 cost = c()
 regen = c()
+local = c()
 ```
 
 ## Sanity check
@@ -62,6 +63,7 @@ for (i in seq(length(files))) {
   repl = c(repl, data[["replicate"]])
   cost = c(cost, data[["costInfect"]])
   regen = c(regen, data[["regen_time"]])
+  local = c(local, data[["local_dispersal"]])
 }
 ```
 
@@ -70,10 +72,10 @@ for (i in seq(length(files))) {
 ```{r}
 # simulation wise data
 data = Map(
-  data_sim, repl, cost, regen, scenarios,
+  data_sim, repl, cost, regen, scenarios, local,
   
   # map over simulations
-  f = function(le, repl, cost, regen, scenario) {
+  f = function(le, repl, cost, regen, scenario, local) {
     # map over generations
     le = Map(le[["pop_data"]], le[["gens"]],
         f = function(l, g) {
@@ -92,6 +94,7 @@ data = Map(
     le$scenario = scenario
     le$cost = cost
     le$regen = regen
+    le$local = local
     
     # summarise within sim
     le = le[, unlist(
@@ -103,7 +106,7 @@ data = Map(
       }), recursive = FALSE
     ), 
     .SDcols = c("energy", "intake", "moved", "assoc"),
-    by = c("gen", "repl", "scenario", "regen", "cost")]
+    by = c("gen", "repl", "scenario", "regen", "cost", "local")]
   }
 ) |>
   rbindlist()
@@ -115,7 +118,7 @@ fwrite(data, file = "data/results/data_gen.csv")
 ```{r}
 data |>
   ggplot()+
-  geom_point(
+  geom_line(
     aes(
       gen, intake.mean
     )
@@ -123,7 +126,7 @@ data |>
   scale_fill_viridis_c()+
   facet_grid(
     cost ~ regen,
-    scales = "free_y",
+    # scales = "free_y",
     labeller = label_both
   )
 ```
@@ -157,13 +160,14 @@ data = Map(
 ```{r}
 # get movement morphs
 data_morphs = Map(
-  data, repl, cost, regen, scenarios,
-  f = function(d, repl, cost, regen, scenario) {
+  data, repl, cost, regen, scenarios, local,
+  f = function(d, repl, cost, regen, scenario, local) {
     # assign_movement_types(d)
     get_social_strategy(d)
     d$repl = repl
     d$cost = cost
     d$regen = regen
+    d$local = local
     # d$scenario = scenario
     d[, list(
       N = length(moved),
@@ -171,7 +175,7 @@ data_morphs = Map(
       mean_assoc = mean(assoc),
       mean_intake = mean(intake),
       prop_infec = sum(t_infec > 0) / length(t_infec)
-    ), by = c("gen", "social_strat", 
+    ), by = c("gen", "social_strat", "local",
                    "repl", "cost", "regen")]
   }
 )
@@ -187,16 +191,17 @@ fwrite(data_morphs, file = "data/results/data_si_morphs.csv")
 ```{r}
 # get importance of social information
 data_si_imp = Map(
-  data, repl, cost, regen, scenarios,
-  f = function(d, repl, cost, regen, scenario) {
+  data, repl, cost, regen, scenarios, local,
+  f = function(d, repl, cost, regen, scenario, local) {
     # assign_movement_types(d)
     d[, si_imp := (abs(sH) + abs(sN)) / (abs(sH) + abs(sN) + abs(sF))]
     d[, si_bin := plyr::round_any(si_imp, 0.01)]
     d$repl = repl
     d$cost = cost
     d$regen = regen
+    d$local = local
     # d$scenario = scenario
-    d[, .N, by = c("repl", "gen", "cost", "regen", "si_bin")]
+    d[, .N, by = c("repl", "gen", "cost", "regen", "local", "si_bin")]
   }
 )
 
@@ -218,6 +223,9 @@ data_si_imp %>%
     )
   )+
   scale_fill_viridis_c()+
+  coord_cartesian(
+    # ylim = c(0, 0.5)
+  )+
   facet_grid(
     cost ~ regen,
     labeller = label_both
@@ -229,12 +237,14 @@ data_morphs[
   # social_strat != "non-handler tracking"
 ] |>
   ggplot()+
-  geom_area(
+  geom_point(
     aes(
       gen, N,
-      fill = social_strat
+      group = social_strat,
+      col = social_strat
     ),
-    size = 0.2
+    # position = "stack"
+    # size = 0.2
   )+
   geom_vline(
     xintercept = 700
