@@ -9,6 +9,7 @@ editor_options:
 library(data.table)
 library(stringr)
 library(ggplot2)
+library(glue)
 
 # load local funs
 devtools::load_all()
@@ -22,21 +23,12 @@ files = list.files(
   "data/output/", 
   pattern = "Rds", full.names = T
 )
-scenarios = str_extract_all(files, pattern = "scenario_(\\w+)_") |> 
-  str_remove_all("scenario|_")
-
-# prepare lists to hold data
-data_sim = vector("list", length = length(files))
-repl = c()
-cost = c()
-regen = c()
-local = c()
 ```
 
 ## Sanity check
 
 ```{r}
-f = files[21]
+f = files[1]
 load(f)
 names(data)
 
@@ -55,204 +47,156 @@ ggplot(move_pre[id < 50,])+
   coord_equal()
 ```
 
-```{r}
-# spread = c()
-for (i in seq(length(files))) {
-  load(files[i])
-  data_sim[[i]] = data[["gen_data"]]
-  repl = c(repl, data[["replicate"]])
-  cost = c(cost, data[["costInfect"]])
-  regen = c(regen, data[["regen_time"]])
-  local = c(local, data[["local_dispersal"]])
-}
-```
-
-## Generation level data
+## Process each file
 
 ```{r}
-# simulation wise data
-data = Map(
-  data_sim, repl, cost, regen, scenarios, local,
-  
-  # map over simulations
-  f = function(le, repl, cost, regen, scenario, local) {
-    # map over generations
-    le = Map(le[["pop_data"]], le[["gens"]],
-        f = function(l, g) {
-          l$gen = g
-          l$repl = repl
-          # l$spread = spread
-          if(g == 0) {
-            NULL
-          } else {
-            l
-          }
-        }
-    ) |>
-      rbindlist()
-    
-    le$scenario = scenario
-    le$cost = cost
-    le$regen = regen
-    le$local = local
-    
-    # summarise within sim
-    le = le[, unlist(
-      lapply(.SD, function(x) {
-        list(
-          mean = mean(x),
-          sd = sd(x)
+# where to send output
+gen_data_path = "data/results/gen_data"
+morph_data_path = "data/results/morph_data"
+si_imp_path = "data/results/si_imp_data"
+
+# make directories if non existent
+lapply(
+  list(gen_data_path, morph_data_path, si_imp_path), 
+  function(p) {
+    if(!dir.exists(p)) {
+      # message
+      message(
+        glue(
+          "creating filepath {p}"
         )
-      }), recursive = FALSE
-    ), 
-    .SDcols = c("energy", "intake", "moved", "assoc"),
-    by = c("gen", "repl", "scenario", "regen", "cost", "local")]
+      )
+      dir.create(p)
+    }
   }
-) |>
-  rbindlist()
-
-# save
-fwrite(data, file = "data/results/data_gen.csv")
+)
 ```
 
+
 ```{r}
-data |>
-  ggplot()+
-  geom_line(
-    aes(
-      gen, intake.mean
-    )
-  )+
-  scale_fill_viridis_c()+
-  facet_grid(
-    cost ~ regen,
-    # scales = "free_y",
-    labeller = label_both
+# use a loop because
+for (i in files) {
+  
+  # load data
+  load(i)
+  
+  uid = str_extract(i, "\\d+")
+  
+  # load metadata on the simulation
+  gen_data = data[["gen_data"]]
+  repl = data[["replicate"]]
+  cost = data[["costInfect"]]
+  regen = data[["regen_time"]]
+  local = data[["local_dispersal"]]
+  
+  # prepare generation level data
+  gen_data = Map(
+    gen_data[["pop_data"]], gen_data[["gens"]],
+    f = function(l, g) {
+      l$gen = g
+      l
+    }
   )
-```
-
-## Individual level data
-
-```{r}
-# simulation wise data
-data = Map(
-  data_sim, scenarios,
-  f = function(le, scenario) {
-    Map(le[["pop_data"]], le[["gens"]],
-        f = function(l, g) {
-          l$id = seq(nrow(l))
-          l$gen = g
-          l$scenario = scenario
-          if(g == 0) {
-            NULL
-          } else {
-            l
-          }
-        }
-    ) |>
-      rbindlist()
-  }
-)
-```
-
-### Evolution of Movement Types
-
-```{r}
-# get movement morphs
-data_morphs = Map(
-  data, repl, cost, regen, scenarios, local,
-  f = function(d, repl, cost, regen, scenario, local) {
-    # assign_movement_types(d)
-    get_social_strategy(d)
-    d$repl = repl
-    d$cost = cost
-    d$regen = regen
-    d$local = local
-    # d$scenario = scenario
-    d[, list(
-      N = length(moved),
-      mean_move = mean(moved),
-      mean_assoc = mean(assoc),
-      mean_intake = mean(intake),
-      prop_infec = sum(t_infec > 0) / length(t_infec)
-    ), by = c("gen", "social_strat", "local",
-                   "repl", "cost", "regen")]
-  }
-)
-
-# bind and count morphs
-data_morphs = rbindlist(data_morphs)
-# data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl")]
-
-# save
-fwrite(data_morphs, file = "data/results/data_si_morphs.csv")
+  
+  #### prepare individual level data ####
+  popsize = data[["popsize"]]
+  
+  gen_data = Map(
+    gen_data,
+    f = function(df) {
+      
+      # add individual identity
+      df$id = seq(popsize)
+      
+      # get strategy --- assignment necessary
+      df = mspathomove::get_social_strategy(df)
+      
+      df
+      
+    }
+  )
+  
+  # process by social strategy
+  data_strategy = Map(
+    gen_data,
+    f = function(df) {
+      df[, list(
+        N = .N,
+        mean_move = mean(moved),
+        mean_assoc = mean(assoc),
+        mean_intake = mean(intake),
+        prop_infec = sum(t_infec > 0) / length(t_infec)
+      ), by = c("gen", "social_strat")]
+    }
+  ) |> rbindlist()
+  
+  # summarise by generation
+  # bind all together
+  gen_data = rbindlist(gen_data)
+  
+  gen_data = gen_data[, unlist(
+    lapply(.SD, function(x) {
+      list(
+        mean = mean(x),
+        sd = sd(x)
+      )
+    }), recursive = FALSE
+  ), 
+  .SDcols = c("energy", "intake", "moved", "assoc"),
+  by = c("gen")]
+  
+  # add simulation parameters
+  invisible(
+    lapply(
+      list(data_strategy, gen_data), 
+      function(df) {
+        df[, c("repl", "cost", "regen", "local") := list(
+          repl, cost, regen, local
+        )]
+      }
+    )
+  )
+  
+  # save data
+  invisible(
+    Map(
+      list(data_strategy, gen_data), 
+      list(morph_data_path, gen_data_path),
+      f = function(df, p) {
+        fwrite(
+          df,
+          file = glue(
+            "{p}/data_gen_{uid}.csv"
+          )
+        )
+      }
+    )
+  )
+  
+}
 ```
 
 ```{r}
 # get importance of social information
-data_si_imp = Map(
-  data, repl, cost, regen, scenarios, local,
-  f = function(d, repl, cost, regen, scenario, local) {
-    # assign_movement_types(d)
-    d[, si_imp := (abs(sH) + abs(sN)) / (abs(sH) + abs(sN) + abs(sF))]
-    d[, si_bin := plyr::round_any(si_imp, 0.01)]
-    d$repl = repl
-    d$cost = cost
-    d$regen = regen
-    d$local = local
-    # d$scenario = scenario
-    d[, .N, by = c("repl", "gen", "cost", "regen", "local", "si_bin")]
-  }
-)
-
-# bind and count morphs
-data_si_imp = rbindlist(data_si_imp)
-# data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl")]
-
-# save
-fwrite(data_si_imp, file = "data/results/data_si_imp.csv")
+# data_si_imp = Map(
+#   data, repl, cost, regen, scenarios, local,
+#   f = function(d, repl, cost, regen, scenario, local) {
+#     # assign_movement_types(d)
+#     d[, si_imp := (abs(sH) + abs(sN)) / (abs(sH) + abs(sN) + abs(sF))]
+#     d[, si_bin := plyr::round_any(si_imp, 0.01)]
+#     d$repl = repl
+#     d$cost = cost
+#     d$regen = regen
+#     d$local = local
+#     # d$scenario = scenario
+#     d[, .N, by = c("repl", "gen", "cost", "regen", "local", "si_bin")]
+#   }
+# )
+# 
+# # bind and count morphs
+# data_si_imp = rbindlist(data_si_imp)
+# # data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl")]
+# 
+# # save
+# fwrite(data_si_imp, file = "data/results/data_si_imp.csv")
 ```
-
-```{r}
-data_si_imp %>% 
-  ggplot()+
-  geom_tile(
-    aes(
-      gen, si_bin,
-      fill = N
-    )
-  )+
-  scale_fill_viridis_c()+
-  coord_cartesian(
-    # ylim = c(0, 0.5)
-  )+
-  facet_grid(
-    cost ~ regen,
-    labeller = label_both
-  )
-```
-
-```{r}
-data_morphs[
-  # social_strat != "non-handler tracking"
-] |>
-  ggplot()+
-  geom_point(
-    aes(
-      gen, N,
-      group = social_strat,
-      col = social_strat
-    ),
-    # position = "stack"
-    # size = 0.2
-  )+
-  geom_vline(
-    xintercept = 700
-  )+
-  scale_fill_viridis_d()+
-  facet_grid(
-    cost ~ regen,
-    labeller = label_both
-  )
-```
-
