@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --time=09:10:00
+#SBATCH --time=04:10:00
 #SBATCH --partition=regular
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --job-name=pathomove_simulation
+#SBATCH --job-name=pathomove_percent
 #SBATCH --array=1-n_array
-#SBATCH --output=/home/p284074/patho-move-evol/data/output/pathomove_output_%a.log
+#SBATCH --output=/home/p284074/patho-move-evol/data/output/pathomove_percent_%a.log
 #SBATCH --mem=8000
 
 pwd
