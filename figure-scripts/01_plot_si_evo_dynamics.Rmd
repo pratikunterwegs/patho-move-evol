@@ -19,16 +19,33 @@ devtools::load_all()
 Load data.
 
 ```{r}
-data = fread("data/results/data_si_morphs.csv")
-data = data[social_strat != "non-handler tracking"]
+# list files, read, and filter for default model options
+files = list.files(
+  "data/results/morph_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
 
-# summarise
-data[, gen_round := plyr::round_any(gen, 25)]
-# handle for 5 replicates, and 5 obs over 25 gens
-data_si_evo = data[, list(mean = mean(N) / 500), 
-                   by = c("social_strat", "cost", "regen", "gen")]
+data_all = lapply(files, fread)
+data_all = rbindlist(data_all)
 
-gen_time = 300
+data = data_all[(cost < 0.1) & (local == 1)]
+```
+
+
+```{r}
+# data = data[social_strat != "non-handler tracking"]
+# data[, gen_round := plyr::round_any(gen, 10)]
+
+# popsize
+popsize = 500
+
+# handle for 5 replicates, and 5 obs over 10 gens (observation twice per gen)
+data_si_evo = data[, list(
+  prop = sum(N) / (popsize * max(repl))
+), by = c("social_strat", "cost", "regen", "gen")]
+
+gen_time = 100
 
 # plot regen as rate per generation timesteps
 data_si_evo[, regen_r := gen_time / regen]
@@ -38,16 +55,31 @@ data_si_evo[, regen_r := gen_time / regen]
 ```
 
 ```{r}
+ggplot(data_si_evo)+
+  geom_line(
+    aes(
+      gen, prop,
+      col = social_strat
+    ),
+    size = 1
+  )+
+  facet_grid(
+    cost ~ regen
+  )
+```
+
+
+```{r}
 # fig1 =
   ggplot(data_si_evo)+
   geom_area(
     aes(
-      gen, mean, 
+      gen, prop, 
       fill = social_strat
     )
   )+
   geom_vline(
-    xintercept = 3000,
+    xintercept = 1200,
     lty = 2,
     size = 0.3
     # col = c("grey", "black", "grey")
@@ -57,14 +89,15 @@ data_si_evo[, regen_r := gen_time / regen]
     rev = F,
     l1 = 30,
     name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
     labels = stringr::str_to_sentence
   )+
   scale_x_continuous(
-    breaks = 3334,
+    breaks = 1200,
     labels = "Pathogen introduction",
     name = "Increasing productivity \u279c",
     sec.axis = dup_axis(
-      breaks = c(1000, 3000, 5000),
+      # breaks = c(1000, 3000, 5000),
       labels = scales::comma_format(
         accuracy = 1
         # scale = 1/1000, suffix = "K"
@@ -94,7 +127,7 @@ data_si_evo[, regen_r := gen_time / regen]
   coord_cartesian(
     expand = F,
     ylim = c(0, 1),
-    xlim = c(1, 5000)
+    xlim = c(1, 2000)
   )+
   theme_test(
     base_size = 11, 

@@ -14,20 +14,34 @@ library(colorspace)
 devtools::load_all()
 ```
 
-
 Load generation data.
 
 ```{r}
+# list files, read, and filter for default model options
+files = list.files(
+  "data/results/gen_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
+
+data_all = lapply(files, fread)
+data_all = rbindlist(data_all)
+
+data = data_all[(cost >= 0.1) & (local == 1)]
+```
+
+```{r}
 # load data
-data = fread("data/results/data_gen.csv")
-data = data[scenario == "spillover" & regen == 50 & cost == 0.25]
+data = data[regen == 50 & cost == 0.25]
 
 # summarise etc
 data[, gen_round := plyr::round_any(gen, 10)]
-data[, energy.mean := fifelse(scenario == "spillover" & gen < 3334, NA_real_, energy.mean)]
+
+# spillover gen
+sgen = 1200
 
 # add col for representation
-data[, gen_abs := gen - 3334]
+data[, gen_abs := gen - sgen]
 ```
 
 ## Intake and energy
@@ -43,14 +57,14 @@ data = melt(
 
 
 ```{r}
-plot_intake =
+# plot_intake =
 ggplot(data[variable %in% c("intake.mean")])+
   geom_bin2d(
     data = data[variable == "intake.mean"],
     aes(
       gen_abs, value,
     ),
-    binwidth = c(0.2, 0.25),
+    # binwidth = c(0.2, 0.25),
     show.legend = F,
     alpha = 0.8
   )+
@@ -64,35 +78,35 @@ ggplot(data[variable %in% c("intake.mean")])+
     ),
     lty = 3
   )+
-  stat_summary(
-    fun = mean,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
-    aes(
-      gen_abs, value,
-      colour = variable,
-    ),
-    geom = "line",
-    alpha = 0.8,
-    show.legend = F
-  )+
-  stat_summary(
-    data = data[variable %in% c("intake.mean") & 
-           between(gen_abs, -25, 25)],
-    fun = mean,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
-    aes(
-      gen_abs, value,
-      colour = variable,
-      shape = variable
-    ),
-    fill = "grey99",
-    show.legend = F
-  )+
+  # stat_summary(
+  #   fun = mean,
+  #   fun.min = ci_lower,
+  #   fun.max = ci_upper,
+  #   aes(
+  #     gen_abs, value,
+  #     colour = variable,
+  #   ),
+  #   geom = "line",
+  #   alpha = 0.8,
+  #   show.legend = F
+  # )+
+  # stat_summary(
+  #   data = data[variable %in% c("intake.mean") & 
+  #          between(gen_abs, -25, 25)],
+  #   fun = mean,
+  #   fun.min = ci_lower,
+  #   fun.max = ci_upper,
+  #   aes(
+  #     gen_abs, value,
+  #     colour = variable,
+  #     shape = variable
+  #   ),
+  #   fill = "grey99",
+  #   show.legend = F
+  # )+
   scale_fill_continuous_sequential(
     palette = "Oslo",
-    rev = T,
+    rev = F,
     trans = "sqrt"
   )+
   scale_shape_manual(
@@ -106,15 +120,15 @@ ggplot(data[variable %in% c("intake.mean")])+
     labels = c("Intake")
   )+
   scale_x_continuous(
-    trans = ggallin::pseudolog10_trans,
-    breaks = c(-3000, -100, -5, 5, 100, 1500),
+    # trans = ggallin::pseudolog10_trans,
+    # breaks = c(-3000, -100, -5, 5, 100, 1500),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. since spillover",
     sec.axis = sec_axis(
-      trans = function(x) x + 3334,
-      breaks = c(0, 3000, 3334, 5000),
+      trans = function(x) x + sgen,
+      # breaks = c(0, 3000, 3334, 5000),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -150,7 +164,7 @@ ggsave(
 ## Movement
 
 ```{r}
-plot_movement =
+# plot_movement =
 ggplot(data[variable %in% c("moved.mean")])+
   geom_bin2d(
     aes(
