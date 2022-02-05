@@ -88,6 +88,7 @@ for (i in files) {
   cost = data[["costInfect"]]
   regen = data[["regen_time"]]
   local = data[["local_dispersal"]]
+  percent = data[["infect_percent"]]
   
   # prepare generation level data
   gen_data = Map(
@@ -150,8 +151,8 @@ for (i in files) {
     lapply(
       list(data_strategy, gen_data), 
       function(df) {
-        df[, c("repl", "cost", "regen", "local") := list(
-          repl, cost, regen, local
+        df[, c("repl", "cost", "regen", "local", "infect_percent") := list(
+          repl, cost, regen, local, infect_percent
         )]
       }
     )
