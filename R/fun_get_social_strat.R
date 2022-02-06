@@ -54,7 +54,9 @@ get_agent_avoidance = function(df) {
   data.table::setDT(df)
   d_ = copy(df)
   # avoidance is sum of negative agent weights
-  d_[, agent_avoidance := fifelse(sH < 0, sH, 0) + fifelse(sN < 0, sN, 0)]
+  d_[, agent_avoidance := (fifelse(sH < 0, sH, 0) + fifelse(sN < 0, sN, 0)) / 
+    (abs(sH) + abs(sN) + abs(sF))
+  ]
   # assign to original df, modified by reference
   df[, agent_avoidance := d_$agent_avoidance]
 }
