@@ -88,7 +88,7 @@ for (i in files) {
   cost = data[["costInfect"]]
   regen = data[["regen_time"]]
   local = data[["local_dispersal"]]
-  percent = data[["infect_percent"]]
+  infect_percent = data[["infect_percent"]]
   
   # prepare generation level data
   gen_data = Map(
