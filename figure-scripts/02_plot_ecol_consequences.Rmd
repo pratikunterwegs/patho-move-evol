@@ -113,6 +113,8 @@ ggplot(data_si_evo)+
   )
 ```
 
+## Data ecological outcomes
+
 Load generation data.
 
 ```{r}
@@ -126,24 +128,24 @@ files = list.files(
 data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
 
-data = data_all[(cost >= 0.1) & (local == 1)]
+data = data_all[(infect_percent == T) & (local == 1)]
 ```
 
 ```{r}
 # load data
-data = data[regen == 50 & cost == 0.25]
+data = data[regen == 50 & cost == 0.05]
 
 # summarise etc
-data[, gen_round := plyr::round_any(gen, 10)]
+data[, gen_round := floor(gen / 10) * 10]
 
 # spillover gen
-sgen = 1200
+sgen = 250
 
 # add col for representation
 data[, gen_abs := gen - sgen]
 ```
 
-## Intake and energy
+### Intake
 
 ```{r}
 data = data[, c("gen_abs", "intake.mean", 
@@ -152,20 +154,37 @@ data = melt(
   data,
   id.vars = "gen_abs"
 )
+
+## colours for background
+cols = RColorBrewer::brewer.pal(3, "Dark2")
 ```
 
-
 ```{r}
-# plot_intake =
+plot_intake =
 ggplot(data[variable %in% c("intake.mean")])+
-  geom_bin2d(
-    data = data[variable == "intake.mean"],
+  stat_summary(
+    fun = mean,
+    fun.min = ci_lower,
+    fun.max = ci_upper,
+    aes(
+      gen_abs, value
+    ),
+    geom = "ribbon",
+    size = 0.2,
+    # colour = "grey",
+    fill = alpha(cols[1], 0.3),
+    show.legend = F
+  )+
+  stat_summary(
+    fun = mean,
+    # fun.min = ci_lower,
+    # fun.max = ci_upper,
     aes(
       gen_abs, value,
     ),
-    # binwidth = c(0.2, 0.25),
-    show.legend = F,
-    alpha = 0.8
+    colour = "grey30",
+    geom = "line",
+    show.legend = F
   )+
   geom_vline(
     data = data.table(
@@ -177,57 +196,16 @@ ggplot(data[variable %in% c("intake.mean")])+
     ),
     lty = 3
   )+
-  # stat_summary(
-  #   fun = mean,
-  #   fun.min = ci_lower,
-  #   fun.max = ci_upper,
-  #   aes(
-  #     gen_abs, value,
-  #     colour = variable,
-  #   ),
-  #   geom = "line",
-  #   alpha = 0.8,
-  #   show.legend = F
-  # )+
-  # stat_summary(
-  #   data = data[variable %in% c("intake.mean") & 
-  #          between(gen_abs, -25, 25)],
-  #   fun = mean,
-  #   fun.min = ci_lower,
-  #   fun.max = ci_upper,
-  #   aes(
-  #     gen_abs, value,
-  #     colour = variable,
-  #     shape = variable
-  #   ),
-  #   fill = "grey99",
-  #   show.legend = F
-  # )+
-  scale_fill_continuous_sequential(
-    palette = "Oslo",
-    rev = F,
-    trans = "sqrt"
-  )+
-  scale_shape_manual(
-    values = c(21, 24),
-    breaks = c("intake.mean"),
-    labels = c("Intake")
-  )+
-  scale_colour_manual(
-    values = c("grey20"),
-    breaks = c("intake.mean"),
-    labels = c("Intake")
-  )+
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
-    # breaks = c(-3000, -100, -5, 5, 100, 1500),
+    trans = ggallin::pseudolog10_trans,
+    breaks = c(-250, -25, -5, 5, 25, 250),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. since spillover",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      # breaks = c(0, 3000, 3334, 5000),
+      breaks = c(1, 250, 500),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -242,7 +220,8 @@ ggplot(data[variable %in% c("intake.mean")])+
     strip.background = element_blank(),
     strip.text = element_text(
       face = "italic"
-    )
+    ),
+    strip.placement = "outside"
   )+
   labs(
     x = NULL,
@@ -263,19 +242,31 @@ ggsave(
 ## Movement
 
 ```{r}
-# plot_movement =
+plot_movement =
 ggplot(data[variable %in% c("moved.mean")])+
-  geom_bin2d(
+  stat_summary(
+    fun = mean,
+    fun.min = ci_lower,
+    fun.max = ci_upper,
     aes(
-      gen_abs, value,
+      gen_abs, value
     ),
-    binwidth = c(0.2, 1),
-    show.legend = F,
-    alpha = 0.8
+    geom = "ribbon",
+    size = 0.2,
+    # colour = "grey",
+    fill = alpha(cols[3], 0.3),
+    show.legend = F
   )+
-  geom_hline(
-    yintercept = 0,
-    lty = 3
+  stat_summary(
+    fun = mean,
+    # fun.min = ci_lower,
+    # fun.max = ci_upper,
+    aes(
+      gen_abs, value
+    ),
+    colour = "grey30",
+    geom = "line",
+    show.legend = F
   )+
   geom_vline(
     data = data.table(
@@ -287,45 +278,16 @@ ggplot(data[variable %in% c("moved.mean")])+
     ),
     lty = 3
   )+
-  stat_summary(
-    fun = mean,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
-    aes(
-      gen_abs, value,
-    ),
-    colour = "grey20",
-    geom = "line",
-    alpha = 0.8
-  )+
-  stat_summary(
-    data = data[variable %in% c("moved.mean") & 
-           between(gen_abs, -25, 25)],
-    fun = mean,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
-    aes(
-      gen_abs, value,
-      shape = variable
-    ),
-    colour = "grey20",
-    fill = "grey99",
-    shape = 21
-  )+
-  scale_fill_continuous_sequential(
-    palette = "Mako",
-    trans = "sqrt"
-  )+
   scale_x_continuous(
     trans = ggallin::pseudolog10_trans,
-    breaks = c(-3000, -100, -5, 5, 100, 1500),
+    breaks = c(-250, -25, -5, 5, 25, 250),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. since spillover",
     sec.axis = sec_axis(
-      trans = function(x) x + 3334,
-      breaks = c(0, 3000, 3334, 5000),
+      trans = function(x) x + sgen,
+      breaks = c(1, 250, 500),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -340,10 +302,8 @@ ggplot(data[variable %in% c("moved.mean")])+
     strip.background = element_blank(),
     strip.text = element_text(
       face = "italic"
-    )
-  )+
-  coord_cartesian(
-    ylim = c(30, 90)
+    ),
+    strip.placement = "outside"
   )+
   labs(
     x = NULL,
@@ -366,17 +326,28 @@ ggsave(
 ```{r}
 plot_assoc =
 ggplot(data[variable %in% c("assoc.mean")])+
-  geom_bin2d(
+  stat_summary(
+    fun = mean,
+    fun.min = ci_lower,
+    fun.max = ci_upper,
+    aes(
+      gen_abs, value
+    ),
+    geom = "ribbon",
+    size = 0.2,
+    fill = alpha(cols[2], 0.3),
+    show.legend = F
+  )+
+  stat_summary(
+    fun = mean,
+    # fun.min = ci_lower,
+    # fun.max = ci_upper,
     aes(
       gen_abs, value,
     ),
-    binwidth = c(0.2, 0.05),
-    show.legend = F,
-    alpha = 0.8
-  )+
-  geom_hline(
-    yintercept = 0,
-    lty = 3
+    colour = "grey30",
+    geom = "line",
+    show.legend = F
   )+
   geom_vline(
     data = data.table(
@@ -388,44 +359,16 @@ ggplot(data[variable %in% c("assoc.mean")])+
     ),
     lty = 3
   )+
-  stat_summary(
-    fun = mean,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
-    aes(
-      gen_abs, value,
-    ),
-    colour = "grey20",
-    geom = "line",
-    alpha = 0.8
-  )+
-  stat_summary(
-    data = data[variable %in% c("assoc.mean") & 
-           between(gen_abs, -25, 25)],
-    fun = mean,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
-    aes(
-      gen_abs, value,
-      shape = variable
-    ),
-    colour = "grey20",
-    fill = "grey99",
-    shape = 21
-  )+
-  scale_fill_continuous_sequential(
-    palette = "Rocket"
-  )+
   scale_x_continuous(
     trans = ggallin::pseudolog10_trans,
-    breaks = c(-3000, -100, -5, 5, 100, 1500),
+    breaks = c(-250, -25, -5, 5, 25, 250),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. since spillover",
     sec.axis = sec_axis(
-      trans = function(x) x + 3334,
-      breaks = c(0, 3000, 3334, 5000),
+      trans = function(x) x + sgen,
+      breaks = c(1, 250, 500),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -438,7 +381,7 @@ ggplot(data[variable %in% c("assoc.mean")])+
   )+
   theme_test(base_family = "Arial")+
   theme(
-    legend.position = c(0.2, 0.15),
+    # legend.position = c(0.2, 0.15),
     legend.key = element_blank(),
     legend.background = element_blank(),
     strip.background = element_blank(),
@@ -447,11 +390,12 @@ ggplot(data[variable %in% c("assoc.mean")])+
     ),
     axis.text.y = element_text(
       angle = 90, hjust = 0.5
-    )
+    ),
+    strip.placement = "outside"
   )+
   labs(
     x = NULL,
-    y = "Encounters w/ individuals",
+    y = "Distance moved",
     colour = NULL,
     shape = NULL
   )
@@ -468,20 +412,22 @@ ggsave(
 ## Make Figure 1
 
 ```{r}
-fig_2 =
+fig_1 =
 wrap_plots(
   # plot_agent_avoid,
+  fig_1a,
   plot_movement,
   plot_intake, 
   plot_assoc,
-  ncol = 3
-  # guides = "collect"
+  ncol = 2,
+  guides = "collect"
 ) &
   plot_annotation(
     tag_levels = c("A", 1)
   ) &
   theme(
     legend.position = "top",
+    legend.justification = 0,
     legend.key.height = unit(1, units = "mm"),
     plot.tag = element_text(
       face = "bold",
@@ -493,8 +439,8 @@ wrap_plots(
   )
 
 ggsave(
-  fig_2,
-  filename = "figures/fig_02.png",
-  height = 69, width = 174, units = "mm"
+  fig_1,
+  filename = "figures/fig_01.png",
+  height = 120, width = 120, units = "mm"
 )
 ```
