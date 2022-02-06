@@ -29,21 +29,21 @@ files = list.files(
 data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
 
-data = data_all[(cost < 0.1) & (local == 1)]
+data = data_all[(local == 1) & (infect_percent == T)]
 ```
 
 
 ```{r}
-# data = data[social_strat != "non-handler tracking"]
-# data[, gen_round := plyr::round_any(gen, 10)]
+data = data[social_strat != "non-handler tracking"]
+data[, gen_round := plyr::round_any(gen, 10)]
 
 # popsize
 popsize = 500
 
 # handle for 5 replicates, and 5 obs over 10 gens (observation twice per gen)
 data_si_evo = data[, list(
-  prop = sum(N) / (popsize * max(repl))
-), by = c("social_strat", "cost", "regen", "gen")]
+  prop = sum(N) / (popsize * max(repl) * 5)
+), by = c("social_strat", "cost", "regen", "gen_round")]
 
 gen_time = 100
 
@@ -55,13 +55,41 @@ data_si_evo[, regen_r := gen_time / regen]
 ```
 
 ```{r}
-ggplot(data_si_evo)+
+ggplot(data)+
   geom_line(
     aes(
-      gen, prop,
+      gen, N,
+      group = interaction(social_strat, repl),
       col = social_strat
     ),
+    # geom = "line",
     size = 1
+  )+
+  scale_x_continuous(
+    # trans = ggallin::pseudolog10_trans
+  )+
+  coord_cartesian(
+    # xlim = c(-100, NA)
+  )+
+  facet_grid(
+    cost ~ regen
+  )
+
+ggplot(data)+
+  stat_summary(
+    aes(
+      gen_round, N,
+      # group = interaction(social_strat, repl),
+      col = social_strat
+    ),
+    # geom = "line",
+    # size = 1
+  )+
+  scale_x_continuous(
+    # trans = ggallin::pseudolog10_trans
+  )+
+  coord_cartesian(
+    # xlim = c(-100, NA)
   )+
   facet_grid(
     cost ~ regen
@@ -74,12 +102,12 @@ ggplot(data_si_evo)+
   ggplot(data_si_evo)+
   geom_area(
     aes(
-      gen, prop, 
+      gen_round, prop, 
       fill = social_strat
     )
   )+
   geom_vline(
-    xintercept = 1200,
+    xintercept = 3300,
     lty = 2,
     size = 0.3
     # col = c("grey", "black", "grey")
@@ -126,8 +154,8 @@ ggplot(data_si_evo)+
   )+
   coord_cartesian(
     expand = F,
-    ylim = c(0, 1),
-    xlim = c(1, 2000)
+    # ylim = c(0, 1),
+    # xlim = c(1, 2000)
   )+
   theme_test(
     base_size = 11, 
