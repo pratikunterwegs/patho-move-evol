@@ -14,6 +14,105 @@ library(colorspace)
 devtools::load_all()
 ```
 
+## Focal strategy data
+
+Load generation strategy data.
+
+```{r}
+files = list.files(
+  "data/results/morph_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
+
+data_all = lapply(files, fread)
+data_all = rbindlist(data_all)
+
+df_strat = data_all[(local == 1) & (infect_percent == T)]
+df_strat = df_strat[(cost == 0.05) & (regen == 50)]
+
+df_strat = df_strat[social_strat == "non-handler tracking", 
+  social_strat := NA
+]
+df_strat[, gen_bin := floor(gen / 10) * 10]
+
+# popsize
+popsize = 500
+
+# handle for 5 replicates, and 5 obs over 10 gens (observation twice per gen)
+data_si_evo = df_strat[, list(
+  prop = sum(N) / (popsize * max(repl) * 5)
+), by = c("social_strat", "cost", "regen", "gen_bin")]
+
+gen_time = 100
+
+# plot regen as rate per generation timesteps
+data_si_evo[, regen_r := gen_time / regen]
+```
+
+## Plot evolutionary change in default scenario
+
+```{r}
+fig_1a = 
+ggplot(data_si_evo)+
+  geom_col(
+    aes(
+      gen_bin, prop, 
+      fill = social_strat
+    ),
+    width = 10
+  )+
+  geom_vline(
+    xintercept = 250,
+    lty = 2,
+    size = 0.3
+    # col = c("grey", "black", "grey")
+  )+
+  scale_fill_discrete_sequential(
+    palette = "Viridis", 
+    rev = F,
+    l1 = 30,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  )+
+  scale_x_continuous(
+    # trans = ggallin::pseudolog10_trans,
+    breaks = c(1, 250, 500),
+    name = "Generations",
+    sec.axis = dup_axis(
+      breaks = 250,
+      labels = "Pathogen introduction",
+      name = NULL
+    )
+  )+
+  scale_y_continuous(
+    breaks = c(0, 0.5, 1),
+    labels = scales::percent,
+    name = "% Individuals"
+  )+
+  coord_cartesian(
+    expand = F,
+    ylim = c(0, 1),
+    xlim = c(1, 500)
+  )+
+  theme_test(
+    base_size = 11, 
+    base_family = "Arial"
+  )+
+  theme(
+    legend.position = "top", 
+    legend.key.height = unit(1, "mm"),
+    strip.placement = "outside",
+    strip.text = ggtext::element_markdown(),
+    axis.text.x = element_text(hjust = 0.5, size = 8),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    )
+  )
+```
+
 Load generation data.
 
 ```{r}
