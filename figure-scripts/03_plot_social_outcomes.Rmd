@@ -14,8 +14,20 @@ library(colorspace)
 
 ```{r}
 # load data
-data = fread("data/results/data_si_morphs.csv")
-data = data[gen > 4000]
+files = list.files(
+  "data/results/morph_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
+
+data_all = lapply(files, fread)
+data_all = rbindlist(data_all)
+
+df_strat = data_all[(local == 1) & (infect_percent == T)]
+df_strat = df_strat[(cost == 0.075) & (regen == 50)]
+
+# subset for later generations
+data = df_strat[gen > 700]
 ```
 
 ## Summarise metrics by social strategy
@@ -37,8 +49,8 @@ data[, social_strat := factor(social_strat,
 ## Plot move and encounters
 
 ```{r}
-plot_move_encounter =
-  ggplot(data[cost == 0.25 & regen == 50])+
+# plot_move_encounter =
+  ggplot(data)+
    geom_jitter(
     aes(
       mean_move, mean_assoc,
@@ -98,8 +110,8 @@ plot_move_encounter =
     labels = scales::comma_format()
   )+
   coord_cartesian(
-    xlim = c(60, 100),
-    ylim = c(30, 1000),
+    xlim = c(50, 100),
+    ylim = c(10, 1000),
     expand = T
   )+
   theme_test(
@@ -133,8 +145,8 @@ plot_move_encounter =
 
 
 ```{r}
-plot_infected =
-  ggplot(data[cost == 0.25 & regen == 50])+
+# plot_infected =
+  ggplot(data)+
   ggdist::stat_histinterval(
     aes(
       social_strat, prop_infec,
