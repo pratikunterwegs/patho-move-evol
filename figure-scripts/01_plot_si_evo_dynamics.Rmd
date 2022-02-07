@@ -32,57 +32,57 @@ data_all = rbindlist(data_all)
 data = data_all[(local == 1) & (infect_percent == T)]
 ```
 
-
 ```{r}
-data = data[social_strat == "non-handler tracking", social_strat := NA]
-# data[, gen_bin := floor(gen / 25) * 25]
-
-# popsize
+# prepare to get proportions
 popsize = 500
 
-# handle for 5 replicates, and 5 obs over 10 gens (observation twice per gen)
-data_si_evo = data[, list(
-  prop = mean()
-), by = c("social_strat", "cost", "regen", "gen")]
+# get average strategy proportions over replicates
+data[, prop := N / popsize]
 
+g_bin = 10
+data[, gen_bin := (floor(gen / g_bin) * g_bin)]
+
+# prepare to scale productivity
 gen_time = 100
-
 # plot regen as rate per generation timesteps
 data[, regen_r := gen_time / regen]
-data_si_evo[, regen_r := gen_time / regen]
-
-# levels of productivity
-# data_si_evo[, regen := factor(regen, levels = c("100", "50", "20"))]
 ```
 
 ```{r}
 fig_0 =
-  ggplot(data)+
-  geom_point(
+ggplot(data[
+  social_strat != "non-handler tracking"
+])+
+  stat_summary(
+    fun.max = ci_upper,
+    fun.min = ci_lower,
     aes(
-      gen, N / 500, 
-      col = social_strat
+      gen_bin, prop, 
+      fill = social_strat,
+      alpha = gen_bin > 500
     ),
-    size = 0.2,
-    # alpha = 0.2,
+    col = "grey50",
+    size = 0.05,
     geom = "ribbon"
   )+
-  # geom_point(
-  #   aes(
-  #     gen_round, prop, 
-  #     col = social_strat
-  #   )
-  # )+
   geom_vline(
     xintercept = 500,
     lty = 2,
-    size = 0.3
+    size = 0.3,
+    col = "red"
     # col = c("grey", "black", "grey")
   )+
-  scale_colour_discrete_sequential(
+  scale_alpha_manual(
+    values = c(
+      "TRUE" = 0.8,
+      "FALSE" = 1
+    )
+  )+
+  scale_fill_discrete_sequential(
     palette = "Viridis", 
     rev = F,
     l1 = 30,
+    c1 = 20,
     name = NULL,
     limits = c("agent avoiding", "agent tracking", "handler tracking"),
     labels = stringr::str_to_sentence,
@@ -92,7 +92,7 @@ fig_0 =
     # trans = ggallin::pseudolog10_trans,
     breaks = 500,
     labels = "Pathogen introduction",
-    name = "Increasing productivity \u279c",
+    name = "Increasing productivity (social information less useful) \u279c",
     sec.axis = dup_axis(
       # breaks = c(10, 250, 500) -,
       labels = scales::comma_format(
@@ -122,12 +122,12 @@ fig_0 =
     )
   )+
   coord_cartesian(
-    expand = T,
+    # expand = F,
     # ylim = c(0, 1),
     # xlim = c(1, 2000)
   )+
   theme_test(
-    base_size = 11, 
+    base_size = 8, 
     base_family = "Arial"
   )+
   theme(
@@ -135,7 +135,15 @@ fig_0 =
     legend.key.height = unit(1, "mm"),
     strip.placement = "outside",
     strip.text = ggtext::element_markdown(),
-    axis.text.x = element_text(hjust = 0.5, size = 8)
+    axis.text.x = element_text(hjust = 0.5, size = 6)
+  )+
+  guides(
+    alpha = "none",
+    colour = guide_legend(
+      override.aes = list(
+        size = 2
+      )
+    )
   )
 
 ggsave(
