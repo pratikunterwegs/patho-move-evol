@@ -28,23 +28,62 @@ files = list.files(
 ## Sanity check
 
 ```{r}
-f = files[1]
+f = files[3]
 load(f)
 names(data)
+```
 
-move_pre = rbindlist(data[["move_pre"]])
+Check SI importance.
 
-ggplot(move_pre[id < 50,])+
-  geom_path(
+```{r}
+gen_data = data[["gen_data"]]
+
+# prepare generation level data
+gen_data = Map(
+  gen_data[["pop_data"]], gen_data[["gens"]],
+  f = function(l, g) {
+    l$gen = g
+    l
+  }
+)
+
+#### prepare individual level data ####
+popsize = data[["popsize"]]
+
+gen_data = Map(
+  gen_data,
+  f = function(df) {
+    
+    # add individual identity
+    df$id = seq(popsize)
+    
+    # get strategy --- assignment necessary
+    df = mspathomove::get_social_strategy(df)
+
+    # scale weights and get social information importance
+    mspathomove::get_social_strategy(df)
+    mspathomove::get_si_importance(df)
+    mspathomove::get_agent_avoidance(df)
+    
+    df
+    
+  }
+)
+```
+
+```{r}
+df = rbindlist(gen_data)
+
+ggplot(df)+
+  geom_bin2d(
     aes(
-      x, y, 
-      group = id, 
-      col = as.factor(id)
+      gen, agent_avoidance
     ),
-    show.legend = F,
-    size = 0.2
+    binwidth = c(10, 0.01)
   )+
-  coord_equal()
+  scale_fill_viridis_c(
+    direction = -1
+  )
 ```
 
 ## Process each file
@@ -111,6 +150,11 @@ for (i in files) {
       
       # get strategy --- assignment necessary
       df = mspathomove::get_social_strategy(df)
+
+      # scale weights and get social information importance
+      mspathomove::get_social_strategy(df)
+      mspathomove::get_si_importance(df)
+      mspathomove::get_agent_avoidance(df)
       
       df
       
