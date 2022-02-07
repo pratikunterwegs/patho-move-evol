@@ -35,18 +35,22 @@ get_total_energy = function(df, cost_disease = 0.25) {
 #'
 #' @param x A numeric vector.
 #'
-#' @return The lower 95% CI value.
+#' @return The lower 95% CI value, bounded at 0.
 #' @export
 ci_lower = function(x) {
-  mean(x) - sd(x)
+  a = mean(x) - qnorm(0.975) * sd(x) / sqrt(length(x))
+  a[a < 0] = 0
+  a
 }
 
 #' Upper 95% CI
 #'
 #' @param x A numeric vector.
 #'
-#' @return The upper 95% CI value.
+#' @return The upper 95% CI value, bounded at +1.
 #' @export
 ci_upper = function(x) {
-  mean(x) + sd(x)
+  a = mean(x) + qnorm(0.975) * sd(x) / sqrt(length(x))
+  a[a > 1] = 1
+  a
 }
