@@ -29,62 +29,74 @@ data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
 
 df_strat = data_all[(local == 1) & (infect_percent == T)]
-df_strat = df_strat[(cost == 0.05) & (regen == 50)]
-
-df_strat = df_strat[social_strat == "non-handler tracking", 
-  social_strat := NA
-]
-df_strat[, gen_bin := floor(gen / 10) * 10]
+df_strat = df_strat[(cost == 0.075) & (regen == 50)]
 
 # popsize
 popsize = 500
+df_strat[, prop := N / popsize]
+g_bin = 10
+df_strat[, gen_bin := (floor(gen / g_bin) * g_bin)]
 
-# handle for 5 replicates, and 5 obs over 10 gens (observation twice per gen)
-data_si_evo = df_strat[, list(
-  prop = sum(N) / (popsize * max(repl) * 5)
-), by = c("social_strat", "cost", "regen", "gen_bin")]
-
-gen_time = 100
-
-# plot regen as rate per generation timesteps
-data_si_evo[, regen_r := gen_time / regen]
+# get time since pathogen
+sgen = 500
+df_strat[, gen_abs := gen_bin - sgen]
 ```
 
 ## Plot evolutionary change in default scenario
 
 ```{r}
-fig_1a = 
-ggplot(data_si_evo)+
-  geom_col(
+fig_1a =
+ggplot(df_strat[
+  social_strat != "non-handler tracking"
+])+
+  stat_summary(
+    fun.max = ci_upper,
+    fun.min = ci_lower,
     aes(
-      gen_bin, prop, 
-      fill = social_strat
+      gen_abs, prop, 
+      fill = social_strat,
+      # alpha = gen_bin > 500
     ),
-    width = 10
+    geom = "ribbon"
+  )+
+  stat_summary(
+    fun = mean,
+    aes(
+      gen_abs, prop,
+      group = social_strat
+    ),
+    col = "grey30",
+    geom = "line"
   )+
   geom_vline(
-    xintercept = 250,
+    xintercept = 0,
     lty = 2,
-    size = 0.3
-    # col = c("grey", "black", "grey")
+    size = 0.3,
+    col = "red"
   )+
   scale_fill_discrete_sequential(
-    palette = "Viridis", 
+    palette = "Viridis",
+    l1 = 50, l2 = 70,
     rev = F,
-    l1 = 30,
     name = NULL,
     limits = c("agent avoiding", "agent tracking", "handler tracking"),
     labels = stringr::str_to_sentence,
     na.value = "lightgrey"
   )+
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
-    breaks = c(1, 250, 500),
-    name = "Generations",
-    sec.axis = dup_axis(
-      breaks = 250,
-      labels = "Pathogen introduction",
-      name = NULL
+    trans = ggallin::ssqrt_trans,
+    breaks = c(-250, -25, -5, 5, 25, 250),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. since spillover",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, 250, 500),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
     )
   )+
   scale_y_continuous(
@@ -93,22 +105,27 @@ ggplot(data_si_evo)+
     name = "% Individuals"
   )+
   coord_cartesian(
-    expand = F,
-    ylim = c(0, 1),
-    xlim = c(1, 500)
+    # expand = F,
+    # ylim = c(0, 1),
+    # xlim = c(1, 2000)
   )+
   theme_test(
-    base_size = 11, 
-    base_family = "Arial"
+    base_family = "Arial",
+    base_size = 8
   )+
   theme(
     legend.position = "top", 
     legend.key.height = unit(1, "mm"),
     strip.placement = "outside",
     strip.text = ggtext::element_markdown(),
-    axis.text.x = element_text(hjust = 0.5, size = 8),
-    axis.text.y = element_text(
-      angle = 90, hjust = 0.5
+    axis.text.x = element_text(hjust = 0.5, size = 6)
+  )+
+  guides(
+    alpha = "none",
+    colour = guide_legend(
+      override.aes = list(
+        size = 2
+      )
     )
   )
 ```
@@ -133,13 +150,13 @@ data = data_all[(infect_percent == T) & (local == 1)]
 
 ```{r}
 # load data
-data = data[regen == 50 & cost == 0.05]
+data = data[regen == 50 & cost == 0.075]
 
 # summarise etc
 data[, gen_round := floor(gen / 10) * 10]
 
 # spillover gen
-sgen = 250
+sgen = 500
 
 # add col for representation
 data[, gen_abs := gen - sgen]
@@ -163,9 +180,9 @@ cols = RColorBrewer::brewer.pal(3, "Dark2")
 plot_intake =
 ggplot(data[variable %in% c("intake.mean")])+
   stat_summary(
-    fun = mean,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
+    # fun = mean,
+    # fun.min = ci_lower,
+    # fun.max = ci_upper,
     aes(
       gen_abs, value
     ),
@@ -187,32 +204,31 @@ ggplot(data[variable %in% c("intake.mean")])+
     show.legend = F
   )+
   geom_vline(
-    data = data.table(
-      x = 0, # 0.667 * 5000,
-      scenario = 3
-    ),
-    aes(
-      xintercept = x
-    ),
-    lty = 3
+    xintercept = c(0, 25),
+    lty = 2,
+    size = 0.3,
+    col = "red"
   )+
   scale_x_continuous(
-    trans = ggallin::pseudolog10_trans,
-    breaks = c(-250, -25, -5, 5, 25, 250),
+    trans = ggallin::ssqrt_trans,
+    breaks = c(-sgen, -25, 25, sgen),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. since spillover",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, 250, 500),
+      breaks = c(1, sgen, 1000),
       labels = scales::comma_format(
         accuracy = 1
       ),
       name = "Generations"
     )
   )+
-  theme_test(base_family = "Arial")+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
   theme(
     # legend.position = c(0.2, 0.15),
     legend.key = element_blank(),
@@ -245,9 +261,6 @@ ggsave(
 plot_movement =
 ggplot(data[variable %in% c("moved.mean")])+
   stat_summary(
-    fun = mean,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
     aes(
       gen_abs, value
     ),
@@ -279,22 +292,25 @@ ggplot(data[variable %in% c("moved.mean")])+
     lty = 3
   )+
   scale_x_continuous(
-    trans = ggallin::pseudolog10_trans,
-    breaks = c(-250, -25, -5, 5, 25, 250),
+    trans = ggallin::ssqrt_trans,
+    breaks = c(-sgen, -25, -5, 5, 25, sgen),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. since spillover",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, 250, 500),
+      breaks = c(1, 500, 1000),
       labels = scales::comma_format(
         accuracy = 1
       ),
       name = "Generations"
     )
   )+
-  theme_test(base_family = "Arial")+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
   theme(
     # legend.position = c(0.2, 0.15),
     legend.key = element_blank(),
@@ -327,9 +343,6 @@ ggsave(
 plot_assoc =
 ggplot(data[variable %in% c("assoc.mean")])+
   stat_summary(
-    fun = mean,
-    fun.min = ci_lower,
-    fun.max = ci_upper,
     aes(
       gen_abs, value
     ),
@@ -360,8 +373,8 @@ ggplot(data[variable %in% c("assoc.mean")])+
     lty = 3
   )+
   scale_x_continuous(
-    trans = ggallin::pseudolog10_trans,
-    breaks = c(-250, -25, -5, 5, 25, 250),
+    trans = ggallin::ssqrt_trans,
+    breaks = c(-sgen, -25, -5, 5, 25, sgen),
     labels = scales::comma_format(
       accuracy = 1
     ),
@@ -379,7 +392,10 @@ ggplot(data[variable %in% c("assoc.mean")])+
     trans = "log10",
     labels = scales::comma
   )+
-  theme_test(base_family = "Arial")+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
   theme(
     # legend.position = c(0.2, 0.15),
     legend.key = element_blank(),
@@ -395,7 +411,7 @@ ggplot(data[variable %in% c("assoc.mean")])+
   )+
   labs(
     x = NULL,
-    y = "Distance moved",
+    y = "Associations",
     colour = NULL,
     shape = NULL
   )
