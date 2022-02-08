@@ -19,71 +19,20 @@ devtools::load_all()
 
 ```{r}
 # load files and scenario names
+dirs = list.dirs(
+  "data/output",
+  full.names = T
+)
+# chosen number of items
+dirs = dirs[str_detect(dirs, "food_2000")]
+dirs = dirs[str_detect(dirs, "local")]
+
+# list all files
 files = list.files(
-  "data/output/", 
-  pattern = "Rds", full.names = T
+  path = "data/output",
+  pattern = "Rds",
+  full.names = TRUE
 )
-```
-
-## Sanity check
-
-```{r}
-f = files[3]
-load(f)
-names(data)
-```
-
-Check SI importance.
-
-```{r}
-gen_data = data[["gen_data"]]
-
-# prepare generation level data
-gen_data = Map(
-  gen_data[["pop_data"]], gen_data[["gens"]],
-  f = function(l, g) {
-    l$gen = g
-    l
-  }
-)
-
-#### prepare individual level data ####
-popsize = data[["popsize"]]
-
-gen_data = Map(
-  gen_data,
-  f = function(df) {
-    
-    # add individual identity
-    df$id = seq(popsize)
-    
-    # get strategy --- assignment necessary
-    df = mspathomove::get_social_strategy(df)
-
-    # scale weights and get social information importance
-    mspathomove::get_social_strategy(df)
-    mspathomove::get_si_importance(df)
-    mspathomove::get_agent_avoidance(df)
-    
-    df
-    
-  }
-)
-```
-
-```{r}
-df = rbindlist(gen_data)
-
-ggplot(df)+
-  geom_bin2d(
-    aes(
-      gen, agent_avoidance
-    ),
-    binwidth = c(10, 0.01)
-  )+
-  scale_fill_viridis_c(
-    direction = -1
-  )
 ```
 
 ## Process each file
@@ -112,13 +61,14 @@ lapply(
 ```
 
 ```{r}
-# use a loop because
+# use a loop because why not and don't want to load purrr for walk
 for (i in files) {
   
   # load data
   load(i)
   
-  uid = str_extract(i, "\\d+")
+  # the posix time is the data unique identifier
+  uid = str_extract(i, "\\d{10}")
   
   # load metadata on the simulation
   gen_data = data[["gen_data"]]
