@@ -46,6 +46,17 @@ df_strat[, gen_abs := gen_bin - sgen]
 df_strat[, gen_abs := fifelse(
   abs(gen - sgen) < g_bin, gen - sgen, gen_abs
 )]
+
+# save for plotting and upload
+fwrite(
+  df_strat,
+  file = "data/results/data_default_strategy_evo.csv"
+)
+```
+
+```{r}
+# load saved data
+df_strat = fread("data/results/data_default_strategy_evo.csv")
 ```
 
 ## Plot evolutionary change in default scenario
@@ -153,6 +164,17 @@ df_si[, gen_abs := gen_bin - sgen]
 df_si[, gen_abs := fifelse(
   abs(gen - sgen) < g_bin, gen - sgen, gen_abs
 )]
+
+# save for plotting and upload
+fwrite(
+  df_si,
+  file = "data/results/data_default_si_imp.csv"
+)
+```
+
+```{r}
+# load saved data
+df_si = fread("data/results/data_default_si_imp.csv")
 ```
 
 ```{r}
@@ -328,6 +350,17 @@ df_eco[, gen_abs := gen_bin - sgen]
 df_eco[, gen_abs := fifelse(
   abs(gen - sgen) < g_bin, gen - sgen, gen_abs
 )]
+
+# save for plotting and upload
+fwrite(
+  df_eco,
+  file = "data/results/data_default_eco.csv"
+)
+```
+
+```{r}
+# load saved data
+df_eco = fread("data/results/data_default_eco.csv")
 ```
 
 ### Intake
