@@ -427,6 +427,7 @@ ggplot(df_eco[variable %in% c("moved.mean")])+
       gen_abs, value
     ),
     shape = 1,
+    size = 0.3,
     col = cols[3],
     show.legend = F
   )+
@@ -493,6 +494,7 @@ ggplot(df_eco[variable %in% c("assoc.mean")])+
       gen_abs, value
     ),
     shape = 1,
+    size = 0.3,
     col = cols[1],
     show.legend = F
   )+
