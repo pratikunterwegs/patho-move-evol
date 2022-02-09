@@ -18,15 +18,6 @@ devtools::load_all()
 ## Read data
 
 ```{r}
-# load files and scenario names
-dirs = list.dirs(
-  "data/output",
-  full.names = T
-)
-# chosen number of items
-dirs = dirs[str_detect(dirs, "food_2000")]
-dirs = dirs[str_detect(dirs, "local")]
-
 # list all files
 files = list.files(
   path = "data/output",
@@ -128,6 +119,12 @@ for (i in files) {
   # bind all together
   gen_data = rbindlist(gen_data)
   
+  # count si_importance morphs
+  gen_data[, si_imp := round(si_imp, 2)]
+  data_si_imp = gen_data[, list(
+    N = .N
+  ), by = c("gen", "si_imp")]
+
   gen_data = gen_data[, unlist(
     lapply(.SD, function(x) {
       list(
@@ -142,7 +139,7 @@ for (i in files) {
   # add simulation parameters
   invisible(
     lapply(
-      list(data_strategy, gen_data), 
+      list(data_strategy, gen_data, data_si_imp), 
       function(df) {
         df[, c("repl", "cost", "regen", "local", "infect_percent") := list(
           repl, cost, regen, local, infect_percent
@@ -154,8 +151,12 @@ for (i in files) {
   # save data
   invisible(
     Map(
-      list(data_strategy, gen_data), 
-      list(morph_data_path, gen_data_path),
+      list(
+        # data_strategy, gen_data, 
+        data_si_imp), 
+      list(
+        # morph_data_path, gen_data_path, 
+        si_imp_path),
       f = function(df, p) {
         fwrite(
           df,
