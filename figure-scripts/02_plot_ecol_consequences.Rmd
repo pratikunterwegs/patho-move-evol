@@ -561,7 +561,7 @@ fig_1 =
     plot_movement,
     plot_intake, 
     plot_assoc,
-    design = "AAA\nBCD",
+    design = "AAA\nAAA\nBCD",
     guides = "collect"
   ) &
   plot_annotation(
