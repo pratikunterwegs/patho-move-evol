@@ -109,7 +109,7 @@ ggplot(df_strat[
   coord_cartesian()+
   theme_test(
     base_family = "Arial",
-    base_size = 10
+    base_size = 8
   )+
   theme(
     legend.position = "top", 
@@ -191,7 +191,7 @@ fig_1b =
       ymax = ymax
     ),
     shape = 1,
-    size = 0.2,
+    size = 0.3,
     col = alpha("darkslateblue", 1),
   )+
   geom_hline(
@@ -246,7 +246,7 @@ fig_1b =
   )+
   theme_test(
     base_family = "Arial",
-    base_size = 10
+    base_size = 8
   )+
   theme(
     legend.position = "top", 
@@ -296,7 +296,6 @@ ggsave(
 )
 ```
 
-
 ## Data ecological outcomes
 
 Load generation data.
@@ -338,50 +337,46 @@ df_eco = df_eco[, c("gen_abs", "intake.mean",
                     "moved.mean", "assoc.mean")]
 df_eco = melt(
   df_eco,
-  id.vars = "gen_abs"
+  id.vars = c("gen_abs")
 )
 
 ## colours for background
-cols = RColorBrewer::brewer.pal(3, "Dark2")
-
-# split by variable
+cols = colorspace::qualitative_hcl(3, palette = "Dark 2", l = 40)
 ```
 
 ```{r}
-ggplot(df_eco)+
+plot_intake =
+ggplot(df_eco[variable %in% c("intake.mean")])+
   stat_summary(
     aes(
-      gen_abs, value, 
-      colour = variable,
+      gen_abs, value
     ),
-    geom = "line"
+    col = cols[2],
+    geom = "line",
+    show.legend = F
   )+
   stat_summary(
     aes(
-      gen_abs, value,
-      colour = variable
+      gen_abs, value
     ),
-    size =
+    shape = 1,
+    size = 0.3,
+    col = cols[2],
+    show.legend = F
   )+
   geom_vline(
     xintercept = c(0, 25),
     lty = 2,
     size = 0.3,
-    col = rep(c("red", "grey"), 3)
-  )+
-  facet_wrap(
-    ~variable, scales = "free_y"
-  )+
-  scale_colour_discrete_qualitative(
-    palette = "Harmonic"
+    col = c("red", "grey")
   )+
   scale_x_continuous(
     trans = ggallin::pseudolog10_trans,
-    breaks = c(-250, -25, 25, 250),
+    breaks = c(-25, 0, 25),
     labels = scales::comma_format(
       accuracy = 1
     ),
-    name = "Gens. since spillover",
+    name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
       breaks = c(1, sgen, genmax),
@@ -394,62 +389,6 @@ ggplot(df_eco)+
   theme_test(
     base_family = "Arial",
     base_size = 8
-  )
-```
-
-
-```{r}
-plot_intake =
-ggplot(data[variable %in% c("intake.mean")])+
-  stat_summary(
-    # fun = mean,
-    # fun.min = ci_lower,
-    # fun.max = ci_upper,
-    aes(
-      gen_abs, value
-    ),
-    geom = "ribbon",
-    size = 0.2,
-    # colour = "grey",
-    fill = alpha(cols[1], 0.3),
-    show.legend = F
-  )+
-  stat_summary(
-    fun = mean,
-    # fun.min = ci_lower,
-    # fun.max = ci_upper,
-    aes(
-      gen_abs, value,
-    ),
-    colour = "grey30",
-    geom = "line",
-    show.legend = F
-  )+
-  geom_vline(
-    xintercept = c(0, 25),
-    lty = 2,
-    size = 0.3,
-    col = "red"
-  )+
-  scale_x_continuous(
-    trans = ggallin::ssqrt_trans,
-    breaks = c(-sgen, -25, 25, sgen),
-    labels = scales::comma_format(
-      accuracy = 1
-    ),
-    name = "Gens. since spillover",
-    sec.axis = sec_axis(
-      trans = function(x) x + sgen,
-      breaks = c(1, sgen, 1000),
-      labels = scales::comma_format(
-        accuracy = 1
-      ),
-      name = "Generations"
-    )
-  )+
-  theme_test(
-    base_family = "Arial",
-    base_size = 8
   )+
   theme(
     # legend.position = c(0.2, 0.15),
@@ -459,6 +398,7 @@ ggplot(data[variable %in% c("intake.mean")])+
     strip.text = element_text(
       face = "italic"
     ),
+    plot.background = element_blank(),
     strip.placement = "outside"
   )+
   labs(
@@ -469,60 +409,43 @@ ggplot(data[variable %in% c("intake.mean")])+
   )
 ```
 
-```{r}
-ggsave(
-  plot_intake,
-  filename = "figures/fig_energy_intake.png",
-  height = 3, width = 3
-)
-```
-
 ## Movement
 
 ```{r}
 plot_movement =
-ggplot(data[variable %in% c("moved.mean")])+
+ggplot(df_eco[variable %in% c("moved.mean")])+
   stat_summary(
     aes(
       gen_abs, value
     ),
-    geom = "ribbon",
-    size = 0.2,
-    # colour = "grey",
-    fill = alpha(cols[3], 0.3),
-    show.legend = F
-  )+
-  stat_summary(
-    fun = mean,
-    # fun.min = ci_lower,
-    # fun.max = ci_upper,
-    aes(
-      gen_abs, value
-    ),
-    colour = "grey30",
+    col = cols[3],
     geom = "line",
     show.legend = F
   )+
-  geom_vline(
-    data = data.table(
-      x = 0, # 0.667 * 5000,
-      scenario = 3
-    ),
+  stat_summary(
     aes(
-      xintercept = x
+      gen_abs, value
     ),
-    lty = 3
+    shape = 1,
+    col = cols[3],
+    show.legend = F
+  )+
+  geom_vline(
+    xintercept = c(0, 25),
+    lty = 2,
+    size = 0.3,
+    col = c("red", "grey")
   )+
   scale_x_continuous(
-    trans = ggallin::ssqrt_trans,
-    breaks = c(-sgen, -25, -5, 5, 25, sgen),
+    trans = ggallin::pseudolog10_trans,
+    breaks = c(-25, 0, 25),
     labels = scales::comma_format(
       accuracy = 1
     ),
-    name = "Gens. since spillover",
+    name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, 500, 1000),
+      breaks = c(1, sgen, genmax),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -541,6 +464,7 @@ ggplot(data[variable %in% c("moved.mean")])+
     strip.text = element_text(
       face = "italic"
     ),
+    plot.background = element_blank(),
     strip.placement = "outside"
   )+
   labs(
@@ -551,59 +475,43 @@ ggplot(data[variable %in% c("moved.mean")])+
   )
 ```
 
-```{r}
-ggsave(
-  plot_movement,
-  filename = "figures/fig_movement.png",
-  height = 3, width = 3
-)
-```
-
 ## Associations
 
 ```{r}
 plot_assoc =
-ggplot(data[variable %in% c("assoc.mean")])+
+ggplot(df_eco[variable %in% c("assoc.mean")])+
   stat_summary(
     aes(
       gen_abs, value
     ),
-    geom = "ribbon",
-    size = 0.2,
-    fill = alpha(cols[2], 0.3),
-    show.legend = F
-  )+
-  stat_summary(
-    fun = mean,
-    # fun.min = ci_lower,
-    # fun.max = ci_upper,
-    aes(
-      gen_abs, value,
-    ),
-    colour = "grey30",
+    col = cols[1],
     geom = "line",
     show.legend = F
   )+
-  geom_vline(
-    data = data.table(
-      x = 0, # 0.667 * 5000,
-      scenario = 3
-    ),
+  stat_summary(
     aes(
-      xintercept = x
+      gen_abs, value
     ),
-    lty = 3
+    shape = 1,
+    col = cols[1],
+    show.legend = F
+  )+
+  geom_vline(
+    xintercept = c(0, 25),
+    lty = 2,
+    size = 0.3,
+    col = c("red", "grey")
   )+
   scale_x_continuous(
-    trans = ggallin::ssqrt_trans,
-    breaks = c(-sgen, -25, -5, 5, 25, sgen),
+    trans = ggallin::pseudolog10_trans,
+    breaks = c(-25, 0, 25),
     labels = scales::comma_format(
       accuracy = 1
     ),
-    name = "Gens. since spillover",
+    name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, 250, 500),
+      breaks = c(1, sgen, genmax),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -626,8 +534,10 @@ ggplot(data[variable %in% c("assoc.mean")])+
     strip.text = element_text(
       face = "italic"
     ),
+    plot.background = element_blank(),
     axis.text.y = element_text(
-      angle = 90, hjust = 0.5
+      angle = 90,
+      hjust = 0.5
     ),
     strip.placement = "outside"
   )+
@@ -639,34 +549,26 @@ ggplot(data[variable %in% c("assoc.mean")])+
   )
 ```
 
-```{r}
-ggsave(
-  plot_assoc,
-  filename = "figures/fig_assoc.png",
-  height = 3, width = 3
-)
-```
-
 ## Make Figure 1
 
 ```{r}
 fig_1 =
-wrap_plots(
-  # plot_agent_avoid,
-  fig_1a,
-  plot_movement,
-  plot_intake, 
-  plot_assoc,
-  ncol = 2,
-  guides = "collect"
-) &
+  wrap_plots(
+    # plot_agent_avoid,
+    fig_1_intermediate,
+    plot_movement,
+    plot_intake, 
+    plot_assoc,
+    design = "AAA\nBCD",
+    guides = "collect"
+  ) &
   plot_annotation(
     tag_levels = c("A", 1)
   ) &
   theme(
-    legend.position = "top",
-    legend.justification = 0,
-    legend.key.height = unit(1, units = "mm"),
+    # legend.position = "top",
+    legend.justification = "center",
+    # legend.key.height = unit(1, units = "mm"),
     plot.tag = element_text(
       face = "bold",
       size = 10
