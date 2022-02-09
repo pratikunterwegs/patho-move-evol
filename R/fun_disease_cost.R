@@ -39,7 +39,6 @@ get_total_energy = function(df, cost_disease = 0.25) {
 #' @export
 ci_lower = function(x) {
   a = mean(x) - qnorm(0.975) * sd(x) / sqrt(length(x))
-  a[a < 0] = 0
   a
 }
 
@@ -51,6 +50,5 @@ ci_lower = function(x) {
 #' @export
 ci_upper = function(x) {
   a = mean(x) + qnorm(0.975) * sd(x) / sqrt(length(x))
-  a[a > 1] = 1
   a
 }
