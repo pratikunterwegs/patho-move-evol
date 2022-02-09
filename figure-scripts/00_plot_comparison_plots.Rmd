@@ -35,15 +35,18 @@ data = data_all[(local == 1)]
 ```{r}
 # prepare to get proportions
 popsize = 500
+replicates = 10
 
 # get average strategy proportions over replicates
 data[, prop := N / popsize]
 
-g_bin = 10
+g_bin = 20
 data[, gen_bin := (floor(gen / g_bin) * g_bin)]
 
 # prepare to scale productivity
 gen_time = 100
+g_patho = 3000
+genmax = 5000
 
 # plot regen as rate per generation timesteps
 data[, regen_r := gen_time / regen]
@@ -67,7 +70,7 @@ plots = lapply(
   data,
   function(df) {
     
-    ggplot(df[
+    p = ggplot(df[
       social_strat != "non-handler tracking"
     ])+
       geom_point(
@@ -79,7 +82,7 @@ plots = lapply(
         size = 0.1
       )+
       geom_vline(
-        xintercept = 500,
+        xintercept = g_patho,
         lty = 2,
         size = 0.3,
         col = "red"
@@ -97,11 +100,11 @@ plots = lapply(
       )+
       scale_x_continuous(
         # trans = ggallin::pseudolog10_trans,
-        breaks = 500,
+        breaks = g_patho,
         labels = "Pathogen introduction",
         name = "Increasing productivity (social information less useful) \u279c",
         sec.axis = dup_axis(
-          breaks = c(1, 500, 1000),
+          breaks = c(1, genmax / 2, genmax),
           labels = scales::comma_format(
             accuracy = 1
             # scale = 1/1000, suffix = "K"
@@ -149,6 +152,8 @@ plots = lapply(
           )
         )
       )
+    
+    p
   }
 )
 ```
@@ -159,6 +164,8 @@ library(patchwork)
 figure_compare = wrap_plots(
   plots
 )
+
+figure_compare
 ```
 
 ```{r}
@@ -187,6 +194,8 @@ data = data[!((cost == 0.1) & (infect_percent))]
 
 # plot regen as rate per generation timesteps
 data[, regen_r := gen_time / regen]
+g_bin = 50
+data[, gen_bin := floor(gen / g_bin) * g_bin]
 
 # split by cost implementation
 data = split(
@@ -202,8 +211,8 @@ plots_eco = lapply(
     
     df = melt(
       df[, c("intake.mean", "moved.mean", "assoc.mean",
-             "gen", "cost", "regen_r", "repl")],
-      id.vars = c("gen", "cost", "regen_r", "repl")
+             "gen_bin", "cost", "regen_r", "repl")],
+      id.vars = c("gen_bin", "cost", "regen_r", "repl")
     )
     
     df[, value := value / (max(value)), by = c("cost", "regen_r", "variable")]
@@ -211,28 +220,25 @@ plots_eco = lapply(
     ggplot(df)+
       stat_summary(
         aes(
-          gen, value,
-          group = variable,
-          fill = variable
-        ),
-        alpha = 0.4,
-        geom = "ribbon"
-      )+
-      stat_summary(
-        aes(
-          gen, value,
-          group = variable,
+          gen_bin, value,
+          group = interaction(variable, repl),
           col = variable
         ),
-        geom = "line",
-        size = 1
+        geom = "point"
+      )+
+      geom_vline(
+        xintercept = g_patho,
+        lty = 2,
+        size = 0.3,
+        col = "red"
+        # col = c("grey", "black", "grey")
       )+
       scale_colour_brewer(
-        palette = "Set2",
+        palette = "Accent",
         name = NULL
       )+
       scale_fill_brewer(
-        palette = "Set2",
+        palette = "Accent",
         name = NULL
       )+
       scale_x_continuous(
@@ -297,6 +303,8 @@ plots_eco = lapply(
 plots_eco = wrap_plots(
   plots_eco
 )
+
+plots_eco
 
 ggsave(
   plot = plots_eco,
