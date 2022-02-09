@@ -78,8 +78,7 @@ ggplot(df_strat[
       gen_abs, prop, 
       col = social_strat,
     ),
-    shape = 1,
-    size = 0.3
+    size = 0.2
   )+
   geom_vline(
     xintercept = c(0, 25),
@@ -117,7 +116,9 @@ ggplot(df_strat[
     labels = scales::percent,
     name = "% Individuals"
   )+
-  coord_cartesian()+
+  coord_cartesian(
+    # xlim = c(-, NA)
+  )+
   theme_test(
     base_family = "Arial",
     base_size = 8
@@ -194,7 +195,13 @@ df_si_mean[, c("y", "ymin", "ymax") := list(
 ### Figure social information importance
 
 ```{r}
-fig_1b = 
+hmap_cols = colorspace::sequential_hcl(
+  5,
+  palette = "agSunset",
+  rev = TRUE
+)
+
+fig_1b =
   ggplot()+
   geom_tile(
     data = df_si[repl == 10],
@@ -212,9 +219,8 @@ fig_1b =
       ymin = ymin,
       ymax = ymax
     ),
-    shape = 1,
-    size = 0.3,
-    col = alpha("darkslateblue", 1),
+    size = 0.1,
+    col = alpha("grey40", 1),
   )+
   geom_hline(
     yintercept = 0.5,
@@ -230,20 +236,17 @@ fig_1b =
   )+
   scale_fill_gradientn(
     colours = c(
-      "grey95", 
-      viridis::magma(
-        5,
-        direction = -1
-      )
+      "grey99", 
+      hmap_cols
     ),
-    values = scales::rescale(
-      c(
-        1, 10, 50, 100, 200, 500
-      ) / popsize
-    ),
-    limits = c(1, 500) / popsize,
-    breaks = c(1, 250, 500) / popsize,
-    labels = scales::percent,
+    na.value = hmap_cols[5],
+    limits = c(0.0, 0.25),
+    breaks = c(0.01, 0.25, 0.5),
+    labels = function(x) {
+      a = scales::percent(x)
+      a[x == 0.25] = ">25%"
+      a
+    },
     name = "% Indiv."
   )+
   scale_x_continuous(
@@ -264,7 +267,7 @@ fig_1b =
   )+
   coord_cartesian(
     xlim = c(2500, NA),
-    ylim = c(0, 0.75)
+    ylim = c(0, 0.65)
   )+
   theme_test(
     base_family = "Arial",
@@ -276,6 +279,9 @@ fig_1b =
     legend.key.width = unit(2.5, "mm"),
     legend.title = element_text(
       vjust = 1.5
+    ),
+    legend.text = element_text(
+      size = 6
     ),
     # axis.text.x = element_text(hjust = 0.5, size = 6),
     axis.text.y = element_text(
@@ -374,7 +380,7 @@ df_eco = melt(
 )
 
 ## colours for background
-cols = colorspace::qualitative_hcl(3, palette = "Dark 2", l = 40)
+cols = colorspace::diverging_hcl(3, palette = "Tofino", l = 50, c = 80)
 ```
 
 ```{r}
@@ -384,7 +390,7 @@ ggplot(df_eco[variable %in% c("intake.mean")])+
     aes(
       gen_abs, value
     ),
-    col = cols[2],
+    col = cols[3],
     geom = "line",
     show.legend = F
   )+
@@ -392,9 +398,8 @@ ggplot(df_eco[variable %in% c("intake.mean")])+
     aes(
       gen_abs, value
     ),
-    shape = 1,
-    size = 0.3,
-    col = cols[2],
+    size = 0.1,
+    col = cols[3],
     show.legend = F
   )+
   geom_vline(
@@ -451,7 +456,7 @@ ggplot(df_eco[variable %in% c("moved.mean")])+
     aes(
       gen_abs, value
     ),
-    col = cols[3],
+    col = cols[1],
     geom = "line",
     show.legend = F
   )+
@@ -459,9 +464,8 @@ ggplot(df_eco[variable %in% c("moved.mean")])+
     aes(
       gen_abs, value
     ),
-    shape = 1,
-    size = 0.3,
-    col = cols[3],
+    size = 0.1,
+    col = cols[1],
     show.legend = F
   )+
   geom_vline(
@@ -518,7 +522,7 @@ ggplot(df_eco[variable %in% c("assoc.mean")])+
     aes(
       gen_abs, value
     ),
-    col = cols[1],
+    col = cols[2],
     geom = "line",
     show.legend = F
   )+
@@ -526,9 +530,8 @@ ggplot(df_eco[variable %in% c("assoc.mean")])+
     aes(
       gen_abs, value
     ),
-    shape = 1,
-    size = 0.3,
-    col = cols[1],
+    size = 0.1,
+    col = cols[2],
     show.legend = F
   )+
   geom_vline(
