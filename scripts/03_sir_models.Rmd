@@ -11,6 +11,7 @@ Load libraries.
 library(data.table)
 library(igraph)
 library(tidygraph)
+library(glue)
 
 # load functions
 devtools::load_all()
@@ -152,7 +153,10 @@ data_sir_models = rbindlist(data_sir_models)
 # sanity check
 data_sir_models[class != "NS" & beta == 1 & gamma == 1 & threshold != 2] %>% 
 ggplot()+
-  stat_summary(aes(time, mean, col = type))+
+  stat_summary(
+    aes(time, mean, col = type),
+    size = 0.2
+  )+
   facet_grid(
     threshold ~ class,
     labeller = label_both
@@ -165,8 +169,8 @@ ggplot()+
 ```{r}
 # save data
 fwrite(
-  data_spillover,
-  file = "data/results/data_sir_spillover.csv"
+  data_sir_models,
+  file = "data/results/data_sir_models.csv"
 )
 ```
 
