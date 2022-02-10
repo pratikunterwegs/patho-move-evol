@@ -106,7 +106,7 @@ Makefile
 *.log
 
 # allow parameters
-!data/parameters/*
+!data/parameters/*.csv
 
 data/password
 
@@ -114,7 +114,6 @@ data/password
 *.bat
 
 # parameters
-data/parameters
 *.Rds
 
 docs/*.docx
