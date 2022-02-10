@@ -19,7 +19,6 @@ devtools::load_all()
 Load data.
 
 ```{r}
-# list files, read, and filter for default model options
 files = list.files(
   "data/results/morph_data", 
   pattern = "csv",
@@ -27,37 +26,34 @@ files = list.files(
 )
 
 data_all = lapply(files, fread)
-data_all = rbindlist(data_all)
+df_strat = rbindlist(data_all)
 
-data = data_all[(local == 1)]
-```
-
-```{r}
-# prepare to get proportions
+# popsize
 popsize = 500
 replicates = 10
+df_strat[, prop := N / popsize]
+g_bin = 100
+df_strat[, gen_bin := (floor(gen / g_bin) * g_bin)]
 
-# get average strategy proportions over replicates
-data[, prop := N / popsize]
-
-g_bin = 20
-data[, gen_bin := (floor(gen / g_bin) * g_bin)]
-
-# prepare to scale productivity
-gen_time = 100
-g_patho = 3000
+# get time since pathogen
+sgen = 3000
 genmax = 5000
+df_strat[, gen_abs := gen_bin - sgen]
 
-# plot regen as rate per generation timesteps
-data[, regen_r := gen_time / regen]
+df_strat = df_strat[gen %% 100 == 0,]
 
-# remove highest percent cost
-# data = data[!((cost == 0.1) & (infect_percent))]
+df_strat = df_strat[, list(
+  prop = sum(prop) / (replicates)
+), by = c("gen", "social_strat", "cost", "regen", "infect_percent")]
+
+# regeneration rate
+gen_time = 100
+df_strat[, regen_r := gen_time / regen]
 ```
 
 ```{r}
-data = split(
-  data,
+df_strat = split(
+  df_strat,
   by = "infect_percent"
 )
 ```
@@ -67,50 +63,37 @@ data = split(
 ```{r}
 # rough draft
 plots = lapply(
-  data,
+  df_strat,
   function(df) {
     
-    p = ggplot(df[
-      social_strat != "non-handler tracking"
-    ])+
-      geom_point(
+    p = ggplot(df)+
+      geom_col(
         aes(
           gen, prop,
-          group = interaction(social_strat, repl),
-          col = social_strat
+          fill = social_strat
         ),
-        size = 0.1
+        width = 100,
+        position = "stack"
       )+
       geom_vline(
-        xintercept = g_patho,
+        xintercept = sgen,
         lty = 2,
         size = 0.3,
         col = "red"
-        # col = c("grey", "black", "grey")
       )+
-      scale_colour_discrete_sequential(
-        palette = "Viridis", 
+      scale_fill_discrete_sequential(
+        palette = "Viridis",
+        l2 = 80,
         rev = F,
-        l1 = 30,
-        # c1 = 20,
         name = NULL,
         limits = c("agent avoiding", "agent tracking", "handler tracking"),
         labels = stringr::str_to_sentence,
         na.value = "lightgrey"
       )+
       scale_x_continuous(
-        # trans = ggallin::pseudolog10_trans,
-        breaks = g_patho,
+        breaks = sgen,
         labels = "Pathogen introduction",
-        name = "Increasing productivity (social information less useful) \u279c",
-        sec.axis = dup_axis(
-          breaks = c(1, genmax / 2, genmax),
-          labels = scales::comma_format(
-            accuracy = 1
-            # scale = 1/1000, suffix = "K"
-          ),
-          name = "Generations"
-        )
+        name = "Increasing productivity (social information less useful) \u279c"
       )+
       scale_y_continuous(
         labels = scales::percent,
@@ -132,7 +115,7 @@ plots = lapply(
         )
       )+
       coord_cartesian(
-        expand = T
+        expand = F
       )+
       theme_test(
         base_size = 8, 
@@ -144,13 +127,6 @@ plots = lapply(
         strip.placement = "outside",
         strip.text = ggtext::element_markdown(),
         axis.text.x = element_text(hjust = 0.5, size = 6)
-      )+
-      guides(
-        colour = guide_legend(
-          override.aes = list(
-            size = 2
-          )
-        )
       )
     
     p
@@ -159,20 +135,24 @@ plots = lapply(
 ```
 
 ```{r}
-library(patchwork)
-
 figure_compare = wrap_plots(
   plots
 )
-
-figure_compare
 ```
 
 ```{r}
+# save fig 05
 ggsave(
-  plot = figure_compare,
-  filename = "figures/fig_compare_cost_type.png",
-  height = 100, width = 240, units = "mm"
+  plot = figure_compare[[1]],
+  filename = "figures/fig_05.png",
+  height = 120, width = 120, units = "mm"
+)
+
+# save supplementary figure
+ggsave(
+  plot = figure_compare[[2]],
+  filename = "supplement/figures/fig_evo_change_percent_cost.png",
+  height = 120, width = 120, units = "mm"
 )
 ```
 
