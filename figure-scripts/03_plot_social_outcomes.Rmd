@@ -83,7 +83,7 @@ plot_move_encounter =
   scale_colour_discrete_sequential(
     palette = "Viridis",
     order = c(2,3,1),
-    l1 = 10, l2 = 30,
+    l1 = 30, l2 = 50,
     rev = F,
     name = NULL,
     labels = stringr::str_to_sentence
@@ -169,11 +169,6 @@ plot_infected =
     breaks = c(0.01, 0.25, 0.5, 1)
   )+
   scale_x_discrete(
-    # labels = c(
-    #   "Avoids \nall agents",
-    #   "Tracks \nhandlers",
-    #   "Other\nstrategy"
-    # )
     breaks = c(
       "agent avoiding",
       "handler tracking",
@@ -211,7 +206,7 @@ plot_soc_out =
 wrap_plots(
   plot_move_encounter, 
   plot_infected,
-  # guides = "collect",
+  guides = "collect",
   design = "AAB"
   ) &
   plot_annotation(
