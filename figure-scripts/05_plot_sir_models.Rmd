@@ -17,70 +17,98 @@ library(colorspace)
 
 ```{r}
 # spillover data and rounding
-sir_spillover = fread("data/results/data_sir_spillover.csv")
-# sir_spillover$mean = sir_spillover$mean / 500
-sir_spillover = sir_spillover[class != "NS" & gamma == 1 & 
-                        beta == 5 & threshold %in% c(1, 10) ]
+popsize = 500
+data_sir_models = fread("data/results/data_sir_models.csv")
+
+# data_sir_models$mean = data_sir_models$mean / 500
+data_sir_models = data_sir_models[class == "NR" & gamma == 1 &
+                                    beta == 5 & threshold %in% c(1, 10) ]
 
 # select scenario
-sir_spillover = sir_spillover[regen == 50 & cost == 0.25]
+data_sir_models = data_sir_models[regen == 50 & cost == 0.25]
 
-sir_spillover[, tround := plyr::round_any(time, 0.25)]
-sir_spillover[, type := factor(type, levels = c("pre", "post"))]
+data_sir_models[, tround := plyr::round_any(time, 0.25)]
+data_sir_models[, type := factor(type, levels = c("pre", "post"))]
 ```
 
 ```{r}
-sir_spillover = split(sir_spillover, by = "threshold")
+data_sir_models = split(data_sir_models, by = "threshold")
 ```
 
 
 ```{r}
-plot_sir_spillover =
-lapply(sir_spillover, function(df) {
+plot_sir_models =
+lapply(data_sir_models, function(df) {
   ggplot(df)+
+    geom_hline(
+      yintercept = 0.5,
+      col = "grey",
+      lty = 2
+    )+
+    geom_bin2d(
+      aes(
+        time, mean / popsize,
+        fill = type,
+        alpha = ..density..
+      ),
+      show.legend = F
+    )+
     stat_summary(
       fun = mean,
       fun.max = ci_upper,
       fun.min = ci_lower,
       aes(
-        tround, mean/500, 
+        tround, mean / popsize, 
         colour = type,
         shape = type,
-        group = interaction(type, threshold)
+        group = interaction(type, threshold, beta)
       ),
-      fill = "white",
       stroke = 0.8,
       size = 0.3,
       position = position_dodge(width = 0.1)
     )+
-    facet_grid(
-      rows = vars(class),
-      # cost ~ regen,
-      labeller = labeller(
-        class = c(
-          "NI" = "Infected",
-          "NR" = "Recovered"
-        ),
-        threshold = label_both
-      )
-    )+
+    # facet_grid(
+    #   rows = vars(beta),
+    #   # cost ~ regen,
+    #   labeller = labeller(
+    #     class = c(
+    #       "NI" = "Indivs. infected",
+    #       "NR" = "Recovered"
+    #     ),
+    #     threshold = label_both
+    #   )
+    # )+
     scale_colour_discrete_diverging(
-      l2 = 40,
-      palette = "Blue-Red 2",
+      l2 = 50,# l2 = 40,
+      palette = "Blue-Red",
+      rev = FALSE,
+      # palette = "Plasma",
       breaks = c("pre", "post"),
-      labels = c("Pre-spillover", "Post-spillover")
+      labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
+    )+
+    scale_fill_discrete_diverging(
+      palette = "Blue-Red",
+      rev = FALSE,
+      # palette = "Plasma",
+      breaks = c("pre", "post"),
+      labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
     )+
     scale_shape_manual(
-      values = c(21, 24),
+      values = c(
+        "pre" = 16,
+        "post" = 17
+      ),
       breaks = c("pre", "post"),
-      labels = c("Pre-spillover", "Post-spillover")
+      labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
     )+
     scale_y_continuous(
       labels = scales::percent,
       # breaks = c(0.01, 0.33, 0.67, 1)
     )+
     scale_x_sqrt()+
-    theme_test(base_size = 10, base_family = "Arial")+
+    theme_test(
+      base_size = 8
+    )+
     theme(
       legend.position = "top",
       strip.background = element_blank(),
@@ -91,12 +119,6 @@ lapply(sir_spillover, function(df) {
         angle = 90,
         hjust = 0.5,
         size = 6
-      ),
-      panel.grid.major.y = element_line(
-        # colour = "grey",
-        size = 0.3,
-        linetype = 2,
-        color = "grey"
       )
     )+
     coord_cartesian(
@@ -113,9 +135,9 @@ lapply(sir_spillover, function(df) {
 })
 
 
-plot_sir_spillover =
+plot_sir_models =
   wrap_plots(
-  plot_sir_spillover,
+  plot_sir_models,
   guides = "collect",
   ncol = 2
 ) &
@@ -130,14 +152,12 @@ plot_sir_spillover =
     legend.margin = margin(rep(0, 4)),
     plot.margin = margin(rep(1, 4))
   )
-```
 
-```{r}
 ggsave(
-  plot_sir_spillover,
-  filename = "figures/fig_05_new.png",
-  height = 87,
-  width = 114,
+  plot_sir_models,
+  filename = "figures/fig_04_new.png",
+  height = 60,
+  width = 110,
   units = "mm"
 )
 ```
