@@ -152,10 +152,10 @@ for (i in files) {
   invisible(
     Map(
       list(
-        # data_strategy, gen_data, 
+        data_strategy, gen_data,
         data_si_imp), 
       list(
-        # morph_data_path, gen_data_path, 
+        morph_data_path, gen_data_path,
         si_imp_path),
       f = function(df, p) {
         fwrite(
