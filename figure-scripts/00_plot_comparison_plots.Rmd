@@ -62,7 +62,7 @@ df_strat = split(
 
 ```{r}
 # rough draft
-plots = lapply(
+plots_evo = lapply(
   df_strat,
   function(df) {
     
@@ -93,7 +93,12 @@ plots = lapply(
       scale_x_continuous(
         breaks = sgen,
         labels = "Pathogen introduction",
-        name = "Increasing productivity (social information less useful) \u279c"
+        name = "Increasing productivity (social information less useful) \u279c",
+        sec.axis = dup_axis(
+          breaks = c(1000, sgen, genmax),
+          labels = scales::comma,
+          name = "Generations"
+        )
       )+
       scale_y_continuous(
         labels = scales::percent,
@@ -135,22 +140,16 @@ plots = lapply(
 ```
 
 ```{r}
-figure_compare = wrap_plots(
-  plots
-)
-```
-
-```{r}
 # save fig 05
 ggsave(
-  plot = figure_compare[[1]],
+  plot = plots_evo[[1]],
   filename = "figures/fig_05.png",
   height = 120, width = 120, units = "mm"
 )
 
 # save supplementary figure
 ggsave(
-  plot = figure_compare[[2]],
+  plot = plots_evo[[2]],
   filename = "supplement/figures/fig_evo_change_percent_cost.png",
   height = 120, width = 120, units = "mm"
 )
