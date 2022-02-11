@@ -27,8 +27,9 @@ files = list.files(
 
 data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
+setnames(data_all, "disperal", "dispersal")
 
-df_strat = data_all[(local == 1) & (infect_percent == F)]
+df_strat = data_all[(dispersal == 2) & (infect_percent == F)]
 df_strat = df_strat[(cost == 0.25) & (regen == 50)]
 
 # popsize
@@ -145,8 +146,9 @@ files = list.files(
 
 data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
+setnames(data_all, "disperal", "dispersal")
 
-df_si = data_all[(local == 1) & (infect_percent == F)]
+df_si = data_all[(dispersal == 2) & (infect_percent == F)]
 df_si = df_si[(cost == 0.25) & (regen == 50)]
 
 # popsize
@@ -339,7 +341,7 @@ files = list.files(
 data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
 
-df_eco = data_all[(local == 1) & (infect_percent == F)]
+df_eco = data_all[(dispersal == 2) & (infect_percent == F)]
 df_eco = df_eco[(cost == 0.25) & (regen == 50)]
 
 # popsize
