@@ -28,40 +28,6 @@ scenarios = str_extract_all(files, "scenario_(\\w+)_") |>
   str_remove_all("scenario|_")
 ```
 
-```{r}
-# sanity check
-a = mspathomove::get_networks(files[[80]])
-
-ggraph(a[[10]], x = xn, y = yn)+
-  geom_node_point(
-    aes(fill = t_infec, size = assoc), 
-    # show.legend = F, 
-    shape = 21
-  )+
-  scale_size(
-    range = c(0.5, 2)
-  )+
-  scale_fill_viridis(
-    option = "A",
-    limit = c(1, 100),
-    breaks = c(1, 10, 30, 100),
-    direction = -1,
-    na.value = "lightblue",
-    trans = "sqrt"
-  )+
-  coord_equal(
-    expand = T,
-    # xlim = c(0, 60),
-    # ylim = c(0, 60)
-  )+
-  theme_graph(
-    base_family = "Arial",
-    background = "white",
-    base_size = 8,
-    plot_margin = margin(rep(0, 3))
-  )
-```
-
 ## Process network data
 
 ```{r}
