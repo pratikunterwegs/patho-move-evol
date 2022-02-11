@@ -168,7 +168,7 @@ files = list.files(
 data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
 
-data = data_all[(local == 1)]
+data = data_all
 data = data[!((cost == 0.1) & (infect_percent))]
 
 # plot regen as rate per generation timesteps
@@ -206,7 +206,7 @@ plots_eco = lapply(
         geom = "point"
       )+
       geom_vline(
-        xintercept = g_patho,
+        xintercept = sgen,
         lty = 2,
         size = 0.3,
         col = "red"
@@ -282,8 +282,6 @@ plots_eco = lapply(
 plots_eco = wrap_plots(
   plots_eco
 )
-
-plots_eco
 
 ggsave(
   plot = plots_eco,
