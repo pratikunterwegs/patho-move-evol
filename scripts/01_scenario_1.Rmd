@@ -141,7 +141,7 @@ for (i in files) {
     lapply(
       list(data_strategy, gen_data, data_si_imp), 
       function(df) {
-        df[, c("repl", "cost", "regen", "disperal", "infect_percent") := list(
+        df[, c("repl", "cost", "regen", "dispersal", "infect_percent") := list(
           repl, cost, regen, dispersal, infect_percent
         )]
       }
@@ -169,29 +169,4 @@ for (i in files) {
   )
   
 }
-```
-
-```{r}
-# get importance of social information
-# data_si_imp = Map(
-#   data, repl, cost, regen, scenarios, local,
-#   f = function(d, repl, cost, regen, scenario, local) {
-#     # assign_movement_types(d)
-#     d[, si_imp := (abs(sH) + abs(sN)) / (abs(sH) + abs(sN) + abs(sF))]
-#     d[, si_bin := plyr::round_any(si_imp, 0.01)]
-#     d$repl = repl
-#     d$cost = cost
-#     d$regen = regen
-#     d$local = local
-#     # d$scenario = scenario
-#     d[, .N, by = c("repl", "gen", "cost", "regen", "local", "si_bin")]
-#   }
-# )
-# 
-# # bind and count morphs
-# data_si_imp = rbindlist(data_si_imp)
-# # data_morphs = data_morphs[, .N, by = c("gen", "move_strat", "repl")]
-# 
-# # save
-# fwrite(data_si_imp, file = "data/results/data_si_imp.csv")
 ```
