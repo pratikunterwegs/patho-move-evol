@@ -14,7 +14,7 @@ get_networks = function(datafile, assoc_threshold = 5) {
   cost = data[["costInfect"]]
   regen = data[["regen_time"]]
   infect_percent = data[["infect_percent"]]
-  dispersal = data[["disperal"]]
+  dispersal = data[["dispersal"]]
   
   # edgelist collection and work
   el = data[["edgeLists"]]
