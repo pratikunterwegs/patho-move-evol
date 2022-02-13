@@ -3,7 +3,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Evolution of movement weights
+# Global natal dispersal of individuals
 
 ```{r}
 library(data.table)
@@ -11,5 +11,3 @@ library(ggplot2)
 library(patchwork)
 library(colorspace)
 ```
-
-ADD WEIGHT EVOLUTION PLOTS HERE.
