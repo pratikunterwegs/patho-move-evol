@@ -1,0 +1,7 @@
+# all files except tex
+supplement*
+*.tex
+*.bbl
+*.pdf
+!figures
+!.gitignore
