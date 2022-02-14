@@ -1,0 +1,15 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Comparing ecological outcomes across parameter combinations
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(patchwork)
+library(colorspace)
+```
+
+ADD WEIGHT EVOLUTION PLOTS HERE.

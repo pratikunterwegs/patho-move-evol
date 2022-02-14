@@ -3,6 +3,11 @@ editor_options:
   chunk_output_type: console
 ---
 
+# The effect of modelling choices
+
+Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@netz2021a].
+We show the effect of varying implementation on two key aspects of our model: (1) where individuals are initialised, or 'born', on the landscape (natal dispersal), (2) how the infectious pathogen imposes fitness costs.
+
 ## Global natal dispersal of individuals
 
 Some models initialise the individuals in each new generation at random locations on the landscape [see e.g. @gupte2021].
@@ -88,7 +93,7 @@ ggsave(
 )
 ```
 
-![](figures/fig_global_dispersal.png)
+![**Differences between local and global dispersal.**](figures/fig_global_dispersal.png)
 
 ### Evolutionary outcomes of the global dispersal implementation
 
@@ -100,4 +105,4 @@ Maybe some discussion text here.
 
 Maybe some text here.
 
-![**Little to no change in ecological outcomes when implementing global dispersal.**](figures/fig_eco_change_global.png){ width=70% }
+![**Little to no change in ecological outcomes when implementing global dispersal.** Despite strong and rapid evolutionary shifts in social movement strategies, the ecological outcomes for populations with global natal dispersal are very similar before and after the introduction of the infectious pathogen.](figures/fig_eco_change_global.png){ width=70% }

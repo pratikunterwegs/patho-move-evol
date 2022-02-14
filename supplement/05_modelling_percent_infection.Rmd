@@ -7,11 +7,6 @@ output:
     df_print: paged
 ---
 
-# The effect of modelling choices
-
-Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@netz2021a].
-We show the effect of varying implementation on two key aspects of our model: (1) how the infectious pathogen imposes fitness costs, and (2) where individuals are initialised, or 'born', on the landscape (natal dispersal).
-
 ## Infection cost as a percentage of intake
 
 ### Default implementation: Infection costs and intake are independent
