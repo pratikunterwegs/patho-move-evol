@@ -38,22 +38,11 @@ threshold = params_sir$threshold
 Read parameter files to subset for default parameter combination, based on the "ofi" column.
 
 ```{r}
-params_nt = list.files("data/parameters", pattern = "csv", full.names = T)
-params_nt = lapply(params_nt, fread) |>
-  rbindlist()
-```
-
-```{r}
-params_nt = params_nt[(!infect_percent) & (costInfect == 0.25) & (regen_time == 50)]
-
-data_files = glue("data/results/networks/data_networks_{params_nt$ofi}.Rds")
-```
-
-```{r}
-data_ntwk = lapply(data_files, function(file) {
-  load(file)
-  nt # we previously saved networks under the name nt
-})
+data_files = list.files(
+  "data/results/networks",
+  full.names = TRUE,
+  pattern = "Rds"
+)
 ```
 
 ## Run SIR models
@@ -62,8 +51,14 @@ data_ntwk = lapply(data_files, function(file) {
 sc_repl = seq(10) # the number of replicates
 
 data_sir_models = Map(
-  data_ntwk, sc_repl,
-  f = function(ntwk, sc_repl) {
+  data_files, sc_repl,
+  f = function(file, sc_repl) {
+    
+    # load networks
+    load(file)
+    
+    # rename nt to ntwk
+    ntwk = nt
     
     # pre disease
     d_pre = Map(
@@ -75,6 +70,7 @@ data_sir_models = Map(
         nt_ = as_tibble(nt)
         cost = unique(nt_$cost)
         regen = unique(nt_$regen)
+        dispersal = unique(nt_$dispersal)
         
         # filter for threshold
         nt = nt %>% 
@@ -94,6 +90,7 @@ data_sir_models = Map(
         d_pre_$threshold = thr
         d_pre_$cost = cost
         d_pre_$regen = regen
+        d_pre_$dispersal = dispersal
         
         d_pre_
       }
@@ -110,6 +107,7 @@ data_sir_models = Map(
         nt_ = as_tibble(nt)
         cost = unique(nt_$cost)
         regen = unique(nt_$regen)
+        dispersal = unique(nt_$dispersal)
         
         # filter for threshold
         nt = nt %>% 
@@ -129,6 +127,7 @@ data_sir_models = Map(
         d_post_$threshold = thr
         d_post_$cost = cost
         d_post_$regen = regen
+        d_post_$dispersal = dispersal
         
         d_post_
       }
