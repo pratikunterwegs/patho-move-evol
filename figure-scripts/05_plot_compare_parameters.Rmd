@@ -7,6 +7,7 @@ editor_options:
 
 ```{r}
 library(data.table)
+library(glue)
 
 library(ggplot2)
 library(patchwork)
@@ -44,7 +45,10 @@ df_strat = df_strat[gen %% 100 == 0,]
 
 df_strat = df_strat[, list(
   prop = sum(prop) / (replicates)
-), by = c("gen", "social_strat", "cost", "regen", "infect_percent")]
+), by = c(
+  "gen", "social_strat", 
+  "cost", "regen", "infect_percent", "dispersal"
+)]
 
 # regeneration rate
 gen_time = 100
@@ -52,9 +56,18 @@ df_strat[, regen_r := gen_time / regen]
 ```
 
 ```{r}
+# handle main types of simulation: default, percent, and global
+df_strat[, sim_type := fcase(
+  infect_percent == T, "percent",
+  dispersal == 10, "global",
+  dispersal == 2, "default"
+)]
+```
+
+```{r}
 df_strat = split(
   df_strat,
-  by = "infect_percent"
+  by = "sim_type"
 )
 ```
 
@@ -115,7 +128,13 @@ plots_evo = lapply(
         as.table = F, 
         switch = c("both"),
         labeller = labeller(
-          cost = function(x) sprintf("δE = %s", x),
+          cost = function(x) {
+            if(x >= 0.1) {
+              sprintf("δE = %s", x)
+            } else {
+              scales::percent(as.numeric(x), prefix = "δE = ")
+            }
+          },
           regen_r = function(x) sprintf("R = %s times/gen", x)
         )
       )+
@@ -142,15 +161,22 @@ plots_evo = lapply(
 ```{r}
 # save fig 05
 ggsave(
-  plot = plots_evo[[1]],
+  plot = plots_evo[["default"]],
   filename = "figures/fig_05.png",
   height = 120, width = 120, units = "mm"
 )
 
-# save supplementary figure
+# save supplementary figure for percent costs
 ggsave(
-  plot = plots_evo[[2]],
+  plot = plots_evo[["percent"]],
   filename = "supplement/figures/fig_evo_change_percent_cost.png",
+  height = 120, width = 120, units = "mm"
+)
+
+# save supplementary figure for global dispersal
+ggsave(
+  plot = plots_evo[["global"]],
+  filename = "supplement/figures/fig_evo_change_global_dispersal.png",
   height = 120, width = 120, units = "mm"
 )
 ```
@@ -169,17 +195,34 @@ data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
 
 data = data_all
-data = data[!((cost == 0.1) & (infect_percent))]
+# data = data[!((cost == 0.1) & (infect_percent))]
 
 # plot regen as rate per generation timesteps
 data[, regen_r := gen_time / regen]
 g_bin = 50
 data[, gen_bin := floor(gen / g_bin) * g_bin]
 
-# split by cost implementation
+# handle main types of simulation: default, percent, and global
+data[, sim_type := fcase(
+  infect_percent == T, "percent",
+  dispersal == 10, "global",
+  dispersal == 2, "default"
+)]
+
+# get time since pathogen
+sgen = 3000
+genmax = 5000
+data[, gen_abs := gen_bin - sgen]
+
+# focus on generations before and after spillover
+data[, gen_abs := fifelse(
+  abs(gen - sgen) < g_bin, gen - sgen, gen_abs
+)]
+
+# split by simulation type
 data = split(
   data,
-  by = "infect_percent"
+  by = "sim_type"
 )
 ```
 
@@ -190,8 +233,8 @@ plots_eco = lapply(
     
     df = melt(
       df[, c("intake.mean", "moved.mean", "assoc.mean",
-             "gen_bin", "cost", "regen_r", "repl")],
-      id.vars = c("gen_bin", "cost", "regen_r", "repl")
+             "gen_abs", "cost", "regen_r", "repl")],
+      id.vars = c("gen_abs", "cost", "regen_r", "repl")
     )
     
     df[, value := value / (max(value)), by = c("cost", "regen_r", "variable")]
@@ -199,39 +242,51 @@ plots_eco = lapply(
     ggplot(df)+
       stat_summary(
         aes(
-          gen_bin, value,
-          group = interaction(variable, repl),
+          gen_abs, value,
+          group = variable,
           col = variable
         ),
+        geom = "line"
+      )+
+      stat_summary(
+        aes(
+          gen_abs, value,
+          group = variable,
+          col = variable
+        ),
+        size = 0.5,
         geom = "point"
       )+
       geom_vline(
-        xintercept = sgen,
+        xintercept = c(0, 25),
         lty = 2,
         size = 0.3,
-        col = "red"
+        col = rep(c("red", "grey"), 9)
         # col = c("grey", "black", "grey")
       )+
-      scale_colour_brewer(
-        palette = "Accent",
-        name = NULL
-      )+
-      scale_fill_brewer(
-        palette = "Accent",
-        name = NULL
+      scale_colour_discrete_diverging(
+        palette = "Tofino", 
+        l1 = 50, c1 = 80,
+        order = c(3, 1, 2),
+        name = NULL,
+        labels = c(
+          "Mean per-capita intake",
+          "Mean distance moved",
+          "Mean encounters w/ other individuals"
+        )
       )+
       scale_x_continuous(
-        # trans = ggallin::pseudolog10_trans,
-        breaks = 500,
-        labels = "Pathogen introduction",
+        trans = ggallin::pseudolog10_trans,
+        breaks = c(sgen, genmax) - sgen,
+        labels = scales::comma(
+          x = c(sgen, genmax),
+          prefix = "G = "
+        ),
         name = "Increasing productivity (social information less useful) \u279c",
         sec.axis = dup_axis(
-          breaks = c(1, 500, 1000),
-          labels = scales::comma_format(
-            accuracy = 1
-            # scale = 1/1000, suffix = "K"
-          ),
-          name = "Generations"
+          breaks = c(-25, 0, 25),
+          labels = c(-25, 0, 25),
+          name = "Gens since patho. intro."
         )
       )+
       scale_y_continuous(
@@ -241,7 +296,7 @@ plots_eco = lapply(
         sec.axis = dup_axis(
           breaks = c(0, 0.5, 1),
           labels = scales::percent,
-          name = "% of variable max."
+          name = "% Variable value"
         )
       )+
       facet_grid(
@@ -249,7 +304,13 @@ plots_eco = lapply(
         as.table = F, 
         switch = c("both"),
         labeller = labeller(
-          cost = function(x) sprintf("δE = %s", x),
+          cost = function(x) {
+            if(x >= 0.1) {
+              sprintf("δE = %s", x)
+            } else {
+              scales::percent(as.numeric(x), prefix = "δE = ")
+            }
+          },
           regen_r = function(x) sprintf("R = %s times/gen", x)
         )
       )+
@@ -279,14 +340,18 @@ plots_eco = lapply(
 ```
 
 ```{r}
-plots_eco = wrap_plots(
-  plots_eco
-)
-
-ggsave(
-  plot = plots_eco,
-  filename = "figures/fig_compare_cost_type_eco.png",
-  height = 100, width = 240, units = "mm"
+# save figures for supplementary material
+Map(
+  plots_eco, names(plots_eco),
+  f = function(p, n) {
+    ggsave(
+      p,
+      filename = glue("supplement/figures/fig_eco_change_{n}.png"),
+      width = 120,
+      height = 120,
+      units = "mm"
+    )
+  }
 )
 ```
 
