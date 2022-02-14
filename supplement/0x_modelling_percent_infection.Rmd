@@ -1,6 +1,10 @@
 ---
-editor_options: 
+editor_options:
   chunk_output_type: console
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 # The effect of modelling choices
@@ -101,6 +105,18 @@ ggsave(
 )
 ```
 
+![Calculated net energy for different combinations of intake and time infected. In the _Direct cost_ scenario, and with a $\delta E$ of 0.25 (shown here), which is our default implementation, an individual foraging on an item (handling time = 5 timesteps) would gain 1.0 unit of intake, and lose 1.25 units of energy in that same period if it were infected, for a net energy balance in that period of -0.25. Individuals' energetic balance is normalised (0 -- 1) with reference to the lowest value in each generation. Here, individuals' infection cost is _independent_ of their intake. In the _Percentage cost_ scenario, individuals' infection costs are linked to their intake. For a per-timestep 5% loss of intake (shown here), individuals infected for >25 timesteps already have a net energy balance close to, but never less than, zero. In this implementation, individuals' energy balances are _not normalised_ with reference to the lowest net energy, as no individual's energy is ever less than zero.](figures/fig_cost_structure.png){ width=70% } 
+
+\newpage
+
 ### Evolutionary outcomes of the percentage cost implementation
 
-![](figures/fig_evo_change_percent_cost.png)
+Maybe some discussion text here.
+
+![**Rapid evolutionary change, but different evolutionary outcomes, in an alternative implementation of disease costs.** In our alternative, percentage costs implementation of the infectious pathogen, there is a rapid shift in the mix of movement strategies after pathogen introduction. The handler tracking strategy becomes common across most parameter combinations, except when social information is not very useful (high productivity $R \geq$ 2), and the cost of disease is relatively low ($\delta E$ = 2.5%). ](figures/fig_evo_change_percent_cost.png){ width=70% }
+
+### Ecological consequences in the percentage cost implementation
+
+Maybe some text here.
+
+![**Rapid ecological changes accompany evolutionary shifts in an alternative implementation of disease costs, and are similar to the default implementation.** In the alternative percentage-costs implementation of the infectious pathogen, the outcomes are very similar to those in our default implementation of direct costs. Across most paramter combinations, there is an increase in movement, a reduction in intake, and a reduction in associations with other foragers.](figures/fig_eco_change_percent.png){ width=70% }
