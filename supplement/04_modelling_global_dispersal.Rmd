@@ -10,10 +10,10 @@ We show the effect of varying implementation on two key aspects of our model: (1
 
 ## Global natal dispersal of individuals
 
-Some models initialise the individuals in each new generation at random locations on the landscape [see e.g. @gupte2021].
+Some models initialise the individuals in each new generation at random locations on the landscape [see e.g. @gupte2021a].
 This is a reasonable choice when modelling animals during a specific stage of their life cycle, such as after arrival after migration.
-Contrasting this choice with our default implementation of local dispersal can help to investigate whether animals' movement strategies are the result of adaptation to beneficial local circumstances inherited from one's parents ('ecological inheritance'; @badyaev).
-By forcing animals in each new generation to encounter ecological circumstances potentially different from those of their parents, implementing global dispersal can also help investigate whether animals' evolved movement strategies are truly optimal at the global scale [@gupte2021].
+Contrasting this choice with our default implementation of local dispersal can help to investigate whether animals' movement strategies are the result of adaptation to beneficial local circumstances inherited from one's parents ('ecological inheritance'; @badyaev2009).
+By forcing animals in each new generation to encounter ecological circumstances potentially different from those of their parents, implementing global dispersal can also help investigate whether animals' evolved movement strategies are truly optimal at the global scale [@gupte2021a].
 
 ```{r}
 library(ggplot2)
@@ -93,7 +93,7 @@ ggsave(
 )
 ```
 
-![**Differences between local and global dispersal.**](figures/fig_global_dispersal.png)
+![**Differences between local and global dispersal.** Initialising individuals in each new generation within a standard deviation of 10 units around their parent (**blue**; parent at [30, 30]) places can lead them to encounter potentially very different ecological, and social, circumstances from those of their parent. In contrast, individuals initialised close to their parents (within a standard deviation of 2 units; **red**) encounter very similar conditions as their parent. The latter also leads to substantial competition among kin. We used 10 units to represent (nearly) global dispersal, and 2 units to represent local dispersal; this is controlled by the simulation parameter _dispersal_, which takes a numeric argument.](figures/fig_global_dispersal.png)
 
 ### Evolutionary outcomes of the global dispersal implementation
 
@@ -106,3 +106,5 @@ Maybe some discussion text here.
 Maybe some text here.
 
 ![**Little to no change in ecological outcomes when implementing global dispersal.** Despite strong and rapid evolutionary shifts in social movement strategies, the ecological outcomes for populations with global natal dispersal are very similar before and after the introduction of the infectious pathogen.](figures/fig_eco_change_global.png){ width=70% }
+
+\newpage
