@@ -114,4 +114,6 @@ Maybe some discussion text here.
 
 Maybe some text here.
 
-![**Rapid ecological changes accompany evolutionary shifts in an alternative implementation of disease costs, and are similar to the default implementation.** In the alternative percentage-costs implementation of the infectious pathogen, the outcomes are very similar to those in our default implementation of direct costs. Across most paramter combinations, there is an increase in movement, a reduction in intake, and a reduction in associations with other foragers.](figures/fig_eco_change_percent.png){ width=70% }
+![**Rapid ecological changes accompany evolutionary shifts in an alternative implementation of disease costs, and are similar to the default implementation.** In the alternative percentage-costs implementation of the infectious pathogen, the outcomes are very similar to those in our default implementation of direct costs. Across most paramter combinations, there is an increase in movement, a reduction in intake, and a reduction in associations with other foragers.](figures/fig_eco_compare_percent.png){ width=70% }
+
+\newpage
