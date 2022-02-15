@@ -105,6 +105,6 @@ Maybe some discussion text here.
 
 Maybe some text here.
 
-![**Little to no change in ecological outcomes when implementing global dispersal.** Despite strong and rapid evolutionary shifts in social movement strategies, the ecological outcomes for populations with global natal dispersal are very similar before and after the introduction of the infectious pathogen.](figures/fig_eco_compare_global.png){ width=70% }
+![**Little to no change in ecological outcomes when implementing global dispersal.** Despite strong and rapid evolutionary shifts in social movement strategies, the ecological outcomes for populations with global natal dispersal are very similar before and after the introduction of the infectious pathogen.](figures/fig_eco_compare_global.png)
 
 \newpage
