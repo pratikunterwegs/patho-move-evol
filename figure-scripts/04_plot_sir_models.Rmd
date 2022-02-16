@@ -192,14 +192,153 @@ ggsave(
   units = "mm"
 )
 ```
-  )
 
-ggsave(
-  plot_sir_models,
-  filename = "figures/fig_04_new.png",
-  height = 60,
-  width = 110,
-  units = "mm"
-)
+## Plots for other scenarios
+
+```{r}
+# data_sir_models$mean = data_sir_models$mean / 500
+data_all = copy(data_sir_models)
+
+data_all[, tround := plyr::round_any(time, 0.25)]
+data_all[, tround := fifelse(
+  time > 5, plyr::round_any(time, 0.5),
+  tround
+)]
+
+tmax = 100
+# add regeneration rate
+data_all[, regen_r := tmax / regen]
+
+# select single SIR model paramter combination
+data_all = data_all[gamma == 1 & beta == 5 & threshold %in% c(1, 10), ]
+
+# assign type
+data_all[, type := factor(type, levels = c("pre", "post"))]
+
+# handle main types of simulation: default, percent, and global
+data_all[, sim_type := fcase(
+  cost < 0.1, "percent",
+  cost >= 0.1 & dispersal == 10, "global",
+  dispersal == 2, "default"
+)]
+
+# split data by disease type
+data_all = split(data_all, by = c("sim_type"))
 ```
 
+```{r}
+# plot the progress of disease in all network sir models
+plot_sir_all =
+lapply(data_all, function(df) {
+  ggplot(df)+
+    geom_hline(
+      yintercept = 0.5,
+      col = "grey",
+      lty = 1,
+      size = 0.2
+    )+
+    annotate(
+      geom = "rect",
+      xmin = 7.5, xmax = 11,
+      ymin = -1, ymax = 1.1,
+      fill = "grey90",
+      lty = 1,
+      size = 0.2
+    )+
+    stat_summary(
+      aes(
+        tround, mean / popsize, 
+        colour = type,
+        lty = as.factor(threshold),
+        group = interaction(type, threshold)
+      ),
+      # stroke = 0.8,
+      size = 0.5,
+      position = position_dodge(width = 0.1),
+      geom = "line"
+    )+
+    facet_grid(
+      cost ~ regen_r,
+      as.table = F, 
+      switch = c("both"),
+      labeller = labeller(
+        cost = function(x) {
+          if(x >= 0.1) {
+            sprintf("δE = %s", x)
+          } else {
+            scales::percent(as.numeric(x), prefix = "δE = ")
+          }
+        },
+        regen_r = function(x) sprintf("R = %s times/gen", x)
+      )
+    )+
+    scale_colour_discrete_diverging(
+      l2 = 50,# l2 = 40,
+      palette = "Blue-Red 2",
+      rev = FALSE,
+      # palette = "Plasma",
+      breaks = c("pre", "post"),
+      labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
+    )+
+    scale_linetype(
+      breaks = c("1", "10"),
+      labels = c("1 encounter", 
+                 "10 encounters"),
+      name = NULL
+    )+
+    scale_y_continuous(
+      labels = scales::percent,
+      # breaks = c(0.01, 0.33, 0.67, 1)
+    )+
+    scale_x_continuous(
+      breaks = NULL,
+      sec.axis = dup_axis(
+        breaks = seq(0, 10, 2.5),
+        name = "SIR model simulation time"
+      )
+    )+
+    theme_test(
+      base_size = 8
+    )+
+    theme(
+      legend.justification = "left",
+      legend.position = "top",
+      # strip.background = element_blank(),
+      strip.text = element_text(
+        face = "italic"
+      ),
+      strip.placement = "outside",
+      axis.text.y = element_text(
+        angle = 90,
+        hjust = 0.5,
+        size = 6
+      )
+    )+
+    coord_cartesian(
+      xlim = c(0, 10),
+      ylim = c(0, 1)
+    )+
+    labs(
+      x = "Increasing productivity (social information less useful) \u279c",
+      y = "Cumulative infections (% indivs.)",
+      fill = NULL,
+      colour = NULL,
+      shape = NULL
+    )
+})
+
+# save to supplementary figures
+Map(
+  plot_sir_all,
+  names(plot_sir_all),
+  f = function(p, n) {
+    ggsave(
+      p,
+      filename = glue("supplement/figures/fig_sir_compare_{n}.png"),
+      height = 120, width = 120,
+      units = "mm"
+    )
+  }
+)
+  
+```
