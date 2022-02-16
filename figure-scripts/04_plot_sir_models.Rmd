@@ -7,17 +7,20 @@ editor_options:
 
 ```{r}
 library(data.table)
+devtools::load_all()
+
 library(ggplot2)
 
 library(patchwork)
 library(colorspace)
 ```
 
-## Spillover
+## Plot default scenario
 
 ```{r}
 # spillover data and rounding
 popsize = 500
+replicates = 10
 data_sir_models = fread("data/results/data_sir_models.csv")
 
 # data_sir_models$mean = data_sir_models$mean / 500
@@ -25,25 +28,40 @@ data_sir_models = data_sir_models[class == "NR" & gamma == 1 &
                                     beta == 5 & threshold %in% c(1, 10) ]
 
 # select scenario
-data_sir_models = data_sir_models[regen == 50 & cost == 0.25]
+data_default = data_sir_models[regen == 50 & cost == 0.25]
 
-data_sir_models[, tround := plyr::round_any(time, 0.25)]
-data_sir_models[, type := factor(type, levels = c("pre", "post"))]
+# round time, with larger bins later in time
+# ie, increments of 0, 0.25, 0.5, 1, 2, 5, 10 etc.
+data_default[, tround := plyr::round_any(time, 0.25)]
+data_default[, tround := fifelse(
+  time > 5, plyr::round_any(time, 0.5),
+  tround
+)]
+data_default[, type := factor(type, levels = c("pre", "post"))]
+
+# save data default sir
+fwrite(
+  data_default,
+  file = "data/results/data_default_sir.csv"
+)
 ```
 
 ```{r}
-data_sir_models = split(data_sir_models, by = "threshold")
+# load saved data to save time
+data_default = fread("data/results/data_default_sir.csv")
+data_default[, type := factor(type, levels = c("pre", "post"))]
+# data_default = split(data_default, by = "threshold")
 ```
 
 
 ```{r}
-plot_sir_models =
-lapply(data_sir_models, function(df) {
-  ggplot(df)+
+# plot the progress of disease in default network sir models
+plot_default =
+  ggplot(data_default)+
     geom_hline(
       yintercept = 0.5,
       col = "grey",
-      lty = 2
+      size = 0.2
     )+
     geom_bin2d(
       aes(
@@ -54,9 +72,6 @@ lapply(data_sir_models, function(df) {
       show.legend = F
     )+
     stat_summary(
-      fun = mean,
-      fun.max = ci_upper,
-      fun.min = ci_lower,
       aes(
         tround, mean / popsize, 
         colour = type,
@@ -65,29 +80,28 @@ lapply(data_sir_models, function(df) {
       ),
       stroke = 0.8,
       size = 0.3,
-      position = position_dodge(width = 0.1)
+      position = position_dodge(width = 0.1),
+      show.legend = F
     )+
-    # facet_grid(
-    #   rows = vars(beta),
-    #   # cost ~ regen,
-    #   labeller = labeller(
-    #     class = c(
-    #       "NI" = "Indivs. infected",
-    #       "NR" = "Recovered"
-    #     ),
-    #     threshold = label_both
-    #   )
-    # )+
+    facet_wrap(
+      ~threshold,
+      labeller = labeller(
+        threshold = c(
+          "1" = "1 encounter",
+          "10" = "10 encounters"
+        )
+      )
+    )+
     scale_colour_discrete_diverging(
       l2 = 50,# l2 = 40,
-      palette = "Blue-Red",
+      palette = "Blue-Red 2",
       rev = FALSE,
       # palette = "Plasma",
       breaks = c("pre", "post"),
       labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
     )+
     scale_fill_discrete_diverging(
-      palette = "Blue-Red",
+      palette = "Blue-Red 2",
       rev = FALSE,
       # palette = "Plasma",
       breaks = c("pre", "post"),
@@ -113,7 +127,7 @@ lapply(data_sir_models, function(df) {
       legend.position = "top",
       strip.background = element_blank(),
       strip.text = element_text(
-        face = "italic"
+        face = "bold"
       ),
       axis.text.y = element_text(
         angle = 90,
@@ -126,31 +140,58 @@ lapply(data_sir_models, function(df) {
       ylim = c(0, 1)
     )+
     labs(
-      x = "SIR model simulation time",
-      y = "% Agents",
+      x = "SIR model time",
+      y = "% Agents infected",
       fill = NULL,
       colour = NULL,
       shape = NULL
     )
-})
+```
 
+Load previously saved network plots as a `ggplot` object from file.
 
-plot_sir_models =
+```{r}
+# loading network plots
+load("figures/ggplot_network_figs.Rdata")
+```
+
+Wrap all figures and save as figure 3.
+
+```{r}
+# wrap figures
+fig_3 = 
   wrap_plots(
-  plot_sir_models,
-  guides = "collect",
-  ncol = 2
+  wrap_plots(
+    networkplots,
+    guides = "collect"
+  ),
+  wrap_plots(
+    fig_degree
+  ),
+  plot_default,
+  design = "AA\nAA\nBC"
 ) &
   plot_annotation(
-    tag_levels = "A"
+    tag_levels = c("A")
   ) &
   theme(
-    legend.position = "bottom",
     plot.tag = element_text(
       face = "bold"
     ),
-    legend.margin = margin(rep(0, 4)),
-    plot.margin = margin(rep(1, 4))
+    legend.position = "bottom"
+  )
+```
+
+
+```{r}
+ggsave(
+  fig_3,
+  filename = "figures/fig_03.png",
+  height = 120,
+  width = 120,
+  units = "mm"
+)
+```
   )
 
 ggsave(
