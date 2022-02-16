@@ -20,7 +20,9 @@ library(patchwork)
 Read parameter files to subset for default parameter combination, based on the "ofi" column.
 
 ```{r}
-params = list.files("data/parameters", pattern = "csv", full.names = T)
+params = list.files(
+  "data/parameters", pattern = "csv", full.names = T
+)
 params = lapply(params, fread) |>
   rbindlist()
 ```
@@ -86,7 +88,6 @@ degree_data$type = factor(degree_data$type, levels = c("pre", "post"))
 ```
 
 ```{r}
-
 # popsize per sim
 popsize = 500
 # how many replicates
@@ -121,12 +122,12 @@ ggplot(degree_data)+
       scales::percent(
         as.numeric(x) / popsize
       )
-    }
+    },
+    name = "% Pop. encountered"
   )+
   scale_y_continuous(
-    breaks = c(0, 0.1, 0.25),
-    labels = scales::percent,
-    name = "% Pop. encountered"
+    # breaks = c(0, 0.1, 0.25),
+    labels = scales::percent
   )+
   facet_grid(
     ~type,
@@ -159,17 +160,10 @@ ggplot(degree_data)+
     strip.text = element_text(
       face = "bold"
     )
-    # axis.text.x = element_blank()
   )+
   labs(
-    x = "Degree",
     y = "% Indiv."
   )+
-  # coord_cartesian(
-  #   expand = F,
-  #   xlim = c(0.8, 3),
-  #   ylim = c(0, 410)
-  # )+
   guides(
     fill = guide_legend()
   )
@@ -180,10 +174,10 @@ ggplot(degree_data)+
 
 ```{r}
 # select nice network
-ntwks_example = data_ntwk[[6]]
+ntwks_example = data_ntwk[[3]]
 
 # select before and after disease
-ntwk_pre = ntwks_example[[6]] %>% 
+ntwk_pre = ntwks_example[[4]] %>% 
   activate(edges) %>% 
   filter(weight > 5) %>% 
   activate(nodes)
@@ -196,7 +190,7 @@ ntwk_post = ntwks_example[[7]] %>%
 
 ```{r}
 ggraph(
-  ntwk_pre, x = x, y = y
+  ntwk_pre, x = xn, y = yn
 )+
   geom_segment(
     data = as_tibble(ntwk_pre),
@@ -216,14 +210,13 @@ ggraph(
     # stroke = 0.3,
     shape = 21,
     # size = 3,
-    colour = "transparent",# "grey50",
     alpha = 0.9,
     show.legend = T
   )+
   scale_size(
-    range = c(1, 5)
+    range = c(0.5, 2)
   )+
-  scale_colour_continuous_sequential(
+  scale_fill_continuous_sequential(
     palette = "Inferno",
     limit = c(1, 100),
     breaks = c(1, 10, 30, 100),
@@ -231,8 +224,10 @@ ggraph(
     na.value = "lightblue",
     trans = "sqrt"
   )+
-  coord_equal(
-    expand = T
+  coord_cartesian(
+    # expand = T,
+    # xlim = c(0, 60),
+    # ylim = c(0, 60)
   )+
   theme_graph(
     background = "white",
@@ -242,16 +237,10 @@ ggraph(
 ```
 
 ```{r}
-# rm(data_ntwk)
-# gc()
-```
-
-
-```{r}
 # make network figures
 networkplots = lapply(
   list(ntwk_pre, ntwk_post), function(n) {
-    ggraph(n, x = x, y = y)+
+    ggraph(n, x = xn, y = yn)+
     # ggplot()+
       # geom_segment(
       #   data = as_tibble(n),
@@ -282,9 +271,7 @@ networkplots = lapply(
         alpha = 0.9,
         show.legend = T
       )+
-      scale_size(
-        range = c(0.5, 4)
-      )+
+      scale_size(1, 5)+
       scale_fill_continuous_sequential(
         palette = "Inferno",
         limit = c(1, 100),
@@ -293,11 +280,14 @@ networkplots = lapply(
         na.value = "lightblue",
         trans = "sqrt"
       )+
-      coord_equal(
-        expand = T
-      )+
+      # coord_equal(
+      #   expand = T,
+      #   xlim = c(0, 60),
+      #   ylim = c(0, 60)
+      # )+
       theme_graph(
         background = "white",
+        border = T,
         base_size = 8,
         plot_margin = margin(rep(0, 3))
       )+
@@ -321,23 +311,18 @@ networkplots = lapply(
   }
 )
 
-# sanity check
-# networkplots = 
-  wrap_plots(
-  wrap_plots(networkplots, guides = "collect"), 
-  wrap_plots(fig_degree),
-  design = "AA\nAA\nB#"
-  # guides = "collect"
-) &
-  plot_annotation(
-    tag_levels = c("A")
-  ) &
-  theme(
-    plot.tag = element_text(
-      face = "bold"
-    ),
-    legend.position = "bottom"
-  )
+# # sanity check
+# # networkplots = 
+# wrap_plots(networkplots, guides = "collect") &
+#   plot_annotation(
+#     tag_levels = c("A")
+#   ) &
+#   theme(
+#     plot.tag = element_text(
+#       face = "bold"
+#     ),
+#     legend.position = "bottom"
+#   )
 ```
 
 ```{r}
