@@ -18,14 +18,30 @@ library(ggplot2)
 library(ggraph)
 ```
 
-
 ```{r}
 # load files
 files = list.files("data/output/", 
                    pattern = "Rds",#nopatho", 
                    full.names = T)
-scenarios = str_extract_all(files, "scenario_(\\w+)_") |> 
-  str_remove_all("scenario|_")
+```
+
+Potentially restrict which outputs to process.
+
+```{r}
+# list parameter combinations and unique output files
+param_files = list.files(
+  "data/parameters", pattern = "csv", full.names = T
+)
+params = lapply(param_files, fread)
+params = rbindlist(params)
+
+# subset files for default scenario
+params = params[!infect_percent & dispersal == 2,]
+```
+
+```{r}
+uids = str_extract(files, "\\d{10}")
+files = files[uids %in% as.character(params$ofi)]
 ```
 
 ## Process network data
