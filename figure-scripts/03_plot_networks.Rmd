@@ -140,7 +140,7 @@ ggplot(degree_data)+
   )+
   theme_test(
     base_family = "Arial",
-    base_size = 8
+    base_size = 6
   )+
   theme(
     legend.position = "top",
@@ -149,10 +149,10 @@ ggplot(degree_data)+
     axis.text.y = element_text(
       angle = 90,
       hjust = 0.5,
-      size = 5
+      size = 4
     ),
     axis.text.x = element_text(
-      size = 5
+      size = 4
     ),
     plot.background = element_blank(),
     panel.background = element_blank(),
@@ -237,8 +237,8 @@ networkplots = lapply(
       )+
       coord_cartesian(
         expand = TRUE,
-        # xlim = c(0, 60),
-        # ylim = c(0, 60)
+        xlim = c(0, 60),
+        ylim = c(0, 60)
       )+
       theme_graph(
         background = "white",
@@ -266,20 +266,39 @@ networkplots = lapply(
   }
 )
 
-ggsave(
-  wrap_plots(networkplots) & theme(legend.position = "top"),
-  filename = "figures/fig_networks.png",
-  width = 120,
-  height = 60,
-  units = "mm"
-)
+# add degree distribution to panel A
+networkplots[[1]] = networkplots[[1]] +
+  annotation_custom(
+    grob = ggplot2::ggplotGrob(fig_degree),
+    xmin = 0,
+    xmax = 60,
+    ymin = 30,
+    ymax = 60
+  )
+
+# wrap plots
+networkplots =
+  wrap_plots(
+  networkplots, ncol = 2,
+  guides = "collect"
+) &
+  plot_annotation(
+    tag_levels = c("A")
+  ) &
+  theme(
+    plot.tag = element_text(
+      face = "bold"
+    ),
+    legend.position = "bottom"
+  )
 ```
 
 ```{r}
-# save plots as Rds objects to combine with disease figures
-save(
-  networkplots, fig_degree, popsize,
-  file = "figures/ggplot_network_figs.Rdata"
+ggsave(
+  plot = networkplots,
+  filename = "figures/fig_03.png",
+  height = 80,
+  width = 120,
+  units = "mm"
 )
 ```
-
