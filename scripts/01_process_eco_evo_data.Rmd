@@ -170,3 +170,52 @@ for (i in files) {
   
 }
 ```
+
+## Infections per generation
+
+```{r}
+files = list.files(
+  path = "data/output", 
+  pattern = "Rds", full.names = T
+)
+```
+
+```{r}
+# load each file and get parameters and infections over generations
+data_infections_gen = lapply(
+  files, function(le) {
+    # load data
+    load(le)
+    
+    # parameters
+    repl = data[["replicate"]]
+    cost = data[["costInfect"]]
+    regen = data[["regen_time"]]
+    dispersal = data[["dispersal"]]
+    infect_percent = data[["infect_percent"]]
+    
+    # load generations and infections
+    gens = data$gen_data$gens
+    n_infected = data$gen_data$n_infected
+    
+    data.table(
+      cost = cost,
+      regen = regen,
+      dispersal = dispersal,
+      infect_percent = infect_percent,
+      repl = repl,
+      gen = gens,
+      n_infected = n_infected
+    )
+  }
+)
+
+# combine data and save
+data_infections_gen = rbindlist(data_infections_gen)
+
+# save data
+fwrite(
+  data_infections_gen,
+  file = "data/results/data_infections_gen.csv"
+)
+```
