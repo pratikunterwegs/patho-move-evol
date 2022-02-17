@@ -182,58 +182,19 @@ ntwk_pre = ntwks_example[[4]] %>%
   filter(weight > 5) %>% 
   activate(nodes)
 
-ntwk_post = ntwks_example[[7]] %>% 
-  activate(edges) %>% 
-  filter(weight > 5) %>% 
+ntwk_post = ntwks_example[[7]] %>%
+  activate(edges) %>%
+  filter(weight > 5) %>%
   activate(nodes)
-```
 
-```{r}
-ggraph(
-  ntwk_pre, x = xn, y = yn
-)+
-  geom_segment(
-    data = as_tibble(ntwk_pre),
-    aes(
-      x = x, y = y,
-      xend = xn, yend = yn
-    ),
-    # size = 0.05,
-    alpha = 0.3,
-    col = "grey"
-  )+
-  geom_node_point(
-    aes(
-      fill = t_infec,
-      size = assoc
-    ),
-    # stroke = 0.3,
-    shape = 21,
-    # size = 3,
-    alpha = 0.9,
-    show.legend = T
-  )+
-  scale_size(
-    range = c(0.5, 2)
-  )+
-  scale_fill_continuous_sequential(
-    palette = "Inferno",
-    limit = c(1, 100),
-    breaks = c(1, 10, 30, 100),
-    # direction = -1,
-    na.value = "lightblue",
-    trans = "sqrt"
-  )+
-  coord_cartesian(
-    # expand = T,
-    # xlim = c(0, 60),
-    # ylim = c(0, 60)
-  )+
-  theme_graph(
-    background = "white",
-    base_size = 8,
-    plot_margin = margin(rep(0, 3))
-  )
+# sanity check
+igraph::plot.igraph(
+  ntwk_pre,
+  vertex.size = 6,
+  vertex.label = NA,
+  edge.width = 0.05,
+  edge.color = "grey"
+)
 ```
 
 ```{r}
@@ -252,7 +213,7 @@ networkplots = lapply(
       #   col = "indianred"
       # )+
       geom_edge_fan(
-        edge_width = 0.2,
+        edge_width = 0.5,
         aes(
           edge_alpha = weight
         ),
@@ -264,14 +225,16 @@ networkplots = lapply(
           fill = t_infec,
           size = assoc
         ),
-        stroke = 0.3,
+        # stroke = 0.3,
         shape = 21,
         # size = 3,
         # colour = "transparent",# "grey50",
         alpha = 0.9,
         show.legend = T
       )+
-      scale_size(1, 5)+
+      scale_size_continuous(
+        range = c(0.5, 4)
+      )+
       scale_fill_continuous_sequential(
         palette = "Inferno",
         limit = c(1, 100),
@@ -280,11 +243,11 @@ networkplots = lapply(
         na.value = "lightblue",
         trans = "sqrt"
       )+
-      # coord_equal(
-      #   expand = T,
-      #   xlim = c(0, 60),
-      #   ylim = c(0, 60)
-      # )+
+      coord_cartesian(
+        expand = TRUE,
+        # xlim = c(0, 60),
+        # ylim = c(0, 60)
+      )+
       theme_graph(
         background = "white",
         border = T,
