@@ -204,16 +204,6 @@ ggraph(ntwk_pre, x = xn, y = yn)+
 networkplots = lapply(
   list(ntwk_pre, ntwk_post), function(n) {
     ggraph(n, x = xn, y = yn)+
-    # ggplot()+
-      # geom_segment(
-      #   data = as_tibble(n),
-      #   aes(
-      #     x = x, y = y,
-      #     xend = xn, yend = yn
-      #   ),
-      #   size = 0.1,
-      #   col = "indianred"
-      # )+
       geom_edge_fan(
         edge_width = 0.5,
         aes(
@@ -276,18 +266,13 @@ networkplots = lapply(
   }
 )
 
-# # sanity check
-# # networkplots = 
-# wrap_plots(networkplots, guides = "collect") &
-#   plot_annotation(
-#     tag_levels = c("A")
-#   ) &
-#   theme(
-#     plot.tag = element_text(
-#       face = "bold"
-#     ),
-#     legend.position = "bottom"
-#   )
+ggsave(
+  wrap_plots(networkplots) & theme(legend.position = "top"),
+  filename = "figures/fig_networks.png",
+  width = 120,
+  height = 60,
+  units = "mm"
+)
 ```
 
 ```{r}
