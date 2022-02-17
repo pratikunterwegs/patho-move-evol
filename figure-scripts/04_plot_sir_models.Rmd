@@ -119,7 +119,7 @@ plot_default =
       labels = scales::percent,
       # breaks = c(0.01, 0.33, 0.67, 1)
     )+
-    scale_x_sqrt()+
+    # scale_x_sqrt()+
     theme_test(
       base_size = 8
     )+
@@ -129,6 +129,7 @@ plot_default =
       strip.text = element_text(
         face = "bold"
       ),
+      # strip.placement = "outside",
       axis.text.y = element_text(
         angle = 90,
         hjust = 0.5,
@@ -148,28 +149,80 @@ plot_default =
     )
 ```
 
-Load previously saved network plots as a `ggplot` object from file.
+## Infections per generation
 
 ```{r}
-# loading network plots
-load("figures/ggplot_network_figs.Rdata")
+# load data
+data_infections_gen = fread("data/results/data_infections_gen.csv")
+data_infections_gen[, gen_bin := round(gen, digits = -2)]
 ```
+
+```{r}
+sgen = 3000
+genmax = 5000
+popsize = 500
+
+# make figures
+fig_gen_infect = 
+  ggplot(
+  data_infections_gen[cost == 0.25 & regen == 50 
+                      & dispersal == 2]
+)+
+  geom_vline(
+    xintercept = c(0, 25),
+    lty = 2, 
+    col = c("red", "grey")
+  )+
+  geom_point(
+    aes(
+      gen - sgen, n_infected / popsize
+    ),
+    show.legend = FALSE,
+    colour = "coral",
+    size = 0.2
+  )+
+  scale_x_continuous(
+    trans = ggallin::ssqrt_trans,
+    labels = scales::comma,
+    breaks = c(-100, 0, 25, 500),
+    name = "Gens. after pathogen intro.",
+    # sec.axis = dup_axis(
+    #   breaks = 0,
+    #   labels = "Pathogen introduction (G = 3,000)",
+    #   name = NULL
+    # )
+  )+
+  scale_y_continuous(
+    labels = scales::percent,
+    name = "% Population infected"
+  )+
+  coord_cartesian(
+    expand = T,
+    xlim = c(sgen - 100, genmax) - sgen,
+    ylim = c(0, popsize) / popsize
+  )+
+  theme_test(
+    base_size = 8
+  )+
+  theme(
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5,
+      size = 6
+    )
+  )
+```
+
 
 Wrap all figures and save as figure 3.
 
 ```{r}
 # wrap figures
-fig_3 = 
+fig_4 =
   wrap_plots(
-  wrap_plots(
-    networkplots,
-    guides = "collect"
-  ),
-  wrap_plots(
-    fig_degree
-  ),
+  fig_gen_infect,
   plot_default,
-  design = "AA\nAA\nBC"
+  design = "ABB"
 ) &
   plot_annotation(
     tag_levels = c("A")
@@ -185,9 +238,9 @@ fig_3 =
 
 ```{r}
 ggsave(
-  fig_3,
-  filename = "figures/fig_03.png",
-  height = 120,
+  fig_4,
+  filename = "figures/fig_04.png",
+  height = 60,
   width = 120,
   units = "mm"
 )
