@@ -188,13 +188,15 @@ ntwk_post = ntwks_example[[7]] %>%
   activate(nodes)
 
 # sanity check
-igraph::plot.igraph(
-  ntwk_pre,
-  vertex.size = 6,
-  vertex.label = NA,
-  edge.width = 0.05,
-  edge.color = "grey"
-)
+ggraph(ntwk_pre, x = xn, y = yn)+
+  geom_node_point(
+    aes(
+      fill = t_infec,
+      size = assoc
+    ),
+    shape = 21,
+    show.legend = F
+  )
 ```
 
 ```{r}
