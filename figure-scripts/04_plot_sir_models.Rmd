@@ -178,7 +178,7 @@ fig_gen_infect =
       gen - sgen, n_infected / popsize
     ),
     show.legend = FALSE,
-    colour = "coral",
+    colour = "indianred",
     size = 0.2
   )+
   scale_x_continuous(
