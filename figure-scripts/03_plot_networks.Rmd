@@ -133,8 +133,8 @@ ggplot(degree_data)+
     ~type,
     labeller = labeller(
       type = c(
-        post = "B: Post-pathogen.", 
-        pre = "A: Pre-pathogen."
+        post = "B: Post-pathogen", 
+        pre = "A: Pre-pathogen"
       )
     )
   )+
@@ -174,10 +174,10 @@ ggplot(degree_data)+
 
 ```{r}
 # select nice network
-ntwks_example = data_ntwk[[3]]
+ntwks_example = data_ntwk[[9]]
 
 # select before and after disease
-ntwk_pre = ntwks_example[[4]] %>% 
+ntwk_pre = ntwks_example[[6]] %>% 
   activate(edges) %>% 
   filter(weight > 5) %>% 
   activate(nodes)
@@ -225,7 +225,7 @@ networkplots = lapply(
         show.legend = T
       )+
       scale_size_continuous(
-        range = c(0.5, 4)
+        range = c(0.5, 3)
       )+
       scale_fill_continuous_sequential(
         palette = "Inferno",
@@ -272,8 +272,8 @@ networkplots[[1]] = networkplots[[1]] +
     grob = ggplot2::ggplotGrob(fig_degree),
     xmin = 0,
     xmax = 60,
-    ymin = 30,
-    ymax = 60
+    ymin = -10,
+    ymax = 20
   )
 
 # wrap plots
@@ -291,9 +291,7 @@ networkplots =
     ),
     legend.position = "bottom"
   )
-```
 
-```{r}
 ggsave(
   plot = networkplots,
   filename = "figures/fig_03.png",
