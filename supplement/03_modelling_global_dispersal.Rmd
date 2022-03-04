@@ -1,0 +1,130 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# The effect of modelling choices
+
+Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020,@netz2021a,@gupte2021].
+We show the effect of varying implementation on two key aspects of our model: (1) where individuals are initialised, or 'born', on the landscape (natal dispersal), (2) how the infectious pathogen imposes fitness costs.
+
+## Global natal dispersal of individuals
+
+Some models initialise the individuals in each new generation at random locations on the landscape [see e.g. @gupte2021a]; this can be called 'global' natal dispersal.
+This is a reasonable choice when modelling animals during a specific stage of their life cycle, such as after arriving on a wintering or breeding site after migration.
+Our default choice, on the other hand, is 'local' natal dispersal, where individuals are initialised close to their parent's last position.
+This is also defensible, as many organisms do not disperse very far from their ancestors.
+When animals do not disperse very far, they may not evolve movement rules that can be generalised across all landscape conditions, especially when the landscape is ecologically heterogeneous.
+Instead, animals may adapt their strategies to the local conditions which they inherit from their parents ['ecological inheritance' @badyaev2009].
+
+Successful individuals are likely to have more offspring than unsuccessful individuals, and successful individuals are likely to be found --- in our simulation and in real natural systems --- on or near profitable resource patches.
+This means that many individuals are initialised near profitable patches.
+In this case, and because of the sparse distribution of resource patches on the landscape, individuals adapt to tolerate their many neighbours (who are often kin), as avoiding them would lead to also moving away from a profitable patch.
+
+By forcing animals in each new generation to encounter ecological circumstances potentially different from those of their parents, implementing global dispersal can help investigate whether animals' evolved movement strategies are truly 'optimal' at the global scale [@gupte2021a].
+We implementated global dispersal by running 10 replicates of each parameter combination (9 combinations of $\delta E$ and $R; 90 simulations in all), with dispersal set to 10.
+This means that individuals' initial positions are drawn from a normal distribution with standard deviation = 10, centred on the location of their parent (see Figure 4; blue circles).
+
+```{r}
+library(ggplot2)
+library(colorspace)
+```
+
+```{r}
+l = pathomove::get_test_landscape(
+  nItems = 1800,
+  landsize = 60,
+  nClusters = 60,
+  clusterSpread = 1,
+  regen_time = 50
+)
+
+global = data.frame(
+  x = 30 + rnorm(30, 0, 10),
+  y = 30 + rnorm(30, 0, 10),
+  type = "global"
+)
+
+local = data.frame(
+  x = 30 + rnorm(30, 0, 2),
+  y = 30 + rnorm(30, 0, 2),
+  type = "local"
+)
+
+agents = rbind(global, local)
+```
+
+```{r}
+p = ggplot(l)+
+  geom_bin2d(
+    aes(
+      x, y,
+      fill = ..count..
+    ),
+    show.legend = F
+  )+
+  geom_segment(
+    data = agents,
+    aes(
+      x = 30, y = 30,
+      xend = x, yend = y,
+      col = type
+    ),
+    size = 0.2,
+    show.legend = F
+  )+
+  geom_point(
+    data = agents,
+    aes(
+      x, y,
+      col = type,
+      shape = type
+    ),
+    size = 1,
+    show.legend = F
+  )+
+  scale_colour_discrete_diverging(
+    palette = "Blue-Red 2"
+  )+
+  scale_fill_continuous_sequential(
+    palette = "Greens 2"
+  )+
+  theme_test()+
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  )
+
+ggsave(
+  p,
+  filename = "figures/fig_global_dispersal.png",
+  height = 3,
+  width = 3
+)
+```
+
+![**Differences between local and global dispersal.** Initialising individuals in each new generation within a standard deviation of 10 units around their parent (**blue**; parent at [30, 30]) places can lead them to encounter potentially very different ecological, and social, circumstances from those of their parent. In contrast, individuals initialised close to their parents (within a standard deviation of 2 units; **red**) encounter very similar conditions as their parent. The latter also leads to substantial competition among kin. We used 10 units to represent (nearly) global dispersal, and 2 units to represent local dispersal; this is controlled by the simulation parameter _dispersal_, which takes a numeric argument.](figures/fig_global_dispersal.png)
+
+### Evolutionary outcomes of the global dispersal implementation
+
+In the global dispersal scenario (see Figure 5), there is a marked difference in which social movement strategy is evolved before pathogen introduction.
+Since individuals are initialised relatively far away from their parent's position, they encounter potentially very different ecological conditions, both in terms of the number of other individuals, and the local availability of food items.
+
+As a result, most individuals evolve a 'handler tracking' social movement strategy before the introduction of the novel pathogen.
+This strategy allows individuals to gain the benefits of social information on the location of a resource patch (of which handlers are an indirect cue), while avoiding potential competitors, as well as potentially moving away from areas without many food items.
+
+After pathogen introduction, there is a rapid evolutionary shift in social movement strategies, similar to the shift seen in our default implementation of local dispersal.
+In brief, _(1)_ when the benefits of social information cannot compensate for the costs of infection risk ($\delta E$ = 0.5; $\delta E$ = 0.25, $R$ = 1, 2), the population shifts to the agent avoiding strategy, similar to the local dispersal case. _(2)_ When the costs of infection are lower than the benefits of social information, or when the resource landscape's productivity can offset the cost of infection, the handler tracking strategy persists as the dominant strategy (see Figure 5).
+
+![**Rapid evolutionary change leads to similar evolutionary outcomes in an alternative implementation of global dispersal.** In our alternative, global natal dispersal implementation, the handler tracking strategy is the dominant strategy across most parameter combinations. Following pathogen introduction, there is a rapid shift in the mix of movement strategies, and, as in the default local dispersal implementation, the agen avoiding strategy becomes common. When infection costs are low ($\delta E$ = 0.1) and landscape productivity is high ($R \geq$ 2), pathogen introduction does not alter the mix of movement strategies.](figures/fig_evo_change_global_dispersal.png){ width=70% }
+
+### Ecological consequences in the global dispersal implementation
+
+In the global dispersal implementation, there is little to no change in population-level ecological outcomes --- mean distance moved, mean per-capita intake, and the mean number of associations --- following pathogen introduction.
+This is despite the drastic shift in evolved social movement strategies.
+This is likely because a large part of individual's lifetimes (at low $R$, up to 90 timesteps), are spent moving, likely to find resource clusters.
+Since intake depends on finding these clusters, and associations mostly take place at or near resource clusters, these are also reduced compared to our local dispersal implementation.
+
+![**Little to no change in ecological outcomes when implementing global dispersal.** Despite strong and rapid evolutionary shifts in social movement strategies, the ecological outcomes for populations with global natal dispersal are very similar before and after the introduction of the infectious pathogen.](figures/fig_eco_compare_global.png)
+
+\newpage

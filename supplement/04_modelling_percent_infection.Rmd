@@ -106,13 +106,20 @@ ggsave(
 
 ### Evolutionary outcomes of the percentage cost implementation
 
-Maybe some discussion text here.
+The social movement strategies evolved prior to pathogen introduction are identical to those seen in our default implementation.
+This is because the percentage cost implementation differs from the default only after the pathogen is introduced.
+
+After pathogen introduction, there is a rapid evolutionary shift in movement strategies.
+This shift is similar to that in our default implementation, but the strategies evolved are different.
+Rather than the agent avoiding strategy of the default implementation, it is the handler tracking strategy that is most common across parameter combinations.
+When the costs of infection are low, the agent tracking strategy persists; when the resource landscape's productivity can offset the cost of infection, agent tracking is the commonest strategy.
 
 ![**Rapid evolutionary change, but different evolutionary outcomes, in an alternative implementation of disease costs.** In our alternative, percentage costs implementation of the infectious pathogen, there is a rapid shift in the mix of movement strategies after pathogen introduction. The handler tracking strategy becomes common across most parameter combinations, except when social information is not very useful (high productivity $R \geq$ 2), and the cost of disease is relatively low ($\delta E$ = 2.5%). ](figures/fig_evo_change_percent_cost.png){ width=70% }
 
 ### Ecological consequences in the percentage cost implementation
 
-Maybe some text here.
+Surprisingly, the implementation of a different cost structure for the novel, infectious pathogen does not affect ecological, population level outcomes when compared with outcomes in our default implementation of direct costs.
+Across parameter combinations where there is a rapid evolutionary transition from agent tracking to handler tracking as the dominant strategy, there is also an increase in distance moved, a reduction in intake, and a reduction in associations.
 
 ![**Rapid ecological changes accompany evolutionary shifts in an alternative implementation of disease costs, and are similar to the default implementation.** In the alternative percentage-costs implementation of the infectious pathogen, the outcomes are very similar to those in our default implementation of direct costs. Across most paramter combinations, there is an increase in movement, a reduction in intake, and a reduction in associations with other foragers.](figures/fig_eco_compare_percent.png)
 
