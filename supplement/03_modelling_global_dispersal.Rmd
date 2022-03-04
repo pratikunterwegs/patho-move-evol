@@ -127,6 +127,6 @@ Since intake depends on finding these clusters, and associations mostly take pla
 
 ![**Little to no change in ecological outcomes when implementing global dispersal.** Despite strong and rapid evolutionary shifts in social movement strategies, the ecological outcomes for populations with global natal dispersal are very similar before and after the introduction of the infectious pathogen.](figures/fig_eco_compare_global.png){ width=70% }
 
-![*Social networks emerging from the implementation of the global dispersal scenario.* The social network in generation 3,000, when the pathogen is introduced, shows strong social connections among individuals, even though they are spatially dispersed. After pathogen introduction (G = 3,500), the population remains spatially dispersed, and social connections are also reduced. The figure shows networks from a single replicate where $\delta E$ = 5%, and $R$ = 2.](figures/fig_networks_global.png){ width=70% }
+![**Social networks emerging from the implementation of the global dispersal scenario.** The social network in generation 3,000, when the pathogen is introduced, shows strong social connections among individuals, even though they are spatially dispersed. After pathogen introduction (G = 3,500), the population remains spatially dispersed, and social connections are also reduced. The figure shows networks from a single replicate where $\delta E$ = 5%, and $R$ = 2.](figures/fig_networks_global.png){ width=70% }
 
 \newpage
