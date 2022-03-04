@@ -177,17 +177,12 @@ ggplot(degree_data)+
 
 ```{r}
 # select nice network
-ntwks_example = data_ntwk[[9]]
+ntwks_example = data_ntwk[[3]]
 
 # select before and after disease
 ntwk_pre = ntwks_example[[6]] %>% 
   activate(edges) %>% 
   filter(weight > 5) %>% 
-  activate(nodes)
-
-ntwk_post = ntwks_example[[7]] %>%
-  activate(edges) %>%
-  filter(weight > 5) %>%
   activate(nodes)
 
 # sanity check
@@ -199,7 +194,16 @@ ggraph(ntwk_pre, x = xn, y = yn)+
     ),
     shape = 21,
     show.legend = F
+  )+
+  coord_equal(
+    xlim = c(0, 60),
+    ylim = c(0, 60)
   )
+
+ntwk_post = ntwks_example[[7]] %>%
+  activate(edges) %>%
+  filter(weight > 5) %>%
+  activate(nodes)
 ```
 
 ```{r}
@@ -275,8 +279,8 @@ networkplots[[1]] = networkplots[[1]] +
     grob = ggplot2::ggplotGrob(fig_degree),
     xmin = 0,
     xmax = 60,
-    ymin = -10,
-    ymax = 20
+    ymin = 30,
+    ymax = 60
   )
 
 # wrap plots
