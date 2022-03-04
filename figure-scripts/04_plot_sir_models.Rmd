@@ -163,11 +163,11 @@ genmax = 5000
 popsize = 500
 
 # make figures
-fig_gen_infect = 
-  ggplot(
+fig_gen_infect =
+ggplot(
   data_infections_gen[cost == 0.25 & regen == 50 
                       & dispersal == 2]
-)+
+  )+
   geom_vline(
     xintercept = c(0, 25),
     lty = 2, 
@@ -177,20 +177,16 @@ fig_gen_infect =
     aes(
       gen - sgen, n_infected / popsize
     ),
+    shape = 4,
     show.legend = FALSE,
-    colour = "indianred",
-    size = 0.2
+    colour = "steelblue",
+    size = 0.1
   )+
   scale_x_continuous(
     trans = ggallin::ssqrt_trans,
     labels = scales::comma,
     breaks = c(-100, 0, 25, 500),
-    name = "Gens. after pathogen intro.",
-    # sec.axis = dup_axis(
-    #   breaks = 0,
-    #   labels = "Pathogen introduction (G = 3,000)",
-    #   name = NULL
-    # )
+    name = "Gens. after pathogen intro."
   )+
   scale_y_continuous(
     labels = scales::percent,
