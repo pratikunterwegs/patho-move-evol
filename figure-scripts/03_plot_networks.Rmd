@@ -28,7 +28,10 @@ params = lapply(params, fread) |>
 ```
 
 ```{r}
-params = params[(!infect_percent) & (costInfect == 0.25) & (regen_time == 50) & (dispersal == 2)]
+params = params[(!infect_percent) & 
+                  (costInfect == 0.25) & 
+                  (regen_time == 50) & 
+                  (dispersal == 2)]
 
 data_files = glue("data/results/networks/data_networks_{params$ofi}.Rds")
 ```
@@ -300,3 +303,425 @@ ggsave(
   units = "mm"
 )
 ```
+
+## Load networks from alternative scenarios
+
+Read parameter files to subset for default parameter combination, based on the "ofi" column.
+
+```{r}
+params = list.files(
+  "data/parameters", pattern = "csv", full.names = T
+)
+params = lapply(params, fread) |>
+  rbindlist()
+```
+
+```{r}
+params = params[(costInfect == 0.05 & regen_time == 50) | 
+                  (costInfect == 0.25 & regen_time == 50 & dispersal == 10)]
+
+data_files = glue("data/results/networks/data_networks_{params$ofi}.Rds")
+```
+
+```{r}
+data_ntwk = lapply(data_files, function(file) {
+  load(file)
+  nt # we previously saved networks under the name nt
+})
+```
+
+## Degree distribution in alternative scenarios
+
+```{r}
+degree_data = lapply(
+  data_ntwk, function(le) {
+    le_pre = le[[6]]
+    le_post = le[[7]]
+    # pre pathogen degree
+    le_pre = mutate(
+      le_pre, degree = tidygraph::centrality_degree(
+        normalized = F
+      ),
+      type = "pre"
+    ) |>
+      as_tibble()
+    
+    # post pathogen degree
+    le_post = mutate(
+      le_post, degree = tidygraph::centrality_degree(
+        normalized = F
+      ),
+      type = "post"
+    ) |>
+      as_tibble()
+    
+    rbindlist(
+      list(
+        le_pre,
+        le_post
+      )
+    )
+  }
+) |>
+  rbindlist()
+
+# save degree data
+fwrite(
+  degree_data,
+  "data/results/data_alt_degree_distribution.csv"
+)
+```
+
+```{r}
+degree_data = fread("data/results/data_alt_degree_distribution.csv")
+degree_data$type = factor(degree_data$type, levels = c("pre", "post"))
+
+# add simulation type
+degree_data[, sim_type := fcase(
+  cost == 0.05, "percent",
+  cost == 0.25, "global"
+)]
+```
+
+```{r}
+# popsize per sim
+popsize = 500
+# how many replicates
+replicates = 10
+
+fig_degree_alt =
+ggplot(degree_data)+
+  geom_histogram(
+    aes(
+      degree,
+      fill = type,
+      y = ..count.. / (popsize * replicates)
+    ),
+    bins = 15,
+    col = NA,
+    show.legend = F
+  )+
+  geom_vline(
+    xintercept = 0.1 * popsize,
+    lty = 2,
+    size = 0.2
+  )+
+  scale_fill_discrete_diverging(
+    palette = "Blue-Red",
+    rev = F,
+    l1 = 50
+  )+
+  scale_x_continuous(
+    trans = ggallin::pseudolog10_trans,
+    breaks = c(0, 10, 100, 500),
+    labels = function(x) {
+      scales::percent(
+        as.numeric(x) / popsize
+      )
+    },
+    name = "% Pop. encountered"
+  )+
+  scale_y_continuous(
+    # breaks = c(0, 0.1, 0.25),
+    labels = scales::percent
+  )+
+  facet_grid(
+    sim_type ~ type,
+    labeller = labeller(
+      type = c(
+        post = "Post-pathogen", 
+        pre = "Pre-pathogen"
+      ),
+      sim_type = c(
+        global = "Global dispersal",
+        percent = "Percentage infection cost"
+      )
+    )
+  )+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(0.5, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5
+    ),
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "bold"
+    )
+  )+
+  labs(
+    y = "% Indiv."
+  )+
+  guides(
+    fill = guide_legend()
+  )
+```
+
+```{r}
+ggsave(
+  fig_degree_alt,
+  filename = "supplement/figures/fig_degree_alt.png",
+  height = 100,
+  width = 120, units = "mm"
+)
+```
+
+## Alternative implementation network plots
+
+### Global dispersal
+
+```{r}
+ntwks_global = data_ntwk[params$dispersal == 10]
+
+# select nice network
+ntwks_example = ntwks_global[[9]]
+
+# select before and after disease
+ntwk_pre = ntwks_example[[6]] %>% 
+  activate(edges) %>% 
+  filter(weight > 5) %>% 
+  activate(nodes)
+
+ntwk_post = ntwks_example[[7]] %>%
+  activate(edges) %>%
+  filter(weight > 5) %>%
+  activate(nodes)
+
+# sanity check
+ggraph(ntwk_pre, x = xn, y = yn)+
+  geom_node_point(
+    aes(
+      fill = t_infec,
+      size = assoc
+    ),
+    shape = 21,
+    show.legend = F
+  )
+```
+
+```{r}
+# make network figures
+networkplots = lapply(
+  list(ntwk_pre, ntwk_post), function(n) {
+    ggraph(n, x = xn, y = yn)+
+      geom_edge_fan(
+        edge_width = 0.5,
+        aes(
+          edge_alpha = weight
+        ),
+        edge_color = "grey40",
+        show.legend = F
+      )+
+      geom_node_point(
+        aes(
+          fill = t_infec,
+          size = assoc
+        ),
+        # stroke = 0.3,
+        shape = 21,
+        # size = 3,
+        # colour = "transparent",# "grey50",
+        alpha = 0.9,
+        show.legend = T
+      )+
+      scale_size_continuous(
+        range = c(0.5, 3)
+      )+
+      scale_fill_continuous_sequential(
+        palette = "Inferno",
+        limit = c(1, 100),
+        breaks = c(1, 10, 30, 100),
+        # direction = -1,
+        na.value = "lightblue",
+        trans = "sqrt"
+      )+
+      coord_cartesian(
+        expand = TRUE,
+        xlim = c(0, 60),
+        ylim = c(0, 60)
+      )+
+      theme_graph(
+        background = "white",
+        border = T,
+        base_size = 8,
+        plot_margin = margin(rep(0, 3))
+      )+
+      theme(
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.margin = margin(rep(0, 4)),
+        legend.position = "top",
+        legend.title = element_text(size = 6),
+        legend.key.height = unit(1, units = "mm"),
+        legend.key.width = unit(3, units = "mm")
+      )+
+      labs(
+        fill = "Time infected"
+      )+
+      guides(
+        size = "none",
+        edge_alpha = "none"
+      )
+  }
+)
+
+# wrap plots
+networkplots =
+  wrap_plots(
+  networkplots, ncol = 2,
+  guides = "collect"
+) &
+  plot_annotation(
+    title = "Emergent social networks: Global dispersal",
+    tag_levels = c("A")
+  ) &
+  theme(
+    title = element_text(size = 6),
+    plot.tag = element_text(
+      face = "bold"
+    ),
+    legend.position = "bottom"
+  )
+
+ggsave(
+  plot = networkplots,
+  filename = "supplement/figures/fig_networks_global.png",
+  height = 80,
+  width = 120,
+  units = "mm"
+)
+```
+
+### Percentage disease costs
+
+```{r}
+ntwks_percent = data_ntwk[params$costInfect == 0.05]
+
+# select nice network
+ntwks_example = ntwks_percent[[9]]
+
+# select before and after disease
+ntwk_pre = ntwks_example[[6]] %>% 
+  activate(edges) %>% 
+  filter(weight > 5) %>% 
+  activate(nodes)
+
+ntwk_post = ntwks_example[[7]] %>%
+  activate(edges) %>%
+  filter(weight > 5) %>%
+  activate(nodes)
+
+# sanity check
+ggraph(ntwk_post, x = xn, y = yn)+
+  geom_node_point(
+    aes(
+      fill = t_infec,
+      size = assoc
+    ),
+    shape = 21,
+    show.legend = F
+  )
+```
+
+```{r}
+# make network figures
+networkplots = lapply(
+  list(ntwk_pre, ntwk_post), function(n) {
+    ggraph(n, x = xn, y = yn)+
+      geom_edge_fan(
+        edge_width = 0.5,
+        aes(
+          edge_alpha = weight
+        ),
+        edge_color = "grey40",
+        show.legend = F
+      )+
+      geom_node_point(
+        aes(
+          fill = t_infec,
+          size = assoc
+        ),
+        # stroke = 0.3,
+        shape = 21,
+        # size = 3,
+        # colour = "transparent",# "grey50",
+        alpha = 0.9,
+        show.legend = T
+      )+
+      scale_size_continuous(
+        range = c(0.5, 3)
+      )+
+      scale_fill_continuous_sequential(
+        palette = "Inferno",
+        limit = c(1, 100),
+        breaks = c(1, 10, 30, 100),
+        # direction = -1,
+        na.value = "lightblue",
+        trans = "sqrt"
+      )+
+      coord_cartesian(
+        expand = TRUE,
+        xlim = c(0, 60),
+        ylim = c(0, 60)
+      )+
+      theme_graph(
+        background = "white",
+        border = T,
+        base_size = 8,
+        plot_margin = margin(rep(0, 3))
+      )+
+      theme(
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.margin = margin(rep(0, 4)),
+        legend.position = "top",
+        legend.title = element_text(size = 6),
+        legend.key.height = unit(1, units = "mm"),
+        legend.key.width = unit(3, units = "mm")
+      )+
+      labs(
+        fill = "Time infected"
+      )+
+      guides(
+        size = "none",
+        edge_alpha = "none"
+      )
+  }
+)
+
+# wrap plots
+networkplots =
+  wrap_plots(
+  networkplots, ncol = 2,
+  guides = "collect"
+) &
+  plot_annotation(
+    title = "Emergent social networks: Percent infection costs",
+    tag_levels = c("A")
+  ) &
+  theme(
+    title = element_text(size = 6),
+    plot.tag = element_text(
+      face = "bold"
+    ),
+    legend.position = "bottom"
+  )
+
+ggsave(
+  plot = networkplots,
+  filename = "supplement/figures/fig_networks_percent.png",
+  height = 80,
+  width = 120,
+  units = "mm"
+)
+```
+
