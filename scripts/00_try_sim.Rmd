@@ -3,23 +3,32 @@ editor_options:
   chunk_output_type: console
 ---
 
-# check function
-remove.packages("pathomove")
+# Trying out the _Pathomove_ simulation model
 
-Rcpp::compileAttributes()
-devtools::build()
-{
-  sink(file = "install_output.log")
-  devtools::install(upgrade = "never")
-  sink()
-}
-devtools::document()
+## Installation
 
-detach(package:pathomove)
+```{r}
+# install using devtools
+devtools::install_github("pratikunterwegs/pathomove", upgrade = "never")
+```
+
+```{r}
+# load package
 library(pathomove)
+```
+
+```{r}
+# load some helper libraries
 library(ggplot2)
 library(data.table)
+```
 
+## Visualise the simulation landscape
+
+The kind of simulation landscape used in our study can be visualised using the code below.
+
+```{r}
+# using the Rcpp function to get a sample landscape
 l <- pathomove::get_test_landscape(
   nItems = 1800,
   landsize = 60,
@@ -27,35 +36,37 @@ l <- pathomove::get_test_landscape(
   clusterSpread = 1,
   regen_time = 50
 )
+```
+
+```{r}
+# visualise the landscape,
+# colouring items by tAvail
+# tAvail is the time before the item regenerates
 ggplot(l) +
   geom_point(
     aes(x, y, col = tAvail)
-    # size = 0.3
   ) +
-  geom_segment(
-    x = 0, y = 0,
-    xend = 2, yend = 0
-  ) +
-  scale_colour_viridis_b(
-    option = "H",
-    direction = 1,
-    breaks = c(0, 1, 2, 5, 10)
-  ) +
-  coord_equal()
+  scale_colour_viridis_c(
+    option = "H"
+  )
+```
 
-# {t1 = Sys.time()
-# invisible(
-#   x = {
-a <- pathomove::run_pathomove(
+## Run a test simulation
+
+```{r}
+# run a test simulation.
+# see the help using ?run_pathomove 
+# for an explanation of the parameters
+data = pathomove::run_pathomove(
   scenario = 2,
-  popsize = 1000,
-  nItems = 1800,
+  popsize = 200,
+  nItems = 1000,
   landsize = 60,
   nClusters = 60,
   clusterSpread = 1,
   tmax = 100,
-  genmax = 1000,
-  g_patho_init = 500,
+  genmax = 100,
+  g_patho_init = 50,
   range_food = 1.0,
   range_agents = 1.0,
   range_move = 1.0,
@@ -65,50 +76,56 @@ a <- pathomove::run_pathomove(
   initialInfections = 40,
   costInfect = 0.25,
   nThreads = 2,
-  dispersal = 3.0,
+  dispersal = 2.0,
   infect_percent = FALSE,
   mProb = 0.001,
   mSize = 0.001
 )
-#   }
-# )
-# t2 = Sys.time()
-# t2 - t1}
+```
 
-# movement data
-m1 <- a[["move_pre"]] |> rbindlist()
-m2 <- a[["move_post"]] |> rbindlist()
+## Simulation output
 
-m1_summary <- m1[, unlist(lapply(.SD, function(x) {
-  list(
-    first = first(x),
-    last = last(x)
-  )
-}), recursive = F), by = c("id"), .SDcols = c("x", "y")]
+Examine the simulation data. It consists of four elements, which can be examined.
 
-m2_summary <- m2[, unlist(lapply(.SD, function(x) {
-  list(
-    first = first(x),
-    last = last(x)
-  )
-}), recursive = F), by = c("id"), .SDcols = c("x", "y")]
+```{r}
+# examine the structure of the data
+str(data, max.level = 1)
+```
 
+```md
+List of 4
+ $ gen_data :List of 3
+ $ edgeLists:List of 11
+ $ move_pre :List of 100
+ $ move_post:List of 100
+```
+
+Here:
+
+- `gen_data` are data related to the evolved population,
+- `edgeLists` are the pairwise associations between individuals
+- `move_pre` and `move_post` are the movement paths of individuals before and after pathogen introduction.
+
+### Sanity check: Expected movement patterns
+
+Examine whether individuals are moving as expected, in five point trajectories.
+
+```{r}
+# movement data before and after pathogen
+m1 <- data[["move_pre"]] |> rbindlist()
+m2 <- data[["move_post"]] |> rbindlist()
+
+# examine the movement patterns
 ggplot(m1) +
   geom_point(
     aes(x, y, group = id, col = id),
     # size = 0.1
   ) +
-  # geom_point(
-  #   aes(x, y, col = id),
-  #   # size = 0.1
-  # )+
   scale_colour_viridis_c(
     option = "H"
   ) +
-  coord_equal(
-    # xlim = c(0, 50),
-    # ylim = c(0, 50)
-  )
+  coord_equal()
+```
 
 data <- a
 a <- data[[1]]
