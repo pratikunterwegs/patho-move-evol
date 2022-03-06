@@ -9,17 +9,22 @@ This work was developed in the [Modelling Adaptive Response Mechanisms Group (We
 
 ## Contact and Attribution
 
-Please contact [Pratik Gupte](p.r.gupte@rug.nl) for questions about the associated manuscript.
+Please contact [Pratik Gupte](p.r.gupte@rug.nl) for questions on the model or the associated project.
+
+```md
+Name: Pratik Rajan Gupte
+Email: pratikgupte16@gmail.com OR p.r.gupte@rug.nl
+ORCID: https://orcid.org/0000-0001-5294-7819
+```
 
 ## Simulation Source Code
 
 The simulation source code is provided in a different repository, [_Pathomove_](https://github.com/pratikunterwegs/pathomove).
-This repository is archived on: **add Zenodo link** [Zenodo]().
 
 ## Simulation Data
 
 The simulation data are originally generated on the University of Groningen's _Peregrine_ high-performance computing cluster (using the R code in the `scripts/` folder: `scripts/00_use_cluster.R`).
-Data used to produce the specific figures shown in the manuscript are available on the DataverseNL repository as a draft: **Dataverse draft**, and will be available at this persistent link after publication: **Dataverse permalink**.
+Data used to produce the specific figures shown in the manuscript are available on Dryad at: **Dryad permalink**.
 
 ---
 
@@ -33,7 +38,9 @@ A brief description of this workflow is:
 
 2. Download this repository locally.
 
-3. If you intend to simply try out this simulation, run the script `scripts/00_try_sim.Rmd`. Look through the script for instructions on how to access the simulation output.
+3. If you intend to simply try out this simulation, run the script `supplement/05_try_sim.Rmd`. Look through the script for instructions on how to access the simulation output.
+
+    A rough guide to running the simulation is also included in the Supplementary Material associated with the _biorXiv_ manuscript as a PDF.
 
     **Please note**: If you intend to fully replicate the analyses here, move to the sub-section below. This is a challenging task which cannot be simplified, and should be attempted with care.
 
@@ -276,6 +283,8 @@ The supplementary material provided with this manuscript is generated from the `
 - `supplement/03_modelling_global_dispersal.Rmd` Shows simulation outcomes when modelling global dispersal.
 
 - `supplement/04_modelling_percent_infection.Rmd` Shows simulation outcomes when modelling percentage infection costs.
+
+- `supplement/05_try_sim.Rmd` Basic working example of the simulation model.
 
 - Other files in this directory are helper files required to format the supplementary material.
 
