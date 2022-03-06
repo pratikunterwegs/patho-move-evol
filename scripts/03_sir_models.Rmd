@@ -11,6 +11,10 @@ Load libraries.
 library(data.table)
 library(igraph)
 library(tidygraph)
+library(glue)
+
+# load functions
+devtools::load_all()
 ```
 
 ## Prepare parameters
@@ -22,80 +26,39 @@ gamma = c(0, 1)
 threshold = c(1, 5, 10)
 
 # make combinations
-params = CJ(beta, gamma, threshold)
+params_sir = CJ(beta, gamma, threshold)
 
-beta = params$beta
-gamma = params$gamma
-threshold = params$threshold
+beta = params_sir$beta
+gamma = params_sir$gamma
+threshold = params_sir$threshold
 ```
 
-## Load networks
+## Load networks from default scenario
+
+Read parameter files to subset for default parameter combination, based on the "ofi" column.
 
 ```{r}
-load("data/results/data_networks.Rds")
+data_files = list.files(
+  "data/results/networks",
+  full.names = TRUE,
+  pattern = "Rds"
+)
 ```
 
-```{r}
-ntwk_basic = data_ntwk[names(data_ntwk) %in% c("nopatho", "endemic")]
-ntwk_basic = lapply(ntwk_basic, last)
-```
-
-## Run basic models
+## Run SIR models
 
 ```{r}
-# sc_repl = rep(seq(5), 2)
-# 
-# data_basic = Map(
-#   ntwk_basic, names(ntwk_basic), sc_repl,
-#   f = function(ntwk, scenario, sc_repl) {
-#     
-#     # map over params
-#     d = Map(
-#       beta, gamma, threshold,
-#       f = function(b, g, thr) {
-#         # filter for threshold associations
-#         nt = ntwk %>% 
-#           activate(edges) %>% 
-#           filter(weight > thr) %>% 
-#           activate(nodes)
-#         
-#         # run sir model
-#         data = igraph::sir(
-#           graph = nt, beta = b, gamma = g, no.sim = 25
-#         ) |>
-#           handle_sir_data(digits = 1)
-#         
-#         data[, c("beta", "gamma", "threshold") := list(b, g, thr)]
-#         data
-#       }
-#     ) |>
-#       rbindlist()
-#     
-#     d[, c("scenario", "sc_repl") := list(scenario, sc_repl)]
-#     d
-#     
-#   }
-# )
-# 
-# data_basic = rbindlist(data_basic)
-# 
-# # save data
-# fwrite(
-#   data_basic,
-#   file = "data/results/data_sir_basic.csv"
-# )
-```
+sc_repl = seq(10) # the number of replicates
 
-## Run on scenario 3
-
-```{r}
-ntwk_spillover = data_ntwk[names(data_ntwk) %in% c("spillover")]
-
-sc_repl = seq(5)
-
-data_spillover = Map(
-  ntwk_spillover, names(ntwk_spillover), sc_repl,
-  f = function(ntwk, scenario, sc_repl) {
+data_sir_models = Map(
+  data_files, sc_repl,
+  f = function(file, sc_repl) {
+    
+    # load networks
+    load(file)
+    
+    # rename nt to ntwk
+    ntwk = nt
     
     # pre disease
     d_pre = Map(
@@ -107,6 +70,7 @@ data_spillover = Map(
         nt_ = as_tibble(nt)
         cost = unique(nt_$cost)
         regen = unique(nt_$regen)
+        dispersal = unique(nt_$dispersal)
         
         # filter for threshold
         nt = nt %>% 
@@ -126,6 +90,7 @@ data_spillover = Map(
         d_pre_$threshold = thr
         d_pre_$cost = cost
         d_pre_$regen = regen
+        d_pre_$dispersal = dispersal
         
         d_pre_
       }
@@ -142,6 +107,7 @@ data_spillover = Map(
         nt_ = as_tibble(nt)
         cost = unique(nt_$cost)
         regen = unique(nt_$regen)
+        dispersal = unique(nt_$dispersal)
         
         # filter for threshold
         nt = nt %>% 
@@ -161,6 +127,7 @@ data_spillover = Map(
         d_post_$threshold = thr
         d_post_$cost = cost
         d_post_$regen = regen
+        d_post_$dispersal = dispersal
         
         d_post_
       }
@@ -171,20 +138,24 @@ data_spillover = Map(
       list(d_pre, d_post)
     )
     
-    data[, c("scenario", "sc_repl") := list(scenario, sc_repl)]
+    # add simulation replicate
+    data$sc_repl = sc_repl
     data
     
   }
 )
 
-data_spillover = rbindlist(data_spillover)
+data_sir_models = rbindlist(data_sir_models)
 ```
 
 ```{r}
 # sanity check
-data_spillover[class != "NS" & beta == 1 & gamma == 1 & threshold != 2] %>% 
+data_sir_models[class != "NS" & beta == 1 & gamma == 1 & threshold != 2] %>% 
 ggplot()+
-  stat_summary(aes(time, mean, col = type))+
+  stat_summary(
+    aes(time, mean, col = type),
+    size = 0.2
+  )+
   facet_grid(
     threshold ~ class,
     labeller = label_both
@@ -197,8 +168,8 @@ ggplot()+
 ```{r}
 # save data
 fwrite(
-  data_spillover,
-  file = "data/results/data_sir_spillover.csv"
+  data_sir_models,
+  file = "data/results/data_sir_models.csv"
 )
 ```
 

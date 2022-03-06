@@ -1,0 +1,626 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(data.table)
+
+library(ggplot2)
+library(patchwork)
+library(colorspace)
+
+# custom functions
+devtools::load_all()
+```
+
+## Focal strategy data
+
+Load generation strategy data.
+
+```{r}
+files = list.files(
+  "data/results/morph_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
+
+data_all = lapply(files, fread)
+data_all = rbindlist(data_all)
+setnames(data_all, "disperal", "dispersal")
+
+df_strat = data_all[(dispersal == 2) & (infect_percent == F)]
+df_strat = df_strat[(cost == 0.25) & (regen == 50)]
+
+# popsize
+popsize = 500
+df_strat[, prop := N / popsize]
+g_bin = 100
+df_strat[, gen_bin := (floor(gen / g_bin) * g_bin)]
+
+# get time since pathogen
+sgen = 3000
+genmax = 5000
+df_strat[, gen_abs := gen_bin - sgen]
+
+# focus on generations before and after spillover
+df_strat[, gen_abs := fifelse(
+  abs(gen - sgen) < g_bin, gen - sgen, gen_abs
+)]
+
+# save for plotting and upload
+fwrite(
+  df_strat,
+  file = "data/results/data_default_strategy_evo.csv"
+)
+```
+
+```{r}
+# load saved data
+df_strat = fread("data/results/data_default_strategy_evo.csv")
+```
+
+## Plot evolutionary change in default scenario
+
+```{r}
+fig_1a =
+ggplot(df_strat[
+  social_strat != "non-handler tracking"
+])+
+  stat_summary(
+    aes(
+      gen_abs, prop, 
+      colour = social_strat,
+    ),
+    geom = "line"
+  )+
+  stat_summary(
+    aes(
+      gen_abs, prop, 
+      col = social_strat,
+    ),
+    size = 0.2
+  )+
+  geom_vline(
+    xintercept = c(0, 25),
+    lty = 2,
+    size = 0.3,
+    col = c("red", "grey")
+  )+
+  scale_colour_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80,
+    rev = F,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  )+
+  scale_x_continuous(
+    trans = ggallin::pseudolog10_trans,
+    breaks = c(-250, -25, 0, 25, 250),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, sgen, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  )+
+  scale_y_continuous(
+    breaks = c(0, 0.5, 1),
+    labels = scales::percent,
+    name = "% Individuals"
+  )+
+  coord_cartesian(
+    # xlim = c(-, NA)
+  )+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
+  theme(
+    legend.position = "top", 
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.x = element_text(hjust = 0.5),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5  
+    )
+  )
+```
+
+## Data social information importance
+
+```{r}
+files = list.files(
+  "data/results/si_imp_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
+
+data_all = lapply(files, fread)
+data_all = rbindlist(data_all)
+setnames(data_all, "disperal", "dispersal")
+
+df_si = data_all[(dispersal == 2) & (infect_percent == F)]
+df_si = df_si[(cost == 0.25) & (regen == 50)]
+
+# popsize
+popsize = 500
+
+df_si[, prop := N / popsize]
+g_bin = 100
+df_si[, gen_bin := (floor(gen / g_bin) * g_bin)]
+
+# get time since pathogen
+sgen = 3000
+genmax = 5000
+df_si[, gen_abs := gen_bin - sgen]
+
+# focus on generations before and after spillover
+df_si[, gen_abs := fifelse(
+  abs(gen - sgen) < g_bin, gen - sgen, gen_abs
+)]
+
+# save for plotting and upload
+fwrite(
+  df_si,
+  file = "data/results/data_default_si_imp.csv"
+)
+```
+
+```{r}
+# load saved data
+df_si = fread("data/results/data_default_si_imp.csv")
+```
+
+```{r}
+# get weighted mean and variance in social info importance
+df_si_mean = df_si[, list(
+  mean = weighted.mean(si_imp, w = N),
+  sd = Hmisc::wtd.var(si_imp, weights = N)
+), by = "gen"]
+
+df_si_mean[, c("y", "ymin", "ymax") := list(
+  mean,
+  mean - sd,
+  mean + sd
+)]
+```
+
+### Figure social information importance
+
+```{r}
+hmap_cols = colorspace::sequential_hcl(
+  5,
+  palette = "agSunset",
+  rev = TRUE
+)
+
+fig_1b =
+  ggplot()+
+  geom_tile(
+    data = df_si[repl == 10],
+    aes(
+      gen, si_imp,
+      fill = N / popsize
+    )
+  )+
+  geom_pointrange(
+    data = df_si_mean[
+      gen %% 100 == 0
+    ],
+    aes(
+      gen, y,
+      ymin = ymin,
+      ymax = ymax
+    ),
+    size = 0.1,
+    col = alpha("grey40", 1),
+  )+
+  geom_hline(
+    yintercept = 0.5,
+    col = "grey",
+    lty = 2,
+    size = 0.2
+  )+
+  geom_vline(
+    xintercept = c(sgen),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  )+
+  scale_fill_gradientn(
+    colours = c(
+      "grey99", 
+      hmap_cols
+    ),
+    na.value = hmap_cols[5],
+    limits = c(0.0, 0.25),
+    breaks = c(0.01, 0.25, 0.5),
+    labels = function(x) {
+      a = scales::percent(x)
+      a[x == 0.25] = ">25%"
+      a
+    },
+    name = "% Indiv."
+  )+
+  scale_x_continuous(
+    breaks = c(2500, 3000, 4000, 5000),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Generations",
+    sec.axis = dup_axis(
+      breaks = sgen,
+      labels = "Pathogen introduction",
+      name = NULL
+    )
+  )+
+  scale_y_continuous(
+    labels = scales::percent,
+    name = "% Importance of\nsocial information"
+  )+
+  coord_cartesian(
+    xlim = c(2500, NA),
+    ylim = c(0, 0.65)
+  )+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
+  theme(
+    legend.position = "top", 
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(2.5, "mm"),
+    legend.title = element_text(
+      vjust = 1.5
+    ),
+    legend.text = element_text(
+      size = 6
+    ),
+    # axis.text.x = element_text(hjust = 0.5, size = 6),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5  
+    )
+  )
+```
+
+### Intermediate figure SI change
+
+```{r}
+fig_1_intermediate = wrap_plots(
+  fig_1a, fig_1b,
+  guides = "collect"
+) &
+  plot_annotation(
+    tag_levels = "A"
+  ) &
+  theme(
+    plot.tag = element_text(
+      face = "bold"
+    ),
+    legend.position = "bottom",
+    legend.justification = "left",
+    legend.text = element_text(
+      size = 8
+    ),
+    legend.title = element_text(
+      size = 8
+    )
+  )
+
+# save intermediate figure
+ggsave(
+  plot = fig_1_intermediate,
+  filename = "figures/fig_1_intermediate.png",
+  width = 120,
+  height = 75,
+  units = "mm"
+)
+```
+
+## Data ecological outcomes
+
+Load generation data.
+
+```{r}
+# list files, read, and filter for default model options
+files = list.files(
+  "data/results/gen_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
+
+data_all = lapply(files, fread)
+data_all = rbindlist(data_all)
+
+df_eco = data_all[(dispersal == 2) & (infect_percent == F)]
+df_eco = df_eco[(cost == 0.25) & (regen == 50)]
+
+# popsize
+popsize = 500
+g_bin = 100
+df_eco[, gen_bin := (floor(gen / g_bin) * g_bin)]
+
+# get time since pathogen
+sgen = 3000
+genmax = 5000
+df_eco[, gen_abs := gen_bin - sgen]
+
+# focus on generations before and after spillover
+df_eco[, gen_abs := fifelse(
+  abs(gen - sgen) < g_bin, gen - sgen, gen_abs
+)]
+
+# save for plotting and upload
+fwrite(
+  df_eco,
+  file = "data/results/data_default_eco.csv"
+)
+```
+
+```{r}
+# load saved data
+df_eco = fread("data/results/data_default_eco.csv")
+```
+
+### Intake
+
+```{r}
+df_eco = df_eco[, c("gen_abs", "intake.mean", 
+                    "moved.mean", "assoc.mean")]
+df_eco = melt(
+  df_eco,
+  id.vars = c("gen_abs")
+)
+
+## colours for background
+cols = colorspace::diverging_hcl(3, palette = "Tofino", l = 50, c = 80)
+```
+
+```{r}
+plot_intake =
+ggplot(df_eco[variable %in% c("intake.mean")])+
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    col = cols[3],
+    geom = "line",
+    show.legend = F
+  )+
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    size = 0.1,
+    col = cols[3],
+    show.legend = F
+  )+
+  geom_vline(
+    xintercept = c(0, 25),
+    lty = 2,
+    size = 0.3,
+    col = c("red", "grey")
+  )+
+  scale_x_continuous(
+    trans = ggallin::pseudolog10_trans,
+    breaks = c(-25, 0, 25),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, sgen, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  )+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
+  theme(
+    # legend.position = c(0.2, 0.15),
+    legend.key = element_blank(),
+    legend.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    plot.background = element_blank(),
+    strip.placement = "outside"
+  )+
+  labs(
+    x = NULL,
+    y = "Per-capita intake",
+    colour = NULL,
+    shape = NULL
+  )
+```
+
+## Movement
+
+```{r}
+plot_movement =
+ggplot(df_eco[variable %in% c("moved.mean")])+
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    col = cols[1],
+    geom = "line",
+    show.legend = F
+  )+
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    size = 0.1,
+    col = cols[1],
+    show.legend = F
+  )+
+  geom_vline(
+    xintercept = c(0, 25),
+    lty = 2,
+    size = 0.3,
+    col = c("red", "grey")
+  )+
+  scale_x_continuous(
+    trans = ggallin::pseudolog10_trans,
+    breaks = c(-25, 0, 25),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, sgen, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  )+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
+  theme(
+    # legend.position = c(0.2, 0.15),
+    legend.key = element_blank(),
+    legend.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    plot.background = element_blank(),
+    strip.placement = "outside"
+  )+
+  labs(
+    x = NULL,
+    y = "Distance moved",
+    colour = NULL,
+    shape = NULL
+  )
+```
+
+## Associations
+
+```{r}
+plot_assoc =
+ggplot(df_eco[variable %in% c("assoc.mean")])+
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    col = cols[2],
+    geom = "line",
+    show.legend = F
+  )+
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    size = 0.1,
+    col = cols[2],
+    show.legend = F
+  )+
+  geom_vline(
+    xintercept = c(0, 25),
+    lty = 2,
+    size = 0.3,
+    col = c("red", "grey")
+  )+
+  scale_x_continuous(
+    trans = ggallin::pseudolog10_trans,
+    breaks = c(-25, 0, 25),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, sgen, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  )+
+  scale_y_continuous(
+    trans = "log10",
+    labels = scales::comma
+  )+
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  )+
+  theme(
+    # legend.position = c(0.2, 0.15),
+    legend.key = element_blank(),
+    legend.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    plot.background = element_blank(),
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5
+    ),
+    strip.placement = "outside"
+  )+
+  labs(
+    x = NULL,
+    y = "Associations",
+    colour = NULL,
+    shape = NULL
+  )
+```
+
+## Make Figure 1
+
+```{r}
+fig_1 =
+  wrap_plots(
+    # plot_agent_avoid,
+    fig_1_intermediate,
+    plot_movement,
+    plot_intake, 
+    plot_assoc,
+    design = "AAA\nAAA\nBCD",
+    guides = "collect"
+  ) &
+  plot_annotation(
+    tag_levels = c("A", 1)
+  ) &
+  theme(
+    # legend.position = "top",
+    legend.justification = "center",
+    # legend.key.height = unit(1, units = "mm"),
+    plot.tag = element_text(
+      face = "bold",
+      size = 10
+    ),
+    axis.text.x = element_text(
+      size = 7
+    )
+  )
+
+ggsave(
+  fig_1,
+  filename = "figures/fig_01.png",
+  height = 120, width = 120, units = "mm"
+)
+```

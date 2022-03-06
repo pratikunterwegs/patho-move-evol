@@ -1,0 +1,221 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Scenario 1: Evolution of Movement Types
+
+```{r}
+library(data.table)
+library(stringr)
+library(ggplot2)
+library(glue)
+
+# load local funs
+devtools::load_all()
+```
+
+## Read data
+
+```{r}
+# list all files
+files = list.files(
+  path = "data/output",
+  pattern = "Rds",
+  full.names = TRUE
+)
+```
+
+## Process each file
+
+```{r}
+# where to send output
+gen_data_path = "data/results/gen_data"
+morph_data_path = "data/results/morph_data"
+si_imp_path = "data/results/si_imp_data"
+
+# make directories if non existent
+lapply(
+  list(gen_data_path, morph_data_path, si_imp_path), 
+  function(p) {
+    if(!dir.exists(p)) {
+      # message
+      message(
+        glue(
+          "creating filepath {p}"
+        )
+      )
+      dir.create(p)
+    }
+  }
+)
+```
+
+```{r}
+# use a loop because why not and don't want to load purrr for walk
+for (i in files) {
+  
+  # load data
+  load(i)
+  
+  # the posix time is the data unique identifier
+  uid = str_extract(i, "\\d{10}")
+  
+  # load metadata on the simulation
+  gen_data = data[["gen_data"]]
+  repl = data[["replicate"]]
+  cost = data[["costInfect"]]
+  regen = data[["regen_time"]]
+  dispersal = data[["dispersal"]]
+  infect_percent = data[["infect_percent"]]
+  
+  # prepare generation level data
+  gen_data = Map(
+    gen_data[["pop_data"]], gen_data[["gens"]],
+    f = function(l, g) {
+      l$gen = g
+      l
+    }
+  )
+  
+  #### prepare individual level data ####
+  popsize = data[["popsize"]]
+  
+  gen_data = Map(
+    gen_data,
+    f = function(df) {
+      
+      # add individual identity
+      df$id = seq(popsize)
+      
+      # get strategy --- assignment necessary
+      df = mspathomove::get_social_strategy(df)
+
+      # scale weights and get social information importance
+      mspathomove::get_social_strategy(df)
+      mspathomove::get_si_importance(df)
+      mspathomove::get_agent_avoidance(df)
+      
+      df
+      
+    }
+  )
+  
+  # process by social strategy
+  data_strategy = Map(
+    gen_data,
+    f = function(df) {
+      df[, list(
+        N = .N,
+        mean_move = mean(moved),
+        mean_assoc = mean(assoc),
+        mean_intake = mean(intake),
+        prop_infec = sum(t_infec > 0) / length(t_infec)
+      ), by = c("gen", "social_strat")]
+    }
+  ) |> rbindlist()
+  
+  # summarise by generation
+  # bind all together
+  gen_data = rbindlist(gen_data)
+  
+  # count si_importance morphs
+  gen_data[, si_imp := round(si_imp, 2)]
+  data_si_imp = gen_data[, list(
+    N = .N
+  ), by = c("gen", "si_imp")]
+
+  gen_data = gen_data[, unlist(
+    lapply(.SD, function(x) {
+      list(
+        mean = mean(x),
+        sd = sd(x)
+      )
+    }), recursive = FALSE
+  ), 
+  .SDcols = c("energy", "intake", "moved", "assoc"),
+  by = c("gen")]
+  
+  # add simulation parameters
+  invisible(
+    lapply(
+      list(data_strategy, gen_data, data_si_imp), 
+      function(df) {
+        df[, c("repl", "cost", "regen", "dispersal", "infect_percent") := list(
+          repl, cost, regen, dispersal, infect_percent
+        )]
+      }
+    )
+  )
+  
+  # save data
+  invisible(
+    Map(
+      list(
+        data_strategy, gen_data,
+        data_si_imp), 
+      list(
+        morph_data_path, gen_data_path,
+        si_imp_path),
+      f = function(df, p) {
+        fwrite(
+          df,
+          file = glue(
+            "{p}/data_gen_{uid}.csv"
+          )
+        )
+      }
+    )
+  )
+  
+}
+```
+
+## Infections per generation
+
+```{r}
+files = list.files(
+  path = "data/output", 
+  pattern = "Rds", full.names = T
+)
+```
+
+```{r}
+# load each file and get parameters and infections over generations
+data_infections_gen = lapply(
+  files, function(le) {
+    # load data
+    load(le)
+    
+    # parameters
+    repl = data[["replicate"]]
+    cost = data[["costInfect"]]
+    regen = data[["regen_time"]]
+    dispersal = data[["dispersal"]]
+    infect_percent = data[["infect_percent"]]
+    
+    # load generations and infections
+    gens = data$gen_data$gens
+    n_infected = data$gen_data$n_infected
+    
+    data.table(
+      cost = cost,
+      regen = regen,
+      dispersal = dispersal,
+      infect_percent = infect_percent,
+      repl = repl,
+      gen = gens,
+      n_infected = n_infected
+    )
+  }
+)
+
+# combine data and save
+data_infections_gen = rbindlist(data_infections_gen)
+
+# save data
+fwrite(
+  data_infections_gen,
+  file = "data/results/data_infections_gen.csv"
+)
+```

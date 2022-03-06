@@ -1,0 +1,348 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plot evolutionary consequences of spillover
+
+```{r}
+library(data.table)
+library(glue)
+
+library(ggplot2)
+library(patchwork)
+library(colorspace)
+
+# custom functions
+devtools::load_all()
+```
+
+Load data.
+
+```{r}
+files = list.files(
+  "data/results/morph_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
+
+data_all = lapply(files, fread)
+df_strat = rbindlist(data_all)
+
+# popsize
+popsize = 500
+replicates = 10
+df_strat[, prop := N / popsize]
+g_bin = 100
+df_strat[, gen_bin := (floor(gen / g_bin) * g_bin)]
+
+# get time since pathogen
+sgen = 3000
+genmax = 5000
+df_strat[, gen_abs := gen_bin - sgen]
+
+df_strat = df_strat[gen %% 100 == 0,]
+
+df_strat = df_strat[, list(
+  prop = sum(prop) / (replicates)
+), by = c(
+  "gen", "social_strat", 
+  "cost", "regen", "infect_percent", "dispersal"
+)]
+
+# regeneration rate
+gen_time = 100
+df_strat[, regen_r := gen_time / regen]
+```
+
+```{r}
+# handle main types of simulation: default, percent, and global
+df_strat[, sim_type := fcase(
+  infect_percent == T, "percent",
+  dispersal == 10, "global",
+  dispersal == 2, "default"
+)]
+```
+
+```{r}
+df_strat = split(
+  df_strat,
+  by = "sim_type"
+)
+```
+
+## Compare strategy evolution
+
+```{r}
+# rough draft
+plots_evo = lapply(
+  df_strat,
+  function(df) {
+    
+    p = ggplot(df)+
+      geom_col(
+        aes(
+          gen, prop,
+          fill = social_strat
+        ),
+        width = 100,
+        position = "stack"
+      )+
+      geom_vline(
+        xintercept = sgen,
+        lty = 2,
+        size = 0.3,
+        col = "red"
+      )+
+      scale_fill_discrete_sequential(
+        palette = "Viridis",
+        l2 = 80,
+        rev = F,
+        name = NULL,
+        limits = c("agent avoiding", "agent tracking", "handler tracking"),
+        labels = stringr::str_to_sentence,
+        na.value = "lightgrey"
+      )+
+      scale_x_continuous(
+        breaks = sgen,
+        labels = "Pathogen introduction",
+        name = "Increasing productivity (social information less useful) \u279c",
+        sec.axis = dup_axis(
+          breaks = c(1000, sgen, genmax),
+          labels = scales::comma,
+          name = "Generations"
+        )
+      )+
+      scale_y_continuous(
+        labels = scales::percent,
+        breaks = NULL,
+        name = glue::glue("Increasing disease cost \u279c"),
+        sec.axis = dup_axis(
+          breaks = c(0, 0.5, 1),
+          labels = scales::percent,
+          name = "% Individuals"
+        )
+      )+
+      facet_grid(
+        cost ~ regen_r,
+        as.table = F, 
+        switch = c("both"),
+        labeller = labeller(
+          cost = function(x) {
+            if(x >= 0.1) {
+              sprintf("δE = %s", x)
+            } else {
+              scales::percent(as.numeric(x), prefix = "δE = ")
+            }
+          },
+          regen_r = function(x) sprintf("R = %s times/gen", x)
+        )
+      )+
+      coord_cartesian(
+        expand = F
+      )+
+      theme_test(
+        base_size = 8, 
+        base_family = "Arial"
+      )+
+      theme(
+        legend.position = "top", 
+        legend.key.height = unit(1, "mm"),
+        strip.placement = "outside",
+        strip.text = ggtext::element_markdown(),
+        axis.text.x = element_text(hjust = 0.5, size = 6)
+      )
+    
+    p
+  }
+)
+```
+
+```{r}
+# save fig 05
+ggsave(
+  plot = plots_evo[["default"]],
+  filename = "figures/fig_05.png",
+  height = 120, width = 120, units = "mm"
+)
+
+# save supplementary figure for percent costs
+ggsave(
+  plot = plots_evo[["percent"]],
+  filename = "supplement/figures/fig_evo_change_percent_cost.png",
+  height = 120, width = 120, units = "mm"
+)
+
+# save supplementary figure for global dispersal
+ggsave(
+  plot = plots_evo[["global"]],
+  filename = "supplement/figures/fig_evo_change_global_dispersal.png",
+  height = 120, width = 120, units = "mm"
+)
+```
+
+## Compare movement, intake, and associations
+
+```{r}
+# list files, read, and filter for default model options
+files = list.files(
+  "data/results/gen_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
+
+data_all = lapply(files, fread)
+data_all = rbindlist(data_all)
+
+data = data_all
+# data = data[!((cost == 0.1) & (infect_percent))]
+
+# get time since pathogen
+sgen = 3000
+genmax = 5000
+gen_time = 100
+# plot regen as rate per generation timesteps
+data[, regen_r := gen_time / regen]
+
+# select a range of generations before and after
+data = data[between(gen, sgen - 200, sgen) | 
+              between(gen, sgen + 100, sgen + 300)]
+
+# handle main types of simulation: default, percent, and global
+data[, sim_type := fcase(
+  infect_percent == T, "percent",
+  dispersal == 10, "global",
+  dispersal == 2, "default"
+)]
+
+# label pre and post pathogen generations
+data[, period := fifelse(
+  gen <= sgen, "pre", "post"
+)]
+
+data[, period := factor(
+  period, levels = c("pre", "post")
+)]
+
+# split by simulation type
+data = split(
+  data,
+  by = "sim_type"
+)
+```
+
+```{r}
+plots_eco = Map(
+  data, names(data),
+  f = function(df, nm) {
+    
+    df = melt(
+      df[, c("intake.mean", "moved.mean", "assoc.mean",
+             "period", "cost", "regen_r", "repl")],
+      id.vars = c("period", "cost", "regen_r", "repl")
+    )
+    
+    df = split(
+      df,
+      by = "variable"
+    )
+    
+    df = df[sprintf("%s.mean", c("moved", "intake", "assoc"))]
+    
+    col_pal = colorspace::diverging_hcl(
+      3, 
+      palette = "Tofino", l = 50, c = 80
+    )[c(1, 3, 2)]
+    
+    names = c("Mean distance moved", "Per-capita intake", "Mean associations")
+    
+    p = Map(
+      df, col_pal, names,
+      f = function(le, col, n) {
+        
+        pl = ggplot(le)+
+          stat_summary(
+            fun = mean,
+            fun.min = function(x) mean(x) - sd(x),
+            fun.max = function(x) mean(x) + sd(x),
+            aes(
+              period, value
+            ),
+            width = 0.2,
+            outlier.size = 0.2,
+            col = col
+          )+
+          facet_grid(
+            cost ~ regen_r,
+            as.table = F, 
+            switch = c("both"),
+            labeller = labeller(
+              cost = function(x) {
+                if(x >= 0.1) {
+                  sprintf("δE = %s", x)
+                } else {
+                  scales::percent(as.numeric(x), prefix = "δE = ")
+                }
+              },
+              regen_r = function(x) sprintf("R = %s times/gen", x)
+            )
+          )+
+          scale_x_discrete(
+            labels = c(
+              "Pre-patho.",
+              "Post-patho."
+            ),
+            name = "Increasing productivity (social information less useful) \u279c"
+          )+
+          scale_y_continuous(
+            name = n
+          )+
+          coord_cartesian(
+            expand = T
+          )+
+          theme_test(
+            base_size = 8,
+            base_family = "Arial"
+          )+
+          theme(
+            legend.position = "top",
+            legend.key.height = unit(1, "mm"),
+            strip.placement = "outside",
+            strip.text = ggtext::element_markdown(),
+            axis.text.x = element_text(hjust = 0.5, size = 6)
+          )
+        
+        if(n == "Mean associations") {
+          pl = pl +
+            scale_y_continuous(
+              trans = "log10",
+              labels = scales::comma
+            )+
+            theme(
+              axis.text.y = element_text(
+                angle = 90, hjust = 0.5
+              )
+            )
+        }
+        pl
+      }
+    )
+    
+    # wrap plots
+    p = wrap_plots(
+      p
+    ) &
+      plot_annotation(
+        tag_levels = "A"
+      )
+    # save data
+    ggsave(
+      p,
+      filename = glue("supplement/figures/fig_eco_compare_{nm}.png"),
+      height = 90,
+      width = 240,
+      units = "mm"
+    )
+  }
+)
+```

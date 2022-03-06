@@ -1,0 +1,24 @@
+--- 
+knit: "bookdown::render_book"
+title: "Supplementary Material for _Novel pathogen introduction rapidly alters the evolution of movement, restructuring animal societies_"
+author:
+    - Pratik R. Gupte
+    - Gregory F. Albery
+    - Jakob R. L. Gismann
+    - Amy Sweeny
+    - Franz J. Weissing
+date: "`r Sys.Date()`"
+output: 
+    bookdown::pdf_document2:
+        toc: true
+documentclass: article
+toc-depth: 2
+secnumdepth: 2
+geometry: "left=3cm, right=3cm, top=2.5cm, bottom=2.5cm"
+bibliography: "../ms-pathomove/references.bib"
+link-citations: yes
+github-repo: pratikunterwegs/patho-move-evol
+description: "Supplementary Material for _Novel pathogen introduction rapidly alters the evolution of movement, restructuring animal societies_"
+---
+
+\newpage
