@@ -1,9 +1,6 @@
 
 # Source Code and Supplementary Material for _Novel pathogen introduction rapidly alters the evolution of movement, restructuring animal societies_
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-
-
 This is the source code for the analyses and figures for a manuscript that reports on a model of the evolution of social movement strategies, following the introduction of a novel pathogen to an animal population.
 This work was developed in the [Modelling Adaptive Response Mechanisms Group (Weissing Lab)](https://www.marmgroup.eu/) at the Groningen Institute for Evolutionary Life Science, at the University of Groningen.
 
@@ -17,14 +14,51 @@ Email: pratikgupte16@gmail.com OR p.r.gupte@rug.nl
 ORCID: https://orcid.org/0000-0001-5294-7819
 ```
 
+This analysis code will be archived on Zenodo.
+
 ## Simulation Source Code
 
 The simulation source code is provided in a different repository, [_Pathomove_](https://github.com/pratikunterwegs/pathomove).
+The _Pathomove_ simulation is archived on Zenodo as https://zenodo.org/record/6331816, and can be cited as
+
+```bibtex
+@software{pratik_gupte_2022_6331816,
+  author       = {Pratik Gupte},
+  title        = {{Source code for Pathomove, an individual-based 
+                   model for the evolution of animal movement
+                   strategies under the risk of pathogen transmission}},
+  month        = mar,
+  year         = 2022,
+  publisher    = {Zenodo},
+  version      = {v1.0.2},
+  doi          = {10.5281/zenodo.6331816},
+  url          = {https://doi.org/10.5281/zenodo.6331816}
+}
+```
 
 ## Simulation Data
 
 The simulation data are originally generated on the University of Groningen's _Peregrine_ high-performance computing cluster (using the R code in the `scripts/` folder: `scripts/00_use_cluster.R`).
-Data used to produce the specific figures shown in the manuscript are available on Dryad at: **Dryad permalink**.
+
+The data used for this the manuscript are available on Zenodo at https://zenodo.org/record/6331757.
+
+Please cite the simulation data as:
+
+```bibtex
+@dataset{pratik_rajan_gupte_2022_6331757,
+  author       = {Pratik Rajan Gupte},
+  title        = {{Reference data from the Pathomove simulation, for 
+                   the manuscript "Novel pathogen introduction
+                   rapidly alters the evolution of movement,
+                   restructuring animal societies"}},
+  month        = mar,
+  year         = 2022,
+  publisher    = {Zenodo},
+  version      = {v1.0},
+  doi          = {10.5281/zenodo.6331757},
+  url          = {https://doi.org/10.5281/zenodo.6331757}
+}
+```
 
 ---
 
