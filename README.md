@@ -14,7 +14,26 @@ Email: pratikgupte16@gmail.com OR p.r.gupte@rug.nl
 ORCID: https://orcid.org/0000-0001-5294-7819
 ```
 
-This analysis code will be archived on Zenodo.
+Cite this repository archived on Zenodo as
+
+```bibtex
+@software{pratik_rajan_gupte_2022_6334027,
+  author       = {Pratik Rajan Gupte and
+                  Gregory F. Albery and
+                  Jakob Gismann and
+                  Amy R. Sweeny and
+                  Franz J. Weissing},
+  title        = {{Source Code and Supplementary Material for "Novel 
+                   pathogen introduction rapidly alters the evolution
+                   of movement, restructuring animal societies"}},
+  month        = mar,
+  year         = 2022,
+  publisher    = {Zenodo},
+  version      = {v1.0.0},
+  doi          = {10.5281/zenodo.6334027},
+  url          = {https://doi.org/10.5281/zenodo.6334027}
+}
+```
 
 ## Simulation Source Code
 
