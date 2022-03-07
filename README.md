@@ -60,6 +60,11 @@ Please cite the simulation data as:
 }
 ```
 
+### Sample dataset
+
+A sample dataset --- one simulation replicate with a small number of individuals, over a small number of generations --- is provided in the Supplementary Material, under the directory `supplement` as `supplement/data/test_sim_output_data.Rds`.
+This data can be analysed using the script `supplement/05_try_sim.Rmd` to get a feel for how the simulation works.
+
 ---
 
 ## Workflow: Running Simulation Replicates
