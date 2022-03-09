@@ -5,7 +5,7 @@ editor_options:
 
 # The effect of modelling choices
 
-Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020,@netz2021a,@gupte2021a].
+Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020;@netz2021a;@gupte2021a].
 We show the effect of varying implementation on two key aspects of our model: (1) where individuals are initialised, or 'born', on the landscape (natal dispersal), (2) how the infectious pathogen imposes fitness costs.
 
 ## Global natal dispersal of individuals
@@ -15,7 +15,7 @@ This is a reasonable choice when modelling animals during a specific stage of th
 Our default choice, on the other hand, is 'local' natal dispersal, where individuals are initialised close to their parent's last position.
 This is also defensible, as many organisms do not disperse very far from their ancestors.
 When animals do not disperse very far, they may not evolve movement rules that can be generalised across all landscape conditions, especially when the landscape is ecologically heterogeneous.
-Instead, animals may adapt their strategies to the local conditions which they inherit from their parents ['ecological inheritance' @badyaev2009].
+Instead, animals may adapt their strategies to the local conditions which they inherit from their parents ['ecological inheritance': @badyaev2009].
 
 Successful individuals are likely to have more offspring than unsuccessful individuals, and successful individuals are likely to be found --- in our simulation and in real natural systems --- on or near profitable resource patches.
 This means that many individuals are initialised near profitable patches.
