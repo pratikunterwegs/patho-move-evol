@@ -16,8 +16,6 @@ For an individual with intake $N$, the net energetic gain $E$ after being infect
 
 In this scenario, _infection costs are independent of intake_.
 
-This implementation is used in ...
-
 ### Alternative implementation: Infection costs as a percentage of intake
 
 In an alternative implementation, the infectious pathogen may be considered to reduce an animal's ability to process intake, or to require a portion of daily intake to resist.
@@ -121,7 +119,7 @@ When the costs of infection are low, the agent tracking strategy persists; when 
 Surprisingly, the implementation of a different cost structure for the novel, infectious pathogen does not affect ecological, population level outcomes when compared with outcomes in our default implementation of direct costs.
 Across parameter combinations where there is a rapid evolutionary transition from agent tracking to handler tracking as the dominant strategy, there is also an increase in distance moved, a reduction in intake, and a reduction in associations.
 
-![**Rapid ecological changes accompany evolutionary shifts in an alternative implementation of disease costs, and are similar to the default implementation.** In the alternative percentage-costs implementation of the infectious pathogen, the outcomes are very similar to those in our default implementation of direct costs. Across most paramter combinations, there is an increase in movement, a reduction in intake, and a reduction in associations with other foragers.](figures/fig_eco_compare_percent.png)
+![**Rapid ecological changes accompany evolutionary shifts in an alternative implementation of disease costs, and are similar to the default implementation.** In the alternative percentage-costs implementation of the infectious pathogen, the outcomes are very similar to those in our default implementation of direct costs. Across most paramter combinations, there is an increase in movement, a reduction in intake, and a reduction in associations with other foragers. Each subplot in each panel shows the mean and standard error of the per-capita values for **(A)** distance moved, **(B)** intake, **(C)** number of associations, or encounters, with other individuals. Means and standard deviations are shown before (G = 3,000) and after (G = 3,500) pathogen introduction; each data point represents 10 replicates of the relevant parameter combination.](figures/fig_eco_compare_percent.png)
 
 ![**Social networks emerging from the implementation of the percentage infection costs scenario.** The social network in generation 3,000, when the pathogen is introduced, is very similar to pre-pathogen networks in the default implementation, with substantial social and spatial clustering. After novel pathogen introduction (G = 3,500), spatial-social networks are more dispersed, but not as much as the default direct costs implementation. Many more individuals are infected than in the default implementation. The figure shows networks from a single replicate where $\delta E$ = 5%, and $R$ = 2.](figures/fig_networks_percent.png){ width=70% }
 
