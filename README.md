@@ -17,7 +17,7 @@ ORCID: https://orcid.org/0000-0001-5294-7819
 Cite this repository archived on Zenodo as
 
 ```bibtex
-@software{pratik_rajan_gupte_2022_6334027,
+@software{pratik_rajan_gupte_2022_6341440,
   author       = {Pratik Rajan Gupte and
                   Gregory F. Albery and
                   Jakob Gismann and
@@ -29,9 +29,9 @@ Cite this repository archived on Zenodo as
   month        = mar,
   year         = 2022,
   publisher    = {Zenodo},
-  version      = {v1.0.0},
-  doi          = {10.5281/zenodo.6334027},
-  url          = {https://doi.org/10.5281/zenodo.6334027}
+  version      = {v1.0.1},
+  doi          = {10.5281/zenodo.6341440},
+  url          = {https://doi.org/10.5281/zenodo.6341440}
 }
 ```
 
