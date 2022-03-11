@@ -104,6 +104,7 @@ ggplot(degree_data)+
       fill = type,
       y = ..count.. / (popsize * replicates)
     ),
+    position = "identity",
     bins = 15,
     col = NA,
     show.legend = F
@@ -120,9 +121,10 @@ ggplot(degree_data)+
   )+
   scale_x_continuous(
     trans = ggallin::pseudolog10_trans,
-    breaks = c(0, 10, 100, 500),
+    breaks = c(0, 10, 50, 500),
     labels = function(x) {
       scales::percent(
+        accuracy = 1,
         as.numeric(x) / popsize
       )
     },
@@ -130,20 +132,11 @@ ggplot(degree_data)+
   )+
   scale_y_continuous(
     # breaks = c(0, 0.1, 0.25),
-    labels = scales::percent
-  )+
-  facet_grid(
-    ~type,
-    labeller = labeller(
-      type = c(
-        post = "B: Post-pathogen", 
-        pre = "A: Pre-pathogen"
-      )
-    )
+    labels = scales::percent_format(accuracy = 1)
   )+
   theme_test(
     base_family = "Arial",
-    base_size = 6
+    base_size = 8
   )+
   theme(
     legend.position = "top",
@@ -152,10 +145,10 @@ ggplot(degree_data)+
     axis.text.y = element_text(
       angle = 90,
       hjust = 0.5,
-      size = 4
+      size = 6
     ),
     axis.text.x = element_text(
-      size = 4
+      size = 6
     ),
     plot.background = element_blank(),
     panel.background = element_blank(),
@@ -172,17 +165,16 @@ ggplot(degree_data)+
   )
 ```
 
-
-## Spillover scenario network plots
+## Default scenario network plots
 
 ```{r}
 # select nice network
-ntwks_example = data_ntwk[[3]]
+ntwks_example = data_ntwk[[6]]
 
 # select before and after disease
 ntwk_pre = ntwks_example[[6]] %>% 
   activate(edges) %>% 
-  filter(weight > 5) %>% 
+  filter(weight > quantile(weight, probs = 0.25)) %>% 
   activate(nodes)
 
 # sanity check
@@ -200,9 +192,12 @@ ggraph(ntwk_pre, x = xn, y = yn)+
     ylim = c(0, 60)
   )
 
+# select a nice network. Note this may be a different replicate
+# networks are plotted for illustration only
+ntwks_example = data_ntwk[[3]]
 ntwk_post = ntwks_example[[7]] %>%
   activate(edges) %>%
-  filter(weight > 5) %>%
+  filter(weight > quantile(weight, probs = 0.25)) %>%
   activate(nodes)
 ```
 
@@ -224,11 +219,7 @@ networkplots = lapply(
           fill = t_infec,
           size = assoc
         ),
-        # stroke = 0.3,
         shape = 21,
-        # size = 3,
-        # colour = "transparent",# "grey50",
-        alpha = 0.9,
         show.legend = T
       )+
       scale_size_continuous(
@@ -273,22 +264,293 @@ networkplots = lapply(
   }
 )
 
-# add degree distribution to panel A
-networkplots[[1]] = networkplots[[1]] +
-  annotation_custom(
-    grob = ggplot2::ggplotGrob(fig_degree),
-    xmin = 0,
-    xmax = 60,
-    ymin = 30,
-    ymax = 60
+# select the inset graph -- this is hardcoded
+ntwk_inset = ntwk_pre %>% 
+  activate(edges) %>% 
+  filter(weight > quantile(weight, probs = 0.9)) %>% 
+  activate(nodes) %>% 
+  filter(
+    xn > 29, xn < 35,
+    yn > 9, yn < 15
   )
 
+# make network inset
+ntwk_inset = ggraph(ntwk_inset, x = xn, y = yn)+
+  geom_edge_fan(
+    edge_width = 0.1,
+    aes(
+      edge_alpha = weight
+    ),
+    edge_color = "grey40",
+    show.legend = F
+  )+
+  geom_node_point(
+    # size = 3,
+    fill = "lightblue",
+    shape = 21,
+    # colour = "grey50",# "grey50",
+    show.legend = F
+  )+
+  coord_cartesian(
+    expand = F,
+    xlim = c(30.15, 31.25),
+    ylim = c(10.5, 12)
+  )+
+  theme_graph(
+    background = "white",
+    border = T,
+    base_size = 8,
+    plot_margin = margin(rep(0, 3))
+  )+
+  theme(
+    plot.background = element_rect(
+      fill = "grey99",
+      colour = "indianred"
+    )
+  )
+  
+# add degree distribution to panel A
+networkplots[[1]] = networkplots[[1]] +
+  annotate(
+    geom = "rect",
+    xmin = 27, xmax = 35,
+    ymin = 7, ymax = 15,
+    fill = "transparent",
+    col = "indianred"
+  )+
+  annotation_custom(
+    grob = ggplot2::ggplotGrob(fig_degree),
+    xmin = -10,
+    xmax = 30,
+    ymin = 30,
+    ymax = 60
+  )+
+  annotation_custom(
+    grob = ggplot2::ggplotGrob(ntwk_inset),
+    xmin = 40,
+    xmax = 60,
+    ymin = 0,
+    ymax = 20
+  )
+```
+
+## Plot SIR model runs
+
+```{r}
+# spillover data and rounding
+popsize = 500
+replicates = 10
+data_sir_models = fread("data/results/data_sir_models.csv")
+
+# data_sir_models$mean = data_sir_models$mean / 500
+data_sir_models = data_sir_models[class == "NR" & gamma == 1 &
+                                    beta == 5 & threshold %in% c(1, 10) ]
+
+# select scenario
+data_default = data_sir_models[regen == 50 & cost == 0.25]
+
+# round time, with larger bins later in time
+# ie, increments of 0, 0.25, 0.5, 1, 2, 5, 10 etc.
+data_default[, tround := plyr::round_any(time, 0.25)]
+data_default[, tround := fifelse(
+  time > 5, plyr::round_any(time, 0.5),
+  tround
+)]
+data_default[, type := factor(type, levels = c("pre", "post"))]
+
+# save data default sir
+fwrite(
+  data_default,
+  file = "data/results/data_default_sir.csv"
+)
+```
+
+```{r}
+# load saved data to save time
+data_default = fread("data/results/data_default_sir.csv")
+data_default[, type := factor(type, levels = c("pre", "post"))]
+# data_default = split(data_default, by = "threshold")
+```
+
+
+```{r}
+# plot the progress of disease in default network sir models
+fig_sir =
+  ggplot(data_default)+
+    geom_hline(
+      yintercept = 0.5,
+      col = "grey",
+      size = 0.2
+    )+
+    geom_bin2d(
+      aes(
+        time, mean / popsize,
+        fill = type,
+        alpha = ..density..
+      ),
+      show.legend = F
+    )+
+    stat_summary(
+      aes(
+        tround, mean / popsize, 
+        colour = type,
+        shape = type,
+        group = interaction(type, threshold, beta)
+      ),
+      stroke = 0.8,
+      size = 0.3,
+      position = position_dodge(width = 0.1),
+      show.legend = F
+    )+
+    facet_wrap(
+      ~threshold,
+      labeller = labeller(
+        threshold = c(
+          "1" = "1 encounter",
+          "10" = "10 encounters"
+        )
+      )
+    )+
+    scale_colour_discrete_diverging(
+      l2 = 50,# l2 = 40,
+      palette = "Blue-Red 2",
+      rev = FALSE,
+      # palette = "Plasma",
+      breaks = c("pre", "post"),
+      labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
+    )+
+    scale_fill_discrete_diverging(
+      palette = "Blue-Red 2",
+      rev = FALSE,
+      # palette = "Plasma",
+      breaks = c("pre", "post"),
+      labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
+    )+
+    scale_shape_manual(
+      values = c(
+        "pre" = 16,
+        "post" = 17
+      ),
+      breaks = c("pre", "post"),
+      labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
+    )+
+    scale_y_continuous(
+      labels = scales::percent,
+      breaks = c(0, 0.5, 1)
+      # breaks = c(0.01, 0.33, 0.67, 1)
+    )+
+    # scale_x_sqrt()+
+    theme_test(
+      base_size = 8
+    )+
+    theme(
+      legend.position = "top",
+      strip.background = element_blank(),
+      strip.text = element_text(
+        face = "bold"
+      ),
+      # strip.placement = "outside",
+      axis.text.y = element_text(
+        angle = 90,
+        hjust = 0.5,
+        size = 6
+      )
+    )+
+    coord_cartesian(
+      xlim = c(0, 6),
+      ylim = c(0, 1)
+    )+
+    labs(
+      x = "SIR model time",
+      y = "% Agents infected",
+      fill = NULL,
+      colour = NULL,
+      shape = NULL
+    )
+```
+
+## Infections per generation
+
+```{r}
+# some parameters
+sgen = 3000
+genmax = 5000
+popsize = 500
+
+# load data
+data_infections_gen = fread("data/results/data_infections_gen.csv")
+
+# subset data
+data_infections_gen = data_infections_gen[cost == 0.25 & regen == 50 
+                      & dispersal == 2]
+data_infections_gen[, gen_bin := round(gen, digits = -2)]
+
+# absolute generations
+data_infections_gen[, gen_abs := gen_bin - sgen]
+
+# make smaller bins
+data_infections_gen[, gen_abs := fifelse(
+  abs(gen_abs) < 100, gen - sgen, gen_abs
+)]
+```
+
+```{r}
+# make figures
+fig_gen_infect =
+ggplot(data_infections_gen)+
+  geom_vline(
+    xintercept = c(0, 25),
+    lty = 2, 
+    size = 0.2,
+    col = c("red", "grey")
+  )+
+  stat_summary(
+    aes(
+      gen_abs, n_infected / popsize
+    ),
+    show.legend = FALSE,
+    col = "maroon",
+    size = 0.1
+  )+
+  scale_x_continuous(
+    trans = ggallin::ssqrt_trans,
+    labels = scales::comma,
+    breaks = c(-100, 0, 25, 500),
+    name = "Gens. after pathogen intro."
+  )+
+  scale_y_continuous(
+    labels = scales::percent,
+    breaks = c(0, 0.5, 1),
+    name = "% Population infected"
+  )+
+  coord_cartesian(
+    expand = T,
+    xlim = c(sgen - 100, genmax) - sgen,
+    ylim = c(0, popsize) / popsize
+  )+
+  theme_test(
+    base_size = 8
+  )+
+  theme(
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5,
+      size = 6
+    )
+  )
+```
+
+## Wrap network and SIR figures for Fig. 3
+
+```{r}
 # wrap plots
-networkplots =
+fig_03 =
   wrap_plots(
-  networkplots, ncol = 2,
-  guides = "collect"
-) &
+    wrap_plots(networkplots, guides = "collect"), 
+    fig_gen_infect, fig_sir,
+    ncol = 2,
+    design = "AAA\nAAA\nBCC"
+  ) &
   plot_annotation(
     tag_levels = c("A")
   ) &
@@ -300,13 +562,14 @@ networkplots =
   )
 
 ggsave(
-  plot = networkplots,
+  plot = fig_03,
   filename = "figures/fig_03.png",
-  height = 80,
+  height = 120,
   width = 120,
   units = "mm"
 )
 ```
+
 
 ## Load networks from alternative scenarios
 
