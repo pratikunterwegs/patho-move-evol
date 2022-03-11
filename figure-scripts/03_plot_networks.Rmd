@@ -158,7 +158,8 @@ ggplot(degree_data)+
     )
   )+
   labs(
-    y = "% Indiv."
+    y = "% Indiv.",
+    title = "Inset 1"
   )+
   guides(
     fill = guide_legend()
@@ -252,7 +253,8 @@ networkplots = lapply(
         legend.position = "top",
         legend.title = element_text(size = 6),
         legend.key.height = unit(1, units = "mm"),
-        legend.key.width = unit(3, units = "mm")
+        legend.key.width = unit(3, units = "mm"),
+        plot.background = element_blank()
       )+
       labs(
         fill = "Time infected"
@@ -305,7 +307,8 @@ ntwk_inset = ggraph(ntwk_inset, x = xn, y = yn)+
   theme(
     plot.background = element_rect(
       fill = "grey99",
-      colour = "indianred"
+      colour = "indianred",
+      size = 1
     )
   )
   
@@ -316,21 +319,28 @@ networkplots[[1]] = networkplots[[1]] +
     xmin = 27, xmax = 35,
     ymin = 7, ymax = 15,
     fill = "transparent",
-    col = "indianred"
+    col = "indianred",
+    size = 0.5
   )+
   annotation_custom(
     grob = ggplot2::ggplotGrob(fig_degree),
     xmin = -10,
     xmax = 30,
-    ymin = 30,
-    ymax = 60
+    ymin = 25,
+    ymax = 65
+  )+
+  annotate(
+    geom = "segment",
+    x = 35, xend = 40,
+    y = 12, yend = 12,
+    col = "indianred"
   )+
   annotation_custom(
     grob = ggplot2::ggplotGrob(ntwk_inset),
     xmin = 40,
-    xmax = 60,
+    xmax = 65,
     ymin = 0,
-    ymax = 20
+    ymax = 25
   )
 ```
 
@@ -371,7 +381,6 @@ data_default = fread("data/results/data_default_sir.csv")
 data_default[, type := factor(type, levels = c("pre", "post"))]
 # data_default = split(data_default, by = "threshold")
 ```
-
 
 ```{r}
 # plot the progress of disease in default network sir models
