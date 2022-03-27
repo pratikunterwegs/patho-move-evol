@@ -1,5 +1,5 @@
 
-# Source Code and Supplementary Material for _Novel pathogen introduction rapidly alters the evolution of movement, restructuring animal societies_
+# Source Code and Supplementary Material for _Novel pathogen introduction triggers rapid evolution in animal social movement strategies_
 
 This is the source code for the analyses and figures for a manuscript that reports on a model of the evolution of social movement strategies, following the introduction of a novel pathogen to an animal population.
 This work was developed in the [Modelling Adaptive Response Mechanisms Group (Weissing Lab)](https://www.marmgroup.eu/) at the Groningen Institute for Evolutionary Life Science, at the University of Groningen.
