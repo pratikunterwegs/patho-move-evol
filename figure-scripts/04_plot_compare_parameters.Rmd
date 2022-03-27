@@ -104,13 +104,13 @@ plots_evo = lapply(
         na.value = "lightgrey"
       )+
       scale_x_continuous(
-        breaks = sgen,
-        labels = "Pathogen introduction",
-        name = "Increasing productivity (social information less useful) \u279c",
+        breaks = c(1000, sgen, genmax),
+        name = "Generations",
+        labels = scales::comma,
         sec.axis = dup_axis(
-          breaks = c(1000, sgen, genmax),
-          labels = scales::comma,
-          name = "Generations"
+          breaks = sgen,
+          labels = "Pathogen introduction",
+          name = "Increasing productivity (social information less useful) \u279c",
         )
       )+
       scale_y_continuous(
@@ -126,7 +126,7 @@ plots_evo = lapply(
       facet_grid(
         cost ~ regen_r,
         as.table = F, 
-        switch = c("both"),
+        switch = c("y"),
         labeller = labeller(
           cost = function(x) {
             if(x >= 0.1) {
@@ -150,7 +150,10 @@ plots_evo = lapply(
         legend.key.height = unit(1, "mm"),
         strip.placement = "outside",
         strip.text = ggtext::element_markdown(),
-        axis.text.x = element_text(hjust = 0.5, size = 6)
+        axis.text.x = element_text(hjust = 0.5, size = 6),
+        axis.text.x.top = element_text(
+          colour = "red"
+        )
       )
     
     p
@@ -162,7 +165,7 @@ plots_evo = lapply(
 # save fig 05
 ggsave(
   plot = plots_evo[["default"]],
-  filename = "figures/fig_05.png",
+  filename = "figures/fig_04.png",
   height = 120, width = 120, units = "mm"
 )
 
