@@ -14,7 +14,7 @@ password = readLines("data/password")
 param_file_default = glue("data/parameters/parameters_{date}_default.csv")
 
 pathomove::make_parameter_file(
-  scenario = 2,
+  scenario = 1,
   popsize = 500,
   nItems = 1800,
   landsize = 60,
@@ -33,8 +33,11 @@ pathomove::make_parameter_file(
   costInfect = c(0.1, 0.25, 0.5),
   nThreads = 1,
   replicates = 10,
-  dispersal = 3.0, # for local-ish dispersal
+  dispersal = 2.0, # for local-ish dispersal
+  vertical = FALSE,
   infect_percent = FALSE,
+  mProb = 0.01,
+  mSize = 0.01,
   which_file = param_file_default
 )
 
@@ -54,7 +57,7 @@ pathomove::use_cluster(
 param_file_global = glue("data/parameters/parameters_{date}_global.csv")
 
 pathomove::make_parameter_file(
-  scenario = 2,
+  scenario = 1,
   popsize = 500,
   nItems = 1800,
   landsize = 60,
@@ -75,6 +78,9 @@ pathomove::make_parameter_file(
   replicates = 10,
   dispersal = 10.0, # for global-ish dispersal
   infect_percent = FALSE,
+  vertical = FALSE,
+  mProb = 0.01,
+  mSize = 0.01,
   which_file = param_file_global
 )
 
@@ -94,7 +100,7 @@ pathomove::use_cluster(
 param_file_percent = glue("data/parameters/parameters_{date}_percent.csv")
 
 pathomove::make_parameter_file(
-  scenario = 2,
+  scenario = 1,
   popsize = 500,
   nItems = 1800,
   landsize = 60,
@@ -113,8 +119,11 @@ pathomove::make_parameter_file(
   costInfect = c(0.025, 0.05, 0.075),
   nThreads = 1,
   replicates = 10,
-  dispersal = 3.0, # also local-ish dispersal
+  dispersal = 2.0, # also local-ish dispersal
+  vertical = FALSE,
   infect_percent = TRUE,
+  mProb = 0.01,
+  mSize = 0.01,
   which_file = param_file_percent
 )
 
