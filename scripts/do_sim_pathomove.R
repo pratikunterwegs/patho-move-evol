@@ -45,7 +45,10 @@ data = pathomove::run_pathomove(
   costInfect = params$costInfect[row_n],
   nThreads = params$nThreads[row_n],
   dispersal = params$dispersal[row_n],
-  infect_percent = params$infect_percent[row_n]
+  infect_percent = params$infect_percent[row_n],
+  vertical = params$vertical[row_n],
+  mProb = params$mProb[row_n],
+  mSize = params$mSize[row_n]
 )
 
 # get params as named vector
