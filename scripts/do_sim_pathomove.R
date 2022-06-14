@@ -19,7 +19,7 @@ params = read.csv(param_file)
 library(pathomove)
 
 # run simulation
-data = pathomove::run_pathomove(
+data = pathomove::run_pathomove_s4(
   scenario = params$scenario[row_n],
 
   popsize = params$popsize[row_n],
@@ -64,7 +64,7 @@ output_file_index = params$ofi[row_n]
 
 sc_type = dplyr::case_when(
   params$scenario[row_n] == 0 ~ "nopatho",
-  params$scenario[row_n] == 1 ~ "endemic",
+  params$scenario[row_n] == 1 ~ "persistent",
   params$scenario[row_n] == 2 ~ "spillover"
 )
 
@@ -74,7 +74,7 @@ output_file = glue::glue(
 )
 
 # save
-save(
+saveRds(
   data,
   file = output_file
 )
