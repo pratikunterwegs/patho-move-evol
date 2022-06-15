@@ -56,7 +56,7 @@ these_params = unlist(params[row_n,])
 
 # append list of params
 data = append(
-  data,
+  output = data,
   these_params
 )
 
