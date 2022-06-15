@@ -74,7 +74,7 @@ output_file = glue::glue(
 )
 
 # save
-saveRds(
+saveRDS(
   data,
   file = output_file
 )
