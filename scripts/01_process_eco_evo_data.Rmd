@@ -56,13 +56,14 @@ lapply(
 for (i in files) {
   
   # load data
-  load(i)
+  data = readRDS(i)
+  names(data)[1] = "output"
   
   # the posix time is the data unique identifier
   uid = str_extract(i, "\\d{10}")
   
   # load metadata on the simulation
-  gen_data = data[["gen_data"]]
+  gen_data = data$output@trait_data
   repl = data[["replicate"]]
   cost = data[["costInfect"]]
   regen = data[["regen_time"]]
@@ -71,7 +72,7 @@ for (i in files) {
   
   # prepare generation level data
   gen_data = Map(
-    gen_data[["pop_data"]], gen_data[["gens"]],
+    gen_data, data$output@generations,
     f = function(l, g) {
       l$gen = g
       l
@@ -89,12 +90,12 @@ for (i in files) {
       df$id = seq(popsize)
       
       # get strategy --- assignment necessary
-      df = mspathomove::get_social_strategy(df)
+      df = pathomove::get_social_strategy(df)
 
       # scale weights and get social information importance
-      mspathomove::get_social_strategy(df)
-      mspathomove::get_si_importance(df)
-      mspathomove::get_agent_avoidance(df)
+      pathomove::get_social_strategy(df)
+      pathomove::get_si_importance(df)
+      # pathomove::get_agent_avoidance(df)
       
       df
       
@@ -120,7 +121,7 @@ for (i in files) {
   gen_data = rbindlist(gen_data)
   
   # count si_importance morphs
-  gen_data[, si_imp := round(si_imp, 2)]
+  gen_data[, si_imp := plyr::round_any(si_imp, 0.005)]
   data_si_imp = gen_data[, list(
     N = .N
   ), by = c("gen", "si_imp")]
@@ -185,7 +186,8 @@ files = list.files(
 data_infections_gen = lapply(
   files, function(le) {
     # load data
-    load(le)
+    data = readRDS(le)
+    names(data)[1] = "output"
     
     # parameters
     repl = data[["replicate"]]
@@ -195,8 +197,8 @@ data_infections_gen = lapply(
     infect_percent = data[["infect_percent"]]
     
     # load generations and infections
-    gens = data$gen_data$gens
-    n_infected = data$gen_data$n_infected
+    gens = data$output@generations
+    n_infected = data$output@infections_per_gen
     
     data.table(
       cost = cost,
