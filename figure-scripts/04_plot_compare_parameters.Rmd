@@ -165,7 +165,7 @@ plots_evo = lapply(
 # save fig 05
 ggsave(
   plot = plots_evo[["default"]],
-  filename = "figures/fig_04.png",
+  filename = "figures/fig_evo_strategy_default.png",
   height = 120, width = 120, units = "mm"
 )
 
