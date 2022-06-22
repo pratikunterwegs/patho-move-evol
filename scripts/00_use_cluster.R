@@ -38,6 +38,7 @@ pathomove::make_parameter_file(
   infect_percent = FALSE,
   mProb = 0.01,
   mSize = 0.01,
+  spillover_rate = 0.01,
   which_file = param_file_default
 )
 
@@ -81,6 +82,7 @@ pathomove::make_parameter_file(
   vertical = FALSE,
   mProb = 0.01,
   mSize = 0.01,
+  spillover_rate = 0.01,
   which_file = param_file_global
 )
 
@@ -124,6 +126,7 @@ pathomove::make_parameter_file(
   infect_percent = TRUE,
   mProb = 0.01,
   mSize = 0.01,
+  spillover_rate = 0.01,
   which_file = param_file_percent
 )
 
@@ -135,4 +138,48 @@ pathomove::use_cluster(
   folder = "patho-move-evol", 
   template_job = "bash/main_job_maker_percent.sh", 
   parameter_file = param_file_percent
+)
+
+#### sporadic spillover case ###
+
+# prepare parameters for percent case
+param_file_sporadic = glue("data/parameters/parameters_{date}_sporadic.csv")
+
+pathomove::make_parameter_file(
+  scenario = 3,
+  popsize = 500,
+  nItems = 1800,
+  landsize = 60,
+  nClusters = 60,
+  clusterSpread = 1,
+  tmax = 100,
+  genmax = 5000,
+  g_patho_init = 3000,
+  range_food = 1,
+  range_agents = 1,
+  range_move = 1,
+  handling_time = 5,
+  regen_time = c(50),
+  pTransmit = "0.05",
+  initialInfections = 20,
+  costInfect = c(0.1, 0.25, 0.5),
+  nThreads = 1,
+  replicates = 10,
+  dispersal = 2.0, # also local-ish dispersal
+  vertical = FALSE,
+  infect_percent = TRUE,
+  mProb = 0.01,
+  mSize = 0.01,
+  spillover_rate = c(0.05, 0.1, 0.25),
+  which_file = param_file_sporadic
+)
+
+# try sending in a job
+pathomove::use_cluster(
+  ssh_con = "p284074@peregrine.hpc.rug.nl",
+  password = password, 
+  script = "scripts/do_sim_pathomove.R",
+  folder = "patho-move-evol", 
+  template_job = "bash/main_job_maker_sporadic.sh", 
+  parameter_file = param_file_sporadic
 )
