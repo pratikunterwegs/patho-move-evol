@@ -19,7 +19,7 @@ params = read.csv(param_file)
 library(pathomove)
 
 # run simulation
-data = pathomove::run_pathomove_s4(
+data = pathomove::run_pathomove(
   scenario = params$scenario[row_n],
 
   popsize = params$popsize[row_n],
@@ -48,7 +48,8 @@ data = pathomove::run_pathomove_s4(
   infect_percent = params$infect_percent[row_n],
   vertical = params$vertical[row_n],
   mProb = params$mProb[row_n],
-  mSize = params$mSize[row_n]
+  mSize = params$mSize[row_n],
+  spillover_rate = params$spillover_rate[row_n]
 )
 
 # get params as named vector
@@ -59,13 +60,15 @@ data = append(
   output = data,
   these_params
 )
+names(data)[1] = "output"
 
 output_file_index = params$ofi[row_n]
 
 sc_type = dplyr::case_when(
   params$scenario[row_n] == 0 ~ "nopatho",
   params$scenario[row_n] == 1 ~ "persistent",
-  params$scenario[row_n] == 2 ~ "spillover"
+  params$scenario[row_n] == 2 ~ "spillover",
+  params$scenario[row_n] == 3 ~ "sporadic"
 )
 
 # name of rdata file
