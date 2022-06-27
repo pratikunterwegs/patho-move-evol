@@ -9,9 +9,6 @@ library(data.table)
 library(ggplot2)
 library(patchwork)
 library(colorspace)
-
-# custom functions
-devtools::load_all()
 ```
 
 ## Focal strategy data
@@ -27,7 +24,6 @@ files = list.files(
 
 data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
-setnames(data_all, "disperal", "dispersal")
 
 df_strat = data_all[(dispersal == 2) & (infect_percent == F)]
 df_strat = df_strat[(cost == 0.25) & (regen == 50)]
@@ -63,7 +59,7 @@ df_strat = fread("data/results/data_default_strategy_evo.csv")
 ## Plot evolutionary change in default scenario
 
 ```{r}
-fig_1a =
+fig_evo_social_strategy =
 ggplot(df_strat[
   social_strat != "non-handler tracking"
 ])+
@@ -82,10 +78,10 @@ ggplot(df_strat[
     size = 0.2
   )+
   geom_vline(
-    xintercept = c(0, 25),
+    xintercept = c(0, 25, 250),
     lty = 2,
     size = 0.3,
-    col = c("red", "grey")
+    col = c("red", "grey", "grey")
   )+
   scale_colour_discrete_sequential(
     palette = "Viridis",
@@ -98,7 +94,7 @@ ggplot(df_strat[
   )+
   scale_x_continuous(
     trans = ggallin::pseudolog10_trans,
-    breaks = c(-250, -25, 0, 25, 250),
+    breaks = c(-25, 0, 25, 250, 2000),
     labels = scales::comma_format(
       accuracy = 1
     ),
@@ -118,7 +114,7 @@ ggplot(df_strat[
     name = "% Individuals"
   )+
   coord_cartesian(
-    # xlim = c(-, NA)
+    xlim = c(-25, NA)
   )+
   theme_test(
     base_family = "Arial",
@@ -146,7 +142,6 @@ files = list.files(
 
 data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
-setnames(data_all, "disperal", "dispersal")
 
 df_si = data_all[(dispersal == 2) & (infect_percent == F)]
 df_si = df_si[(cost == 0.25) & (regen == 50)]
@@ -182,7 +177,9 @@ df_si = fread("data/results/data_default_si_imp.csv")
 
 ```{r}
 # get weighted mean and variance in social info importance
-df_si_mean = df_si[, list(
+# replicate 2 is an anomaly with very high SI use, although strategies are
+# similar across replicates
+df_si_mean = df_si[repl != 2, list(
   mean = weighted.mean(si_imp, w = N),
   sd = Hmisc::wtd.var(si_imp, weights = N)
 ), by = "gen"]
@@ -199,14 +196,14 @@ df_si_mean[, c("y", "ymin", "ymax") := list(
 ```{r}
 hmap_cols = colorspace::sequential_hcl(
   5,
-  palette = "agSunset",
+  palette = "",
   rev = TRUE
 )
 
-fig_1b =
+fig_evo_si_importance =
   ggplot()+
   geom_tile(
-    data = df_si[repl == 10],
+    data = df_si[repl == 7], #7
     aes(
       gen, si_imp,
       fill = N / popsize
@@ -231,10 +228,17 @@ fig_1b =
     size = 0.2
   )+
   geom_vline(
-    xintercept = c(sgen),
+    xintercept = c(sgen, sgen + 250),
     lty = 2,
     size = 0.3,
-    col = c("red")
+    col = c("red", "grey")
+  )+
+  annotate(
+    geom = "text",
+    x = sgen + 250, y = 0.4,
+    label = "G = 250 gens\nafter introduction",
+    colour = "grey", hjust = 0,
+    size = 2
   )+
   scale_fill_gradientn(
     colours = c(
@@ -242,11 +246,11 @@ fig_1b =
       hmap_cols
     ),
     na.value = hmap_cols[5],
-    limits = c(0.0, 0.25),
-    breaks = c(0.01, 0.25, 0.5),
+    limits = c(0.0, 0.3),
+    breaks = c(0.01, 0.3, 0.5),
     labels = function(x) {
       a = scales::percent(x)
-      a[x == 0.25] = ">25%"
+      a[x == 0.3] = ">30%"
       a
     },
     name = "% Indiv."
@@ -269,7 +273,7 @@ fig_1b =
   )+
   coord_cartesian(
     xlim = c(2500, NA),
-    ylim = c(0, 0.65)
+    ylim = c(0, 0.3)
   )+
   theme_test(
     base_family = "Arial",
@@ -295,8 +299,9 @@ fig_1b =
 ### Intermediate figure SI change
 
 ```{r}
-fig_1_intermediate = wrap_plots(
-  fig_1a, fig_1b,
+fig_evo_intermediate = wrap_plots(
+  fig_evo_social_strategy, 
+  fig_evo_si_importance,
   guides = "collect"
 ) &
   plot_annotation(
@@ -318,8 +323,8 @@ fig_1_intermediate = wrap_plots(
 
 # save intermediate figure
 ggsave(
-  plot = fig_1_intermediate,
-  filename = "figures/fig_1_intermediate.png",
+  plot = fig_evo_intermediate,
+  filename = "figures/fig_evo_intermediate.png",
   width = 120,
   height = 75,
   units = "mm"
@@ -592,10 +597,10 @@ ggplot(df_eco[variable %in% c("assoc.mean")])+
 ## Make Figure 1
 
 ```{r}
-fig_1 =
+fig_eco_evo_general =
   wrap_plots(
     # plot_agent_avoid,
-    fig_1_intermediate,
+    fig_evo_intermediate,
     plot_movement,
     plot_intake, 
     plot_assoc,
@@ -619,8 +624,8 @@ fig_1 =
   )
 
 ggsave(
-  fig_1,
-  filename = "figures/fig_01.png",
+  fig_eco_evo_general,
+  filename = "figures/fig_eco_evo_general.png",
   height = 120, width = 120, units = "mm"
 )
 ```
