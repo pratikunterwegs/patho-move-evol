@@ -18,7 +18,7 @@ param_files = list.files(
   "data/parameters", pattern = "csv", full.names = T
 )
 params = lapply(param_files, fread)
-params = rbindlist(params)
+params = rbindlist(params, use.names = TRUE)
 ```
 
 ```{r}
