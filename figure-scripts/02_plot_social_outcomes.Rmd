@@ -15,7 +15,7 @@ library(colorspace)
 ```{r}
 # load data
 data = fread("data/results/data_default_strategy_evo.csv")
-data = data[between(gen, 3000, 3500),]
+data = data[gen > 3500,]
 ```
 
 ## Summarise metrics by social strategy
@@ -64,7 +64,7 @@ plot_move_encounter =
     geom = "text",
     x = 60,
     y = 50,
-    label = "Post-pathogen\n3,000 < G < 3,500",
+    label = "Post-pathogen\nG > 3,500",
     hjust = "inward",
     fontface = "italic",
     colour = "indianred",
@@ -146,17 +146,6 @@ plot_infected =
     n = 31,
     show.legend = F
   )+
-  # annotate(
-  #   geom = "text",
-  #   x = 1,
-  #   y = 0.01,
-  #   label = "Post-spillover\nG > 4,000",
-  #   hjust = "inward",
-  #   fontface = "italic",
-  #   colour = "indianred",
-  #   size = 4,
-  #   family = "Arial"
-  # )+
   scale_fill_discrete_sequential(
     palette = "Viridis",
     l2 = 80,
@@ -221,7 +210,7 @@ wrap_plots(
 
 ggsave(
   plot = plot_soc_out,
-  file = "figures/fig_02.png",
+  file = "figures/fig_social_outcomes.png",
   height = 80,
   width = 120,
   units = "mm"
