@@ -1,0 +1,126 @@
+---
+editor_options:
+  chunk_output_type: console
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+## Sporadic introduction of infectious pathogens
+
+### Default implementation: Infection costs and intake are independent
+
+In our model's default implementation, the infectious pathogen imposes a direct cost, $\delta E$, on individuals, in each timestep that they are infected.
+For an individual with intake $N$, the net energetic gain $E$ after being infected by a pathogen for $t$ timesteps is $E = N - (\delta E \times t)$.
+
+In this scenario, _infection costs are independent of intake_.
+
+### Alternative implementation: Infection costs as a percentage of intake
+
+In an alternative implementation, the infectious pathogen may be considered to reduce an animal's ability to process intake, or to require a portion of daily intake to resist.
+Such an implementation is used in ...
+
+For an individual with intake $N$, the net energetic gain $E$ after being infected by a pathogen for $t$ timesteps is $E = N \times (1 - \delta E) ^ t$.
+
+### Comparing cost structures across implementations
+
+Naturally, the two cost structures are not easy to compare.
+
+```{r, echo=FALSE}
+library(data.table)
+library(ggplot2)
+library(patchwork)
+library(colorspace)
+
+# simulate direct costs
+cost_direct = CJ(
+  intake = seq(0, 20, 1),
+  ti = seq(0, 100, 5),
+  delta_e = 0.25,
+  type = "direct"
+)
+cost_direct[, energy := (intake - (ti * delta_e))]
+
+# simulate percentage costs
+cost_percent = CJ(
+  intake = seq(0, 20, 1),
+  ti = seq(0, 100, 5),
+  delta_e = 0.05,
+  type = "percent"
+)
+cost_percent[, energy := (intake * (1 - delta_e)^ti)]
+
+# combine data
+cost_sims = rbindlist(
+  list(cost_direct, cost_percent)
+)
+
+p_costs =
+  ggplot(cost_sims)+
+  geom_tile(
+    aes(
+      intake, ti,
+      fill = energy
+    )
+  )+
+  scale_fill_continuous_diverging(
+    rev = T,
+    palette = "Blue-Yellow",
+    name = "Net\nenergy",
+    c1 = 120
+  )+
+  facet_wrap(
+    ~type,
+    labeller = labeller(
+      type = c(
+        "direct" = "Direct cost",
+        "percent" = "Percentage cost"
+      )
+    )
+  )+
+  theme_test()+
+  theme(
+    legend.key.width = unit(2, "mm")
+  )+
+  coord_cartesian(
+    expand = F
+  )+
+  labs(
+    x = "Intake",
+    y = "Time infected"
+  )
+
+ggsave(
+  p_costs,
+  filename = "figures/fig_cost_structure.png",
+  height = 3, width = 6
+)
+```
+
+![Calculated net energy for different combinations of intake and time infected. In the _Direct cost_ scenario, and with a $\delta E$ of 0.25 (shown here), which is our default implementation, an individual foraging on an item (handling time = 5 timesteps) would gain 1.0 unit of intake, and lose 1.25 units of energy in that same period if it were infected, for a net energy balance in that period of -0.25. Individuals' energetic balance is normalised (0 -- 1) with reference to the lowest value in each generation. Here, individuals' infection cost is _independent_ of their intake. In the _Percentage cost_ scenario, individuals' infection costs are linked to their intake. For a per-timestep 5% loss of intake (shown here), individuals infected for >25 timesteps already have a net energy balance close to, but never less than, zero. In this implementation, individuals' energy balances are _not normalised_ with reference to the lowest net energy, as no individual's energy is ever less than zero.](figures/fig_cost_structure.png){ width=70% } 
+
+\newpage
+
+### Evolutionary outcomes of the percentage cost implementation
+
+The social movement strategies evolved prior to pathogen introduction are identical to those seen in our default implementation.
+This is because the percentage cost implementation differs from the default only after the pathogen is introduced.
+
+After pathogen introduction, there is a rapid evolutionary shift in movement strategies.
+This shift is similar to that in our default implementation, but the strategies evolved are different.
+Rather than the agent avoiding strategy of the default implementation, it is the handler tracking strategy that is most common across parameter combinations.
+When the costs of infection are low, the agent tracking strategy persists; when the resource landscape's productivity can offset the cost of infection, agent tracking is the commonest strategy.
+
+![**Rapid evolutionary change, but different evolutionary outcomes, in an alternative implementation of disease costs.** In our alternative, percentage costs implementation of the infectious pathogen, there is a rapid shift in the mix of movement strategies after pathogen introduction. The handler tracking strategy becomes common across most parameter combinations, except when social information is not very useful (high productivity $R \geq$ 2), and the cost of disease is relatively low ($\delta E$ = 2.5%). ](figures/fig_evo_change_percent_cost.png){ width=70% }
+
+### Ecological consequences in the percentage cost implementation
+
+Surprisingly, the implementation of a different cost structure for the novel, infectious pathogen does not affect ecological, population level outcomes when compared with outcomes in our default implementation of direct costs.
+Across parameter combinations where there is a rapid evolutionary transition from agent tracking to handler tracking as the dominant strategy, there is also an increase in distance moved, a reduction in intake, and a reduction in associations.
+
+![**Rapid ecological changes accompany evolutionary shifts in an alternative implementation of disease costs, and are similar to the default implementation.** In the alternative percentage-costs implementation of the infectious pathogen, the outcomes are very similar to those in our default implementation of direct costs. Across most paramter combinations, there is an increase in movement, a reduction in intake, and a reduction in associations with other foragers. Each subplot in each panel shows the mean and standard error of the per-capita values for **(A)** distance moved, **(B)** intake, **(C)** number of associations, or encounters, with other individuals. Means and standard deviations are shown before (G = 3,000) and after (G = 3,500) pathogen introduction; each data point represents 10 replicates of the relevant parameter combination.](figures/fig_eco_compare_percent.png)
+
+![**Social networks emerging from the implementation of the percentage infection costs scenario.** The social network in generation 3,000, when the pathogen is introduced, is very similar to pre-pathogen networks in the default implementation, with substantial social and spatial clustering. After novel pathogen introduction (G = 3,500), spatial-social networks are more dispersed, but not as much as the default direct costs implementation. Many more individuals are infected than in the default implementation. The figure shows networks from a single replicate where $\delta E$ = 5%, and $R$ = 2.](figures/fig_networks_percent.png){ width=70% }
+
+\newpage
