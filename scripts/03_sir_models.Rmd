@@ -61,12 +61,7 @@ data_sir_models = Map(
         
         nt = ntwk[["3000"]] # hardcoded for now
         
-        nt_ = as_tibble(nt)
-        cost = unique(nt_$cost)
-        regen = unique(nt_$regen_time)
-        dispersal = unique(nt_$dispersal)
-        scenario = unique(nt_$scenario)
-        spillover_rate = unique(nt_$spillover_rate)
+        params_ = as.list(as_tibble(nt)[1,])
         
         # filter for threshold
         nt = nt %>% 
@@ -81,14 +76,7 @@ data_sir_models = Map(
         d_pre_$type = "pre"
         
         # add parameters
-        d_pre_$beta = b
-        d_pre_$gamma = g
-        d_pre_$threshold = thr
-        d_pre_$cost = cost
-        d_pre_$regen = regen
-        d_pre_$dispersal = dispersal
-        d_pre_$scenario = scenario
-        d_pre_$spillover_rate = spillover_rate
+        d_pre_[, names(params_) := params_]
         
         d_pre_
       }
@@ -102,12 +90,7 @@ data_sir_models = Map(
         
         nt = ntwk[["3500"]] # hardcoded for now
         
-        nt_ = as_tibble(nt)
-        cost = unique(nt_$cost)
-        regen = unique(nt_$regen_time)
-        dispersal = unique(nt_$dispersal)
-        scenario = unique(nt_$scenario)
-        spillover_rate = unique(nt_$spillover_rate)
+        params_ = as.list(as_tibble(nt)[1,])
         
         # filter for threshold
         nt = nt %>% 
@@ -122,14 +105,7 @@ data_sir_models = Map(
         d_post_$type = "post"
         
         # add parameters
-        d_post_$beta = b
-        d_post_$gamma = g
-        d_post_$threshold = thr
-        d_post_$cost = cost
-        d_post_$regen = regen
-        d_post_$dispersal = dispersal
-        d_post_$scenario = scenario
-        d_post_$spillover_rate = spillover_rate
+        d_post_[, names(params_) := params_]
         
         d_post_
       }
@@ -148,6 +124,12 @@ data_sir_models = Map(
 )
 
 data_sir_models = rbindlist(data_sir_models)
+
+# save data
+fwrite(
+  data_sir_models,
+  file = "data/results/data_sir_models.csv"
+)
 ```
 
 ```{r}
@@ -167,12 +149,4 @@ ggplot()+
   coord_cartesian(
     xlim = c(0, 5)
   )
-```
-
-```{r}
-# save data
-fwrite(
-  data_sir_models,
-  file = "data/results/data_sir_models.csv"
-)
 ```
