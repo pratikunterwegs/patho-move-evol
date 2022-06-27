@@ -12,9 +12,6 @@ library(data.table)
 library(igraph)
 library(tidygraph)
 library(glue)
-
-# load functions
-devtools::load_all()
 ```
 
 ## Prepare parameters
@@ -55,17 +52,14 @@ data_sir_models = Map(
   f = function(file, sc_repl) {
     
     # load networks
-    load(file)
-    
-    # rename nt to ntwk
-    ntwk = nt
+    ntwk = readRDS(file)
     
     # pre disease
     d_pre = Map(
       beta, gamma, threshold,
       f = function(b, g, thr) {
         
-        nt = ntwk[[6]] # hardcoded for now
+        nt = ntwk[["3000"]] # hardcoded for now
         
         nt_ = as_tibble(nt)
         cost = unique(nt_$cost)
@@ -81,7 +75,7 @@ data_sir_models = Map(
         d_pre_ = igraph::sir(
           graph = nt, beta = b, gamma = g, no.sim = 25
         ) |>
-          handle_sir_data(digits = 1)
+          pathomove::handle_sir_data(digits = 1)
         d_pre_$type = "pre"
         
         # add parameters
@@ -102,7 +96,7 @@ data_sir_models = Map(
       beta, gamma, threshold,
       f = function(b, g, thr) {
         
-        nt = ntwk[[7]] # hardcoded for now
+        nt = ntwk[["3500"]] # hardcoded for now
         
         nt_ = as_tibble(nt)
         cost = unique(nt_$cost)
@@ -118,7 +112,7 @@ data_sir_models = Map(
         d_post_ = igraph::sir(
           graph = nt, beta = b, gamma = g, no.sim = 25
         ) |>
-          handle_sir_data(digits = 1)
+          pathomove::handle_sir_data(digits = 1)
         d_post_$type = "post"
         
         # add parameters
@@ -150,20 +144,22 @@ data_sir_models = rbindlist(data_sir_models)
 
 ```{r}
 # sanity check
-data_sir_models[class != "NS" & beta == 1 & gamma == 1 & threshold != 2] %>% 
+data_sir_models[class != "NS" & beta == 1 & 
+                  gamma == 1 & threshold != 2 &
+                  time < 5] %>% 
 ggplot()+
   stat_summary(
-    aes(time, mean, col = type),
-    size = 0.2
+    aes(time, mean, col = type)
   )+
   facet_grid(
     threshold ~ class,
     labeller = label_both
   )+
-  scale_y_sqrt()+
-  scale_x_sqrt()
+  # scale_x_sqrt()+
+  coord_cartesian(
+    xlim = c(0, 5)
+  )
 ```
-
 
 ```{r}
 # save data
@@ -172,4 +168,3 @@ fwrite(
   file = "data/results/data_sir_models.csv"
 )
 ```
-
