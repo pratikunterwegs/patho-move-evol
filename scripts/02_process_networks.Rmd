@@ -11,11 +11,6 @@ library(igraph)
 library(tidygraph)
 library(stringr)
 library(glue)
-
-devtools::load_all()
-
-library(ggplot2)
-library(ggraph)
 ```
 
 ```{r}
@@ -33,12 +28,12 @@ param_files = list.files(
   "data/parameters", pattern = "csv", full.names = T
 )
 params = lapply(param_files, fread)
-params = rbindlist(params)
+params = rbindlist(params, use.names = TRUE)
 
 # subset files for default scenario
-params = params[(!infect_percent & dispersal == 2) | 
+params = params[scenario == 1 & ((!infect_percent & dispersal == 2) | 
                   (infect_percent & costInfect == 0.05 & regen_time == 50) |
-                  (dispersal == 10 & costInfect == 0.25 & regen_time == 50),]
+                  (dispersal == 10 & costInfect == 0.25 & regen_time == 50)),]
 ```
 
 ```{r}
@@ -60,9 +55,11 @@ if (!dir.exists(networks_folder)) {
 for (i in files) {
   uid = str_extract(i, "\\d{10}")
   
-  nt = get_networks(i, assoc_threshold = 5)
+  output = readRDS(i)[["output"]]
   
-  save(nt, file = glue("{networks_folder}/data_networks_{uid}.Rds"))
+  nt = pathomove::get_networks(output = output, assoc_threshold = 5)
+  
+  saveRDS(nt, file = glue("{networks_folder}/data_networks_{uid}.Rds"))
 }
 ```
 
