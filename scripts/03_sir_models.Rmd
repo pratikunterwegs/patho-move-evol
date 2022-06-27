@@ -63,8 +63,10 @@ data_sir_models = Map(
         
         nt_ = as_tibble(nt)
         cost = unique(nt_$cost)
-        regen = unique(nt_$regen)
+        regen = unique(nt_$regen_time)
         dispersal = unique(nt_$dispersal)
+        scenario = unique(nt_$scenario)
+        spillover_rate = unique(nt_$spillover_rate)
         
         # filter for threshold
         nt = nt %>% 
@@ -85,6 +87,8 @@ data_sir_models = Map(
         d_pre_$cost = cost
         d_pre_$regen = regen
         d_pre_$dispersal = dispersal
+        d_pre_$scenario = scenario
+        d_pre_$spillover_rate = spillover_rate
         
         d_pre_
       }
@@ -100,8 +104,10 @@ data_sir_models = Map(
         
         nt_ = as_tibble(nt)
         cost = unique(nt_$cost)
-        regen = unique(nt_$regen)
+        regen = unique(nt_$regen_time)
         dispersal = unique(nt_$dispersal)
+        scenario = unique(nt_$scenario)
+        spillover_rate = unique(nt_$spillover_rate)
         
         # filter for threshold
         nt = nt %>% 
@@ -122,6 +128,8 @@ data_sir_models = Map(
         d_post_$cost = cost
         d_post_$regen = regen
         d_post_$dispersal = dispersal
+        d_post_$scenario = scenario
+        d_post_$spillover_rate = spillover_rate
         
         d_post_
       }
