@@ -24,22 +24,22 @@ params = list.files(
   "data/parameters", pattern = "csv", full.names = T
 )
 params = lapply(params, fread) |>
-  rbindlist()
+  rbindlist(use.names = TRUE)
 ```
 
 ```{r}
-params = params[(!infect_percent) & 
+params = params[scenario == 1 & ((!infect_percent) & 
                   (costInfect == 0.25) & 
                   (regen_time == 50) & 
-                  (dispersal == 2)]
+                  (dispersal == 2))]
 
 data_files = glue("data/results/networks/data_networks_{params$ofi}.Rds")
 ```
 
 ```{r}
 data_ntwk = lapply(data_files, function(file) {
-  load(file)
-  nt # we previously saved networks under the name nt
+  nt = readRDS(file)
+  nt
 })
 ```
 
@@ -48,8 +48,8 @@ data_ntwk = lapply(data_files, function(file) {
 ```{r}
 degree_data = lapply(
   data_ntwk, function(le) {
-    le_pre = le[[6]]
-    le_post = le[[7]]
+    le_pre = le[["3000"]]
+    le_post = le[["3500"]]
     # pre pathogen degree
     le_pre = mutate(
       le_pre, degree = tidygraph::centrality_degree(
@@ -170,10 +170,10 @@ ggplot(degree_data)+
 
 ```{r}
 # select nice network
-ntwks_example = data_ntwk[[6]]
+ntwks_example = data_ntwk[[5]]
 
 # select before and after disease
-ntwk_pre = ntwks_example[[6]] %>% 
+ntwk_pre = ntwks_example[["2500"]] %>% 
   activate(edges) %>% 
   filter(weight > quantile(weight, probs = 0.25)) %>% 
   activate(nodes)
@@ -196,7 +196,7 @@ ggraph(ntwk_pre, x = xn, y = yn)+
 # select a nice network. Note this may be a different replicate
 # networks are plotted for illustration only
 ntwks_example = data_ntwk[[3]]
-ntwk_post = ntwks_example[[7]] %>%
+ntwk_post = ntwks_example[["3500"]] %>%
   activate(edges) %>%
   filter(weight > quantile(weight, probs = 0.25)) %>%
   activate(nodes)
@@ -246,9 +246,9 @@ networkplots = lapply(
         plot_margin = margin(rep(0, 3))
       )+
       theme(
-        axis.ticks = element_blank(),
-        axis.text = element_blank(),
-        axis.title = element_blank(),
+        # axis.ticks = element_blank(),
+        # axis.text = element_blank(),
+        # axis.title = element_blank(),
         legend.margin = margin(rep(0, 4)),
         legend.position = "top",
         legend.title = element_text(size = 6),
@@ -272,8 +272,8 @@ ntwk_inset = ntwk_pre %>%
   filter(weight > quantile(weight, probs = 0.9)) %>% 
   activate(nodes) %>% 
   filter(
-    xn > 29, xn < 35,
-    yn > 9, yn < 15
+    xn > 15, xn < 25,
+    yn > 45, yn < 55
   )
 
 # make network inset
@@ -295,8 +295,8 @@ ntwk_inset = ggraph(ntwk_inset, x = xn, y = yn)+
   )+
   coord_cartesian(
     expand = F,
-    xlim = c(30.15, 31.25),
-    ylim = c(10.5, 12)
+    # xlim = c(30.15, 31.25),
+    # ylim = c(10.5, 12)
   )+
   theme_graph(
     background = "white",
@@ -313,34 +313,35 @@ ntwk_inset = ggraph(ntwk_inset, x = xn, y = yn)+
   )
   
 # add degree distribution to panel A
-networkplots[[1]] = networkplots[[1]] +
+networkplots[[1]] =
+  networkplots[[1]] +
   annotate(
     geom = "rect",
-    xmin = 27, xmax = 35,
-    ymin = 7, ymax = 15,
+    xmin = 15, xmax = 25,
+    ymin = 45, ymax = 55,
     fill = "transparent",
     col = "indianred",
     size = 0.5
   )+
   annotation_custom(
     grob = ggplot2::ggplotGrob(fig_degree),
-    xmin = -10,
-    xmax = 30,
-    ymin = 25,
-    ymax = 65
+    xmin = 30,
+    xmax = 60,
+    ymin = 0,
+    ymax = 30
   )+
   annotate(
     geom = "segment",
-    x = 35, xend = 40,
-    y = 12, yend = 12,
+    x = 25, xend = 40,
+    y = 50, yend = 50,
     col = "indianred"
   )+
   annotation_custom(
     grob = ggplot2::ggplotGrob(ntwk_inset),
     xmin = 40,
-    xmax = 65,
-    ymin = 0,
-    ymax = 25
+    xmax = 60,
+    ymin = 40,
+    ymax = 60
   )
 ```
 
@@ -351,6 +352,9 @@ networkplots[[1]] = networkplots[[1]] +
 popsize = 500
 replicates = 10
 data_sir_models = fread("data/results/data_sir_models.csv")
+
+# select scenarios
+data_sir_models = data_sir_models[scenario == "novel pathogen"]
 
 # data_sir_models$mean = data_sir_models$mean / 500
 data_sir_models = data_sir_models[class == "NR" & gamma == 1 &
