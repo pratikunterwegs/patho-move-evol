@@ -14,29 +14,151 @@ Specifically, we modelled probabilistic introduction of the pathogen in each gen
 We call the per-generation probability of a novel pathogen introduction event the 'spillover rate'.
 We ran 10 replicates each of this model variant and examined whether there was a similar evolutionary shift in social movement strategies as seen in our default implementation.
 Since it is the main parameter of interest, we ran this model variant for three values of the spillover rate: 0.05, 0.1, and 0.25.
-We kept all other model parameters similar to the default scenario of our main model: a landscape productivity $R$ of 2, and a per-timestep infection cost $\delta E$ of 0.25.
+Instead of examining the joint effect of landscape productivity and cost of infection as well, we only examined the effect of infection cost, implementing three different variants with an infection cost $\delta E$ of 0.1, 0.25, and 0.5.
+We kept all other model parameters similar to the default scenario of our main model, and importantly, considered only a landscape productivity $R$ of 2.
 Cross-species novel pathogen introductions are likely to become more common with climate change, and so we chose these spillover rate values to represent different scenarios under altered global regimes of pathogen transfer.
 Our model's default implementation may be seen as an extreme case of the models considered here, with a spillover rate of 1.0.
 
+### Model implementation {-}
+
+In our model code, the sporadic introduction is implemented by drawing the number of generations until the next pathogen introduction event from a geometric distribution whose probability parameter is given by the spillover rates described above.
+Zero values are handled by converting them into ones.
+At our lowest spillover rate, up to 100 generations could pass between pathogen introductions, while at our highest rates, there are rarely more than 10 generations between introductions.
+
+```{r eval=FALSE, include=FALSE}
+files = list.files(
+  "data/results/morph_data", 
+  pattern = "csv",
+  full.names = TRUE
+)
+
+data_all = lapply(files, fread)
+df_strat = rbindlist(data_all)
+
+# get sim type
+df_strat = df_strat[scenario == 3,]
+
+# popsize
+popsize = 500
+replicates = 10
+df_strat[, prop := N / popsize]
+g_bin = 100
+df_strat[, gen_bin := (floor(gen / g_bin) * g_bin)]
+
+# get time since pathogen
+sgen = 3000
+genmax = 5000
+df_strat[, gen_abs := gen_bin - sgen]
+
+df_strat = df_strat[gen %% 100 == 0,]
+
+df_strat = df_strat[, list(
+  prop = sum(prop) / (replicates)
+), by = c(
+  "gen", "social_strat", 
+  "cost", "regen", "dispersal", "spillover_rate"
+)]
+
+# regeneration rate
+gen_time = 100
+df_strat[, regen_r := gen_time / regen]
+```
+
+```{r eval=FALSE, include=FALSE}
+fig_evo_strategy_sporadic = ggplot(df_strat)+
+  geom_col(
+    aes(
+      gen, prop,
+      fill = social_strat
+    ),
+    width = 100,
+    position = "stack"
+  )+
+  geom_vline(
+    xintercept = sgen,
+    lty = 2,
+    size = 0.3,
+    col = "red"
+  )+
+  scale_fill_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80,
+    rev = F,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  )+
+  scale_x_continuous(
+    breaks = c(1000, sgen, genmax),
+    name = "Generations",
+    labels = scales::comma,
+    sec.axis = dup_axis(
+      breaks = sgen,
+      labels = "Initial pathogen introduction",
+      name = NULL
+    )
+  )+
+  scale_y_continuous(
+    labels = scales::percent,
+    breaks = NULL,
+    name = glue::glue("Increasing disease cost \u279c"),
+    sec.axis = dup_axis(
+      breaks = c(0, 0.5, 1),
+      labels = scales::percent,
+      name = "% Individuals"
+    )
+  )+
+  facet_grid(
+    cost ~ spillover_rate,
+    as.table = F, 
+    switch = c("y"),
+    labeller = labeller(
+      spillover_rate = function(x) {
+        scales::percent(as.numeric(x), prefix = "p(Intro) = ")
+      },
+      cost = function(x) {
+        if(x >= 0.1) {
+          sprintf("δE = %s", x)
+        } else {
+          scales::percent(as.numeric(x), prefix = "δE = ")
+        }
+      }
+    )
+  )+
+  coord_cartesian(
+    expand = F
+  )+
+  theme_test(
+    base_size = 8, 
+    base_family = "Arial"
+  )+
+  theme(
+    legend.position = "top", 
+    legend.key.height = unit(1, "mm"),
+    strip.placement = "outside",
+    strip.text = ggtext::element_markdown(),
+    axis.text.x = element_text(hjust = 0.5, size = 6),
+    axis.text.x.top = element_text(
+      colour = "red"
+    )
+  )
+
+# save figure
+ggsave(
+  plot = fig_evo_strategy_sporadic,
+  filename = "supplement/figures/fig_evo_strategy_sporadic.png",
+  height = 120, width = 120, units = "mm"
+)
+```
+
 ### Evolutionary outcomes of the percentage cost implementation
 
-The social movement strategies evolved prior to pathogen introduction are identical to those seen in our default implementation.
-This is because the percentage cost implementation differs from the default only after the pathogen is introduced.
+The social movement strategies evolved prior to pathogen introduction are identical to those seen in our default implementation, as expected.
+However, following pathogen introduction, we found that there was little to change in the population-level mixture of movement strategies in this model variant (see figure).
+This is regardless of the probability of a novel pathogen introduction (our so-called 'spillover rate'), and the cost of infection by a pathogen.
+Across the simulation, the commonest social movement strategy remains 'agent tracking', i.e., preferring locations with multiple individuals regardless of their foraging status.
 
-After pathogen introduction, there is a rapid evolutionary shift in movement strategies.
-This shift is similar to that in our default implementation, but the strategies evolved are different.
-Rather than the agent avoiding strategy of the default implementation, it is the handler tracking strategy that is most common across parameter combinations.
-When the costs of infection are low, the agent tracking strategy persists; when the resource landscape's productivity can offset the cost of infection, agent tracking is the commonest strategy.
+Since there is little to no change in social movement strategies, we did not expect nor find changes in ecological outcomes.
 
-![**Rapid evolutionary change, but different evolutionary outcomes, in an alternative implementation of disease costs.** In our alternative, percentage costs implementation of the infectious pathogen, there is a rapid shift in the mix of movement strategies after pathogen introduction. The handler tracking strategy becomes common across most parameter combinations, except when social information is not very useful (high productivity $R \geq$ 2), and the cost of disease is relatively low ($\delta E$ = 2.5%). ](figures/fig_evo_change_percent_cost.png){ width=70% }
-
-### Ecological consequences in the percentage cost implementation
-
-Surprisingly, the implementation of a different cost structure for the novel, infectious pathogen does not affect ecological, population level outcomes when compared with outcomes in our default implementation of direct costs.
-Across parameter combinations where there is a rapid evolutionary transition from agent tracking to handler tracking as the dominant strategy, there is also an increase in distance moved, a reduction in intake, and a reduction in associations.
-
-![**Rapid ecological changes accompany evolutionary shifts in an alternative implementation of disease costs, and are similar to the default implementation.** In the alternative percentage-costs implementation of the infectious pathogen, the outcomes are very similar to those in our default implementation of direct costs. Across most paramter combinations, there is an increase in movement, a reduction in intake, and a reduction in associations with other foragers. Each subplot in each panel shows the mean and standard error of the per-capita values for **(A)** distance moved, **(B)** intake, **(C)** number of associations, or encounters, with other individuals. Means and standard deviations are shown before (G = 3,000) and after (G = 3,500) pathogen introduction; each data point represents 10 replicates of the relevant parameter combination.](figures/fig_eco_compare_percent.png)
-
-![**Social networks emerging from the implementation of the percentage infection costs scenario.** The social network in generation 3,000, when the pathogen is introduced, is very similar to pre-pathogen networks in the default implementation, with substantial social and spatial clustering. After novel pathogen introduction (G = 3,500), spatial-social networks are more dispersed, but not as much as the default direct costs implementation. Many more individuals are infected than in the default implementation. The figure shows networks from a single replicate where $\delta E$ = 5%, and $R$ = 2.](figures/fig_networks_percent.png){ width=70% }
-
-\newpage
+![**No evolutionary change in social movement strategies when novel pathogen introduction events are relatively uncommon.** In our alternative implementation of the probability with which the infectious pathogen is introduced in each generation, there is no shift in the mixture of movement strategies after pathogen introduction. The agent tracking strategy remains common across parameter combinations.](figures/fig_evo_strategy_sporadic.png){ width=70% }
