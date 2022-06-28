@@ -31,9 +31,10 @@ params = lapply(param_files, fread)
 params = rbindlist(params, use.names = TRUE)
 
 # subset files for default scenario
-params = params[scenario == 1 & ((!infect_percent & dispersal == 2) | 
+params = params[(scenario == 1 & ((!infect_percent & dispersal == 2) | 
                   (infect_percent & costInfect == 0.05 & regen_time == 50) |
-                  (dispersal == 10 & costInfect == 0.25 & regen_time == 50)),]
+                  (dispersal == 10 & costInfect == 0.25 & regen_time == 50))) | 
+                  (scenario == 3),]
 ```
 
 ```{r}
