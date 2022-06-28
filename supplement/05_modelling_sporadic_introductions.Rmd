@@ -9,98 +9,14 @@ output:
 
 ## Sporadic introduction of infectious pathogens
 
-### Default implementation: Infection costs and intake are independent
-
-In our model's default implementation, the infectious pathogen imposes a direct cost, $\delta E$, on individuals, in each timestep that they are infected.
-For an individual with intake $N$, the net energetic gain $E$ after being infected by a pathogen for $t$ timesteps is $E = N - (\delta E \times t)$.
-
-In this scenario, _infection costs are independent of intake_.
-
-### Alternative implementation: Infection costs as a percentage of intake
-
-In an alternative implementation, the infectious pathogen may be considered to reduce an animal's ability to process intake, or to require a portion of daily intake to resist.
-Such an implementation is used in ...
-
-For an individual with intake $N$, the net energetic gain $E$ after being infected by a pathogen for $t$ timesteps is $E = N \times (1 - \delta E) ^ t$.
-
-### Comparing cost structures across implementations
-
-Naturally, the two cost structures are not easy to compare.
-
-```{r, echo=FALSE}
-library(data.table)
-library(ggplot2)
-library(patchwork)
-library(colorspace)
-
-# simulate direct costs
-cost_direct = CJ(
-  intake = seq(0, 20, 1),
-  ti = seq(0, 100, 5),
-  delta_e = 0.25,
-  type = "direct"
-)
-cost_direct[, energy := (intake - (ti * delta_e))]
-
-# simulate percentage costs
-cost_percent = CJ(
-  intake = seq(0, 20, 1),
-  ti = seq(0, 100, 5),
-  delta_e = 0.05,
-  type = "percent"
-)
-cost_percent[, energy := (intake * (1 - delta_e)^ti)]
-
-# combine data
-cost_sims = rbindlist(
-  list(cost_direct, cost_percent)
-)
-
-p_costs =
-  ggplot(cost_sims)+
-  geom_tile(
-    aes(
-      intake, ti,
-      fill = energy
-    )
-  )+
-  scale_fill_continuous_diverging(
-    rev = T,
-    palette = "Blue-Yellow",
-    name = "Net\nenergy",
-    c1 = 120
-  )+
-  facet_wrap(
-    ~type,
-    labeller = labeller(
-      type = c(
-        "direct" = "Direct cost",
-        "percent" = "Percentage cost"
-      )
-    )
-  )+
-  theme_test()+
-  theme(
-    legend.key.width = unit(2, "mm")
-  )+
-  coord_cartesian(
-    expand = F
-  )+
-  labs(
-    x = "Intake",
-    y = "Time infected"
-  )
-
-ggsave(
-  p_costs,
-  filename = "figures/fig_cost_structure.png",
-  height = 3, width = 6
-)
-```
-
-![Calculated net energy for different combinations of intake and time infected. In the _Direct cost_ scenario, and with a $\delta E$ of 0.25 (shown here), which is our default implementation, an individual foraging on an item (handling time = 5 timesteps) would gain 1.0 unit of intake, and lose 1.25 units of energy in that same period if it were infected, for a net energy balance in that period of -0.25. Individuals' energetic balance is normalised (0 -- 1) with reference to the lowest value in each generation. Here, individuals' infection cost is _independent_ of their intake. In the _Percentage cost_ scenario, individuals' infection costs are linked to their intake. For a per-timestep 5% loss of intake (shown here), individuals infected for >25 timesteps already have a net energy balance close to, but never less than, zero. In this implementation, individuals' energy balances are _not normalised_ with reference to the lowest net energy, as no individual's energy is ever less than zero.](figures/fig_cost_structure.png){ width=70% } 
-
-\newpage
+We implemented a variant of our main model, in which the infectious pathogen is introduced only sporadically after the first introduction event (at G = 3,000).
+Specifically, we modelled probabilistic introduction of the pathogen in each generation following the initial introduction.
+We call the per-generation probability of a novel pathogen introduction event the 'spillover rate'.
+We ran 10 replicates each of this model variant and examined whether there was a similar evolutionary shift in social movement strategies as seen in our default implementation.
+Since it is the main parameter of interest, we ran this model variant for three values of the spillover rate: 0.05, 0.1, and 0.25.
+We kept all other model parameters similar to the default scenario of our main model: a landscape productivity $R$ of 2, and a per-timestep infection cost $\delta E$ of 0.25.
+Cross-species novel pathogen introductions are likely to become more common with climate change, and so we chose these spillover rate values to represent different scenarios under altered global regimes of pathogen transfer.
+Our model's default implementation may be seen as an extreme case of the models considered here, with a spillover rate of 1.0.
 
 ### Evolutionary outcomes of the percentage cost implementation
 
