@@ -77,7 +77,7 @@ data_sir_models = Map(
         
         # add parameters
         d_pre_[, names(params_) := params_]
-        d_pre_[, c("beta", "gamma") := list(b, g)]
+        d_pre_[, c("beta", "gamma", "threshold") := list(b, g, thr)]
         
         d_pre_
       }
@@ -107,7 +107,7 @@ data_sir_models = Map(
         
         # add parameters
         d_post_[, names(params_) := params_]
-        d_post_[, c("beta", "gamma") := list(b, g)]
+        d_post_[, c("beta", "gamma", "threshold") := list(b, g, thr)]
         
         d_post_
       }
