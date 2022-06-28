@@ -12,9 +12,6 @@ library(glue)
 library(ggplot2)
 library(patchwork)
 library(colorspace)
-
-# custom functions
-devtools::load_all()
 ```
 
 Load data.
@@ -28,6 +25,9 @@ files = list.files(
 
 data_all = lapply(files, fread)
 df_strat = rbindlist(data_all)
+
+# get sim type
+df_strat = df_strat[scenario == 1,]
 
 # popsize
 popsize = 500
@@ -197,6 +197,7 @@ files = list.files(
 data_all = lapply(files, fread)
 data_all = rbindlist(data_all)
 
+data_all = data_all[scenario == 1,]
 data = data_all
 # data = data[!((cost == 0.1) & (infect_percent))]
 
@@ -264,16 +265,16 @@ plots_eco = Map(
       f = function(le, col, n) {
         
         pl = ggplot(le)+
-          stat_summary(
-            fun = mean,
-            fun.min = function(x) mean(x) - sd(x),
-            fun.max = function(x) mean(x) + sd(x),
+          geom_boxplot(
+            # fun = mean,
+            # fun.min = function(x) mean(x) - sd(x),
+            # fun.max = function(x) mean(x) + sd(x),
             aes(
               period, value
             ),
             width = 0.2,
             outlier.size = 0.2,
-            col = col
+            fill = col
           )+
           facet_grid(
             cost ~ regen_r,
@@ -292,8 +293,8 @@ plots_eco = Map(
           )+
           scale_x_discrete(
             labels = c(
-              "Pre-patho.",
-              "Post-patho."
+              "Pre-.",
+              "Post-."
             ),
             name = "Increasing productivity (social information less useful) \u279c"
           )+
