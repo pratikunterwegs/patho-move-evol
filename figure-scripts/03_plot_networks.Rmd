@@ -152,9 +152,8 @@ ggplot(degree_data)+
     ),
     plot.background = element_blank(),
     panel.background = element_blank(),
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "bold"
+    title = element_text(
+      size = 4
     )
   )+
   labs(
@@ -173,7 +172,7 @@ ggplot(degree_data)+
 ntwks_example = data_ntwk[[5]]
 
 # select before and after disease
-ntwk_pre = ntwks_example[["2500"]] %>% 
+ntwk_pre = ntwks_example[["3000"]] %>% 
   activate(edges) %>% 
   filter(weight > quantile(weight, probs = 0.25)) %>% 
   activate(nodes)
@@ -269,31 +268,53 @@ networkplots = lapply(
 # select the inset graph -- this is hardcoded
 ntwk_inset = ntwk_pre %>% 
   activate(edges) %>% 
-  filter(weight > quantile(weight, probs = 0.9)) %>% 
+  # filter(weight > quantile(weight, probs = 0.25)) %>% 
   activate(nodes) %>% 
   filter(
-    xn > 15, xn < 25,
-    yn > 45, yn < 55
+    xn > 10, xn < 24,
+    yn > 35, yn < 53
+  )
+
+# identify initial infections
+ntwk_inset = ntwk_inset %>% 
+  mutate(
+    infect_src = ifelse(t_infec > 100, 1, infect_src),
+    infect_src = factor(
+      infect_src, levels = c(1, 2, 0)
+    )
+  ) %>% 
+  arrange(
+    desc(infect_src)
   )
 
 # make network inset
-ntwk_inset_plot = ggraph(ntwk_inset, x = xn, y = yn)+
+ntwk_inset_plot =
+  ggraph(ntwk_inset, x = xn, y = yn)+
   geom_edge_fan(
     edge_width = 0.1,
-    edge_color = alpha("grey", 0.3),
+    edge_color = alpha("grey", 0.5),
     show.legend = F
   )+
   geom_node_point(
     # size = 3,
-    fill = "lightblue",
+    aes(
+      fill = as.factor(infect_src),
+      # size = as.factor(infect_src)
+    ),
     shape = 21,
-    # colour = "grey50",# "grey50",
     show.legend = F
   )+
+  scale_fill_manual(
+    values = c(
+      "0" = "lightblue",
+      "1" = "red",
+      "2" = "lightgoldenrod"
+    ),
+    limits = c("0", "2", "1"),
+    breaks = c("1", "2", "0")
+  )+
   coord_cartesian(
-    expand = F,
-    xlim = c(18, 20),
-    ylim = c(50, 52)
+    expand = T
   )+
   theme_graph(
     background = "white",
@@ -304,8 +325,8 @@ ntwk_inset_plot = ggraph(ntwk_inset, x = xn, y = yn)+
   theme(
     plot.background = element_rect(
       fill = "grey99",
-      colour = "indianred",
-      size = 1
+      colour = "grey20",
+      size = 0.4
     )
   )
   
@@ -314,33 +335,59 @@ networkplots[[1]] =
   networkplots[[1]] +
   annotate(
     geom = "rect",
-    xmin = 15, xmax = 25,
-    ymin = 45, ymax = 55,
+    xmin = 10, xmax = 24,
+    ymin = 35, ymax = 53,
     fill = "transparent",
-    col = "indianred",
-    size = 0.5
+    col = "grey20",
+    size = 0.4
   )+
   annotation_custom(
     grob = ggplot2::ggplotGrob(fig_degree),
     xmin = 20,
     xmax = 60,
-    ymin = 0,
-    ymax = 40
+    ymin = -10,
+    ymax = 30
   )+
   annotate(
     geom = "segment",
-    x = 25, xend = 40,
+    x = 24, xend = 40,
     y = 50, yend = 50,
-    col = "indianred"
+    col = "grey20",
+    size = 0.4
+    # col = "indianred"
   )+
   annotation_custom(
     grob = ggplot2::ggplotGrob(ntwk_inset_plot),
-    xmin = 40,
-    xmax = 60,
-    ymin = 40,
+    xmin = 30,
+    xmax = 65,
+    ymin = 30,
     ymax = 60
   )
 ```
+
+```{r}
+# wrap plots
+fig_networks =
+  wrap_plots(networkplots, guides = "collect", ncol = 2) &
+  plot_annotation(
+    tag_levels = c("A")
+  ) &
+  theme(
+    plot.tag = element_text(
+      face = "bold"
+    ),
+    legend.position = "bottom"
+  )
+
+ggsave(
+  plot = fig_networks,
+  filename = "figures/fig_networks.png",
+  height = 80,
+  width = 120,
+  units = "mm"
+)
+```
+
 
 ## Plot SIR model runs
 
@@ -348,7 +395,8 @@ networkplots[[1]] =
 # spillover data and rounding
 popsize = 500
 replicates = 10
-data_sir_models = fread("data/results/data_sir_models.csv")
+
+# data_sir_models = fread("data/results/data_sir_models.csv")
 
 # select scenarios
 data_sir_models = data_sir_models[scenario == "novel pathogen"]
