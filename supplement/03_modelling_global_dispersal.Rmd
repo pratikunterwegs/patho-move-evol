@@ -5,7 +5,7 @@ editor_options:
 
 # The effect of modelling choices
 
-Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020;@netz2021a;@gupte2021a].
+Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020;@netz2021;@gupte2021a].
 We show the effect of varying implementation on two key aspects of our model: (1) where individuals are initialised, or 'born', on the landscape (natal dispersal), (2) how the infectious pathogen imposes fitness costs.
 
 ## Global natal dispersal of individuals
