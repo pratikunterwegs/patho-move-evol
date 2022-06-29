@@ -25,6 +25,15 @@ In our model code, the sporadic introduction is implemented by drawing the numbe
 Zero values are handled by converting them into ones.
 At our lowest spillover rate, up to 100 generations could pass between pathogen introductions, while at our highest rates, there are rarely more than 10 generations between introductions.
 
+```{r eval=FALSE,include=FALSE}
+# load libraries
+library(data.table)
+library(ggplot2)
+library(colorspace)
+library(patchwork)
+```
+
+
 ```{r eval=FALSE, include=FALSE}
 files = list.files(
   "data/results/morph_data", 
@@ -65,7 +74,8 @@ df_strat[, regen_r := gen_time / regen]
 ```
 
 ```{r eval=FALSE, include=FALSE}
-fig_evo_strategy_sporadic = ggplot(df_strat)+
+fig_evo_strategy_sporadic = 
+  ggplot(df_strat)+
   geom_col(
     aes(
       gen, prop,
@@ -96,7 +106,7 @@ fig_evo_strategy_sporadic = ggplot(df_strat)+
     sec.axis = dup_axis(
       breaks = sgen,
       labels = "Initial pathogen introduction",
-      name = NULL
+      name = "Increasing probability of pathogen introduction \u279c"
     )
   )+
   scale_y_continuous(
@@ -144,11 +154,85 @@ fig_evo_strategy_sporadic = ggplot(df_strat)+
     )
   )
 
+# plot generations between introductions
+p = c(0.05, 0.1, 0.25)
+gen_intervals = lapply(p, rgeom, n = 1000)
+data_gen = data.table(
+  p = p, gen_intervals
+)
+# unnest
+data_gen = data_gen[, list(
+  gen_intervals = unlist(gen_intervals)
+), by = c("p")]
+# add one
+data_gen[, gen_intervals := gen_intervals + 1]
+
+# figure of generations between introductions
+fig_gen_interval = 
+  ggplot(data_gen)+
+  geom_histogram(
+    aes(gen_intervals, y = ..count.. / 1000),
+    binwidth = 2,
+    fill = "steelblue"
+  )+
+  facet_grid(
+    cols = vars(p),
+    as.table = F, 
+    switch = c("y"),
+    labeller = labeller(
+      p = function(x) {
+        scales::percent(as.numeric(x), prefix = "p(Intro) = ")
+      }
+    )
+  )+
+  coord_cartesian(
+    xlim = c(1, 50),
+    expand = F
+  )+
+  scale_y_continuous(
+    labels = scales::percent,
+    name = "Probability"
+  )+
+  scale_x_continuous(
+    name = "Gens. between pathogen introductions"
+  )+
+  theme_test(
+    base_size = 8, 
+    base_family = "Arial"
+  )+
+  theme(
+    legend.position = "top", 
+    legend.key.height = unit(1, "mm"),
+    strip.placement = "outside",
+    strip.text = ggtext::element_markdown(),
+    axis.text.x = element_text(hjust = 0.5, size = 6),
+    axis.text.x.top = element_text(
+      colour = "red"
+    )
+  )
+
+# wrap figures
+fig_evo_strategy_sporadic =
+wrap_plots(
+  fig_gen_interval,
+  fig_evo_strategy_sporadic,
+  ncol = 1,
+  design = "A\nB\nB\nB"
+) &
+  plot_annotation(
+    tag_levels = c("A")
+  ) &
+  theme(
+    plot.tag = element_text(
+      face = "bold"
+    )
+  )
+
 # save figure
 ggsave(
   plot = fig_evo_strategy_sporadic,
   filename = "supplement/figures/fig_evo_strategy_sporadic.png",
-  height = 120, width = 120, units = "mm"
+  height = 160, width = 120, units = "mm"
 )
 ```
 
