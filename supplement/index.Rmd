@@ -15,7 +15,7 @@ documentclass: article
 toc-depth: 2
 secnumdepth: 2
 geometry: "left=3cm, right=3cm, top=2.5cm, bottom=2.5cm"
-bibliography: "../ms-pathomove/references.bib"
+bibliography: "references.bib"
 csl: oikos.csl
 link-citations: yes
 github-repo: pratikunterwegs/patho-move-evol

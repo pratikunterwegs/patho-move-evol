@@ -10,9 +10,6 @@ library(data.table)
 library(stringr)
 library(ggplot2)
 library(glue)
-
-# load local funs
-devtools::load_all()
 ```
 
 ## Read data
@@ -56,71 +53,48 @@ lapply(
 for (i in files) {
   
   # load data
-  load(i)
+  data = readRDS(i)
   
   # the posix time is the data unique identifier
   uid = str_extract(i, "\\d{10}")
   
   # load metadata on the simulation
-  gen_data = data[["gen_data"]]
+  # gen_data = data$output@trait_data
   repl = data[["replicate"]]
   cost = data[["costInfect"]]
   regen = data[["regen_time"]]
   dispersal = data[["dispersal"]]
   infect_percent = data[["infect_percent"]]
+  scenario = data[["scenario"]]
+  spillover_rate = data[["spillover_rate"]]
   
   # prepare generation level data
-  gen_data = Map(
-    gen_data[["pop_data"]], gen_data[["gens"]],
-    f = function(l, g) {
-      l$gen = g
-      l
-    }
+  gen_data = pathomove::get_trait_data(
+    data[["output"]], 
+    scaled_preferences = TRUE
   )
+
+  # add replicate data information
+  gen_data[, repl := repl]
   
   #### prepare individual level data ####
   popsize = data[["popsize"]]
   
-  gen_data = Map(
-    gen_data,
-    f = function(df) {
-      
-      # add individual identity
-      df$id = seq(popsize)
-      
-      # get strategy --- assignment necessary
-      df = mspathomove::get_social_strategy(df)
-
-      # scale weights and get social information importance
-      mspathomove::get_social_strategy(df)
-      mspathomove::get_si_importance(df)
-      mspathomove::get_agent_avoidance(df)
-      
-      df
-      
-    }
-  )
+  # get social strategy and social information importance
+  gen_data = pathomove::get_social_strategy(gen_data)
+  gen_data = pathomove::get_si_importance(gen_data)
   
-  # process by social strategy
-  data_strategy = Map(
-    gen_data,
-    f = function(df) {
-      df[, list(
-        N = .N,
-        mean_move = mean(moved),
-        mean_assoc = mean(assoc),
-        mean_intake = mean(intake),
-        prop_infec = sum(t_infec > 0) / length(t_infec)
-      ), by = c("gen", "social_strat")]
-    }
-  ) |> rbindlist()
-  
-  # summarise by generation
-  # bind all together
-  gen_data = rbindlist(gen_data)
+  # process by social strategy, summarise movement, intake and association
+  data_strategy = gen_data[, list(
+    N = .N,
+    mean_move = mean(moved),
+    mean_assoc = mean(assoc),
+    mean_intake = mean(intake),
+    prop_infec = sum(t_infec > 0) / length(t_infec)
+  ), by = c("gen", "social_strat")]
   
   # count si_importance morphs
-  gen_data[, si_imp := round(si_imp, 2)]
+  gen_data[, si_imp := plyr::round_any(si_imp, 0.005)]
   data_si_imp = gen_data[, list(
     N = .N
   ), by = c("gen", "si_imp")]
@@ -141,8 +115,9 @@ for (i in files) {
     lapply(
       list(data_strategy, gen_data, data_si_imp), 
       function(df) {
-        df[, c("repl", "cost", "regen", "dispersal", "infect_percent") := list(
-          repl, cost, regen, dispersal, infect_percent
+        df[, c("repl", "cost", "regen", "dispersal", "infect_percent",
+               "scenario", "spillover_rate") := list(
+          repl, cost, regen, dispersal, infect_percent, scenario, spillover_rate
         )]
       }
     )
@@ -185,7 +160,8 @@ files = list.files(
 data_infections_gen = lapply(
   files, function(le) {
     # load data
-    load(le)
+    data = readRDS(le)
+    names(data)[1] = "output"
     
     # parameters
     repl = data[["replicate"]]
@@ -193,10 +169,12 @@ data_infections_gen = lapply(
     regen = data[["regen_time"]]
     dispersal = data[["dispersal"]]
     infect_percent = data[["infect_percent"]]
+    scenario = data[["scenario"]]
+    spillover_rate = data[["spillover_rate"]]
     
     # load generations and infections
-    gens = data$gen_data$gens
-    n_infected = data$gen_data$n_infected
+    gens = data$output@generations
+    n_infected = data$output@infections_per_gen
     
     data.table(
       cost = cost,
@@ -205,7 +183,9 @@ data_infections_gen = lapply(
       infect_percent = infect_percent,
       repl = repl,
       gen = gens,
-      n_infected = n_infected
+      n_infected = n_infected,
+      scenario = scenario,
+      spillover_rate = spillover_rate
     )
   }
 )
@@ -218,4 +198,37 @@ fwrite(
   data_infections_gen,
   file = "data/results/data_infections_gen.csv"
 )
+```
+
+### Exploratory visualisation
+
+```{r}
+# visualise infections in the case of persistent introduction
+data_persistent = data_infections_gen[scenario == 1]
+data_persistent[, scenario := fcase(
+  infect_percent == 1, "percent",
+  infect_percent == 0, "absolute"
+)]
+
+data_persistent[regen == 50] |>
+  ggplot()+
+  stat_summary(
+    aes(gen, n_infected, col = as.factor(cost)),
+    binwidth = c(100, NA),
+    geom = "line"
+  )+
+  facet_grid(dispersal ~ scenario)
+```
+
+```{r}
+# visualise infection in the case of sporadic spillover
+data_sporadic = data_infections_gen[scenario == 3]
+
+ggplot(data_sporadic)+
+  stat_summary(
+    aes(gen, n_infected, col = as.factor(spillover_rate)),
+    binwidth = c(100, NA),
+    geom = "line"
+  )+
+  facet_grid(~dispersal)
 ```

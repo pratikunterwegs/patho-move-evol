@@ -45,7 +45,11 @@ data = pathomove::run_pathomove(
   costInfect = params$costInfect[row_n],
   nThreads = params$nThreads[row_n],
   dispersal = params$dispersal[row_n],
-  infect_percent = params$infect_percent[row_n]
+  infect_percent = params$infect_percent[row_n],
+  vertical = params$vertical[row_n],
+  mProb = params$mProb[row_n],
+  mSize = params$mSize[row_n],
+  spillover_rate = params$spillover_rate[row_n]
 )
 
 # get params as named vector
@@ -53,16 +57,18 @@ these_params = unlist(params[row_n,])
 
 # append list of params
 data = append(
-  data,
+  output = data,
   these_params
 )
+names(data)[1] = "output"
 
 output_file_index = params$ofi[row_n]
 
 sc_type = dplyr::case_when(
   params$scenario[row_n] == 0 ~ "nopatho",
-  params$scenario[row_n] == 1 ~ "endemic",
-  params$scenario[row_n] == 2 ~ "spillover"
+  params$scenario[row_n] == 1 ~ "persistent",
+  params$scenario[row_n] == 2 ~ "spillover",
+  params$scenario[row_n] == 3 ~ "sporadic"
 )
 
 # name of rdata file
@@ -71,7 +77,7 @@ output_file = glue::glue(
 )
 
 # save
-save(
+saveRDS(
   data,
   file = output_file
 )
