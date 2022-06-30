@@ -287,6 +287,7 @@ ntwk_inset = ntwk_inset %>%
     desc(infect_src)
   )
 
+cl = viridis::inferno(7)
 # make network inset
 ntwk_inset_plot =
   ggraph(ntwk_inset, x = xn, y = yn)+
@@ -307,13 +308,13 @@ ntwk_inset_plot =
   scale_fill_manual(
     values = c(
       "0" = "lightblue",
-      "1" = "red",
-      "2" = "lightgoldenrod"
+      "1" = cl[4],
+      "2" = cl[6]
     ),
     limits = c("0", "2", "1"),
     breaks = c("1", "2", "0")
   )+
-  coord_cartesian(
+  coord_equal(
     expand = T
   )+
   theme_graph(
@@ -329,7 +330,7 @@ ntwk_inset_plot =
       size = 0.4
     )
   )
-  
+
 # add degree distribution to panel A
 networkplots[[1]] =
   networkplots[[1]] +
