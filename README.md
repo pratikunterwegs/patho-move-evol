@@ -157,7 +157,7 @@ A brief description of this workflow is:
     data = pathomove::run_pathomove(...)
 
     # save data as Rds object
-    save(data, file = "data/output/output_N.Rds")
+    saveRDS(data, file = "data/output/output_N.Rds")
     ```
 
     This script should be able to take command line arguments, including at least: (1) the name of a file containing parameter combinations, and (2) the row number in the parameter file, indicating which combination should be run.
@@ -226,12 +226,12 @@ Continuing from (3.):
 
     # use the use_cluster function to send in jobs
     pathomove::use_cluster(
-    ssh_con = "ssh connection to your HPC cluster",
-    password = "your HPC password", 
-    script = "your simulation run script", # e.g. scripts/do_sim_pathomove.R
-    folder = "yourFolder", # folder for the output
-    template_job = "template job shell script",  # the shell script from (5)
-    parameter_file = "some parameter file name.csv" # the parameter data
+        ssh_con = "ssh connection to your HPC cluster",
+        password = "your HPC password", 
+        script = "your simulation run script", # e.g. scripts/do_sim_pathomove.R
+        folder = "yourFolder", # folder for the output
+        template_job = "template job shell script",  # the shell script from (5)
+        parameter_file = "some parameter file name.csv" # the parameter data
     )
     ```
 
@@ -291,35 +291,6 @@ Used in previous steps.
 
 ---
 
-## Analysis Functions
-
-The simulation data are summarised using a series of R functions, and these functions can be accessed under the namespace `mspathomove` using the command `devtools::load_all()` (essentially, creating a temporary package).
-These functions are in the directory `R/`, and are documented in the directory `man/`.
-
-Simple explainers of the functions are given below.
-
-- `R/fun_get_move_types.R`
-
-    - `get_functional_variation`: A function to normalise the evolved cue preferences.
-
-    - `assign_movement_types`: A function to assign qualitative movement types. NB: No longer used, retained for future reference.
-
-- `R/fun_get_social_strat.R`
-
-    - `get_social_strategy`: A function to assign a social movement strategy to individuals based on the signs of the preferences for successful and unsuccessful foragers.
-
-    - `get_si_importance`: A function to calculate the importance of social information to individuals' movement strategies. Relies on the function `get_functional_variation`.
-
-    - `get_agent_avoidance`: A function to calculate the extent to which avoidance of other individuals contributes to the focal individual's movement strategy. Requires a data.frame with previously normalised individual preferences.
-
-- `R/fun_process_networks.R`
-
-    - `get_networks`: A function to handle pairwise individual association data returned from the _Pathomove_ simulation. These data, in the form of a `list` object of edge lists (i.e., id1, id2, id1-id2 associations), are converted into a `tidygraph` object, which is essentially a form of `igraph` object. The output is a list of graphs, or social networks, one per generation _G_, where _G_ is in increments of 10% of the total number of generations. E.g.: For 5,000 generations, there are 11 social networks, for _G_ = 0, 500, 1000 ... 4500, 5000.
-
-    - `handle_sir_data`: A function to handle the output of SIR models run on any of the social networks accessed by `get_networks`. Returns a data.frame with SIR model replicate id, timesteps, and the number of individuals susceptible, infected, and recovered. 
-
----
-
 ## Figure Source Code
 
 The source code for the figures in this manuscript is in the directory `figure_scripts/`. These scripts are well commented, and are not explained further.
@@ -342,7 +313,7 @@ The supplementary material provided with this manuscript is generated from the `
 
 - `supplement/04_modelling_percent_infection.Rmd` Shows simulation outcomes when modelling percentage infection costs.
 
-- `supplement/05_try_sim.Rmd` Basic working example of the simulation model.
+- `supplement/05_modelling_sporadic_introductions.Rmd` Shows simulation outcomes when modelling the introduction of novel pathogens in only some generations (determined probabilistically) after the initial introduction.
 
 - Other files in this directory are helper files required to format the supplementary material.
 
