@@ -1,0 +1,679 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+## Figures for the vertical transmission scenario
+
+```{r}
+library(data.table)
+
+library(ggplot2)
+library(patchwork)
+library(colorspace)
+```
+
+Load generation strategy data.
+
+```{r}
+files <- list.files(
+  "data/results/morph_data/",
+  pattern = "data_gen_vertical",
+  full.names = TRUE
+)
+
+data_all <- lapply(files, fread)
+data_all <- rbindlist(data_all)
+# make a copy
+df_strat <- copy(data_all)
+
+# popsize
+popsize <- 500
+df_strat[, prop := N / popsize]
+
+# get time since pathogen
+sgen <- 500
+genmax <- 1000
+df_strat[, gen_abs := gen - sgen]
+
+# save for plotting and upload
+fwrite(
+  df_strat,
+  file = "data/results/data_vertical_evo.csv"
+)
+```
+
+```{r}
+# load saved data
+df_strat <- fread("data/results/data_vertical_evo.csv")
+```
+
+## Plot evolutionary change across scenarios
+
+```{r}
+# fig_evo_social_strategy =
+p_compare = 
+  ggplot(df_strat[gen %% 2 == 0 & (social_strat != "non-handler tracking"), ]) +
+  geom_path(
+    aes(
+      gen_abs, prop,
+      colour = social_strat,
+      group = interaction(repl, social_strat)
+    ),
+    size = 0.2
+  ) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  facet_grid(
+    cols = vars(p_v_transmit),
+    rows = vars(cost),
+    as.table = F,
+    switch = c("y"),
+    labeller = labeller(
+      cost = function(x) sprintf("δE = %s", x),
+      p_v_transmit = function(x) sprintf("p(V. Trans.) = %s", x)
+    )
+  ) +
+  scale_colour_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80,
+    rev = FALSE,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  ) +
+  scale_x_continuous(
+    # trans = ggallin::pseudolog10_trans,
+    breaks = c(-25, 0, 25, 100, 200),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, sgen, sgen + 100, sgen + 200),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  scale_y_continuous(
+    breaks = c(0, 0.5, 1),
+    labels = scales::percent,
+    name = "% Individuals"
+  ) +
+  coord_cartesian(
+    xlim = c(-30, 250),
+    ylim = c(0, 1),
+    expand = FALSE
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.x = element_text(hjust = 0.5),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    )
+  )
+
+# save for supplement
+ggsave(
+  p_compare,
+  filename = "supplement/figures/fig_evo_change_vertical.png",
+  height = 120,
+  width = 120,
+  units = "mm"
+)
+```
+
+## Plot all infections
+
+```{r}
+# read in infections data
+df_vertical_infections = fread("data/results/data_infections_gen.csv")[
+  scenario_tag == "vertical",
+]
+df_vertical_infections[, gen_abs := gen - sgen]
+
+df_vertical_infections[, pathogen_eliminated := any(
+  n_infected[(gen > sgen) & (gen < sgen + 200)] == 0
+  ),
+  by = c("cost", "p_v_transmit", "repl")]
+
+# infection persistence
+p_infections = ggplot(df_vertical_infections) +
+  geom_path(
+    aes(gen_abs, n_infected / popsize,
+        group = repl, col = pathogen_eliminated),
+    size = 0.2
+  ) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  facet_grid(
+    cols = vars(p_v_transmit),
+    rows = vars(cost),
+    as.table = F,
+    switch = c("y"),
+    labeller = labeller(
+      cost = function(x) sprintf("δE = %s", x),
+      p_v_transmit = function(x) sprintf("p(V. Trans.) = %s", x)
+    )
+  ) +
+  scale_colour_discrete_sequential(
+    palette = "Red-Yellow",
+    l2 = 80,
+    rev = FALSE, name = NULL,
+    labels = c(
+      "Pathogen persists", "Pathogen eliminated"
+    ),
+    na.value = "lightgrey",
+  ) +
+  scale_x_continuous(
+    # trans = ggallin::pseudolog10_trans,
+    breaks = c(-25, 0, 25, 100),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(sgen, sgen + 100, sgen + 200),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  scale_y_continuous(
+    breaks = c(0, 0.5, 1),
+    labels = scales::percent,
+    name = "% Individuals"
+  ) +
+  coord_cartesian(
+    xlim = c(-30, 250),
+    ylim = c(0, 1)
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.x = element_text(hjust = 0.5),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    )
+  )
+
+# save for supplement
+ggsave(
+  p_infections,
+  filename = "supplement/figures/fig_infection_vertical.png",
+  height = 120,
+  width = 120,
+  units = "mm"
+)
+```
+
+## Plot evolutionary change and infections
+
+Pick two focal simulations in the cost = 0.25, p(v transmit) = 0.2 scenario.
+
+```{r}
+df_focus = df_strat[p_v_transmit == 0.2 & cost == 0.25, ]
+
+# subset for parameters
+df_vertical_infections = df_vertical_infections[p_v_transmit == 0.2 &
+                                                  cost == 0.25, ]
+
+# get sims where pathogen is eliminated
+df_vertical_infections[scenario_tag == "vertical", pathogen_eliminated := any(
+  n_infected[(gen > 500) & (gen < 700)] == 0
+  ),
+  by = c("cost", "p_v_transmit", "repl")]
+
+df_vertical_infections = df_vertical_infections[
+  repl == first(repl[pathogen_eliminated]) |
+    repl == first(repl[!pathogen_eliminated])]
+
+df_focus = df_focus[repl %in% df_vertical_infections$repl, ]
+```
+
+```{r}
+p_evo = ggplot() +
+  geom_col(
+    data = df_focus,
+    aes(gen_abs, prop, fill = social_strat),
+    width = 2
+  ) +
+  geom_line(
+    data = df_vertical_infections,
+    aes(gen_abs, n_infected / popsize, col = "infected")
+  ) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  scale_fill_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80, alpha = 0.6,
+    rev = FALSE,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  ) +
+  scale_colour_manual(
+    values = c(infected = "grey20"),
+    labels = "% Infected",
+    name = NULL
+  ) +
+  facet_grid(
+    rows = vars(repl),
+    labeller = labeller(
+      repl = c(
+        "1" = "Pathogen persistance",
+        "2" = "Pathogen eliminated"
+      )
+    ),
+    switch = c("y")
+  ) +
+  scale_x_continuous(
+    # trans = ggallin::pseudolog10_trans,
+    breaks = c(-25, 0, 25, 100, 250, genmax),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, sgen, sgen + 100, sgen + 250, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  scale_y_continuous(
+    breaks = c(0, 0.5, 1),
+    labels = scales::percent,
+    name = "% Individuals"
+  ) +
+  coord_cartesian(
+    xlim = c(-30, 150),
+    ylim = c(0, 1),
+    expand = FALSE
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.x = element_text(hjust = 0.5),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    )
+  )
+```
+
+## Social information importance
+
+```{r}
+files <- list.files(
+  "data/results/si_imp_data",
+  pattern = "vertical",
+  full.names = TRUE
+)
+
+data_all <- lapply(files, fread)
+data_all <- rbindlist(data_all)
+
+# make a copy
+df_si = copy(data_all)
+
+df_si <- df_si[(cost == 0.25) & (p_v_transmit == 0.2)]
+
+# popsize
+popsize <- 500
+
+df_si[, prop := N / popsize]
+
+# get time since pathogen
+sgen <- 500
+genmax <- 1000
+
+# save for plotting and upload
+fwrite(
+  df_si,
+  file = "data/results/data_vertical_default_si_imp.csv"
+)
+```
+
+```{r}
+# load saved data
+df_si <- fread("data/results/data_vertical_default_si_imp.csv")
+```
+
+```{r}
+# get focal replicates
+df_si = df_si[repl %in% unique(df_focus$repl)]
+df_si[, si_imp := plyr::round_any(si_imp, accuracy = 0.01)]
+df_si = df_si[, list(prop = sum(prop),
+                     N = sum(N)), by = c("gen", "repl", "si_imp")]
+df_si[, gen_abs := gen - sgen]
+```
+
+
+```{r}
+# get weighted mean and variance in social info importance
+# replicate 2 is an anomaly with very high SI use, although strategies are
+# similar across replicates
+df_si_mean <- df_si[, list(
+  mean = weighted.mean(si_imp, w = N),
+  sd = Hmisc::wtd.var(si_imp, weights = N)
+), by = c("gen", "repl")]
+
+df_si_mean[, c("y", "ymin", "ymax") := list(
+  mean,
+  mean - sd,
+  mean + sd
+)]
+df_si_mean[, gen_abs := gen - sgen]
+```
+
+### Figure social information importance
+
+```{r}
+hmap_cols <- colorspace::sequential_hcl(
+  5,
+  palette = "sunset",
+  rev = TRUE
+)
+
+p_si_importance =
+ggplot() +
+  geom_tile(
+    data = df_si, # 7
+    aes(
+      gen_abs, si_imp,
+      fill = N / popsize
+    ),
+    width = 2
+  ) +
+  facet_grid(
+    rows = vars(repl),
+    labeller = labeller(
+      repl = c(
+        "1" = "Pathogen persistance",
+        "2" = "Pathogen eliminated"
+      )
+    ),
+    switch = c("y")
+  ) +
+  geom_pointrange(
+    data = df_si_mean[gen %% 20 == 0,],
+    aes(
+      gen_abs, y,
+      ymin = ymin,
+      ymax = ymax
+    ),
+    size = 0.1, shape = 1,
+    colour = "grey40"
+  ) +
+  geom_hline(
+    yintercept = 0.5,
+    col = "grey",
+    lty = 2,
+    size = 0.2
+  ) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  scale_fill_gradientn(
+    colours = c(
+      "grey99",
+      hmap_cols
+    ),
+    na.value = hmap_cols[5],
+    limits = c(0.0, 0.3),
+    breaks = c(0.01, 0.3, 0.5),
+    labels = function(x) {
+      a <- scales::percent(x)
+      a[x == 0.3] <- ">30%"
+      a
+    },
+    name = "% Indiv."
+  ) +
+  scale_x_continuous(
+    # trans = ggallin::pseudolog10_trans,
+    breaks = c(0, 100, 250),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  scale_y_continuous(
+    labels = scales::percent,
+    name = "% Contribution of social information"
+  ) +
+  coord_cartesian(
+    xlim = c(-50, NA),
+    ylim = c(0, 0.75)
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(2.5, "mm"),
+    legend.title = element_text(
+      vjust = 1.5
+    ),
+    legend.text = element_text(
+      size = 6
+    ),
+    # axis.text.x = element_text(hjust = 0.5, size = 6),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    )
+  )
+```
+
+## Ecological outcomes
+
+Load generation data.
+
+```{r}
+# list files, read, and filter for default model options
+files <- list.files(
+  "data/results/gen_data",
+  pattern = "vertical",
+  full.names = TRUE
+)
+
+data_all <- lapply(files, fread)
+data_all <- rbindlist(data_all)
+
+df_eco <- data_all[cost == 0.25 & p_v_transmit == 0.2,]
+
+# popsize
+popsize <- 500
+
+# get time since pathogen
+sgen <- 500
+genmax <- 1000
+df_eco[, gen_abs := gen - sgen]
+
+# save for plotting and upload
+fwrite(
+  df_eco,
+  file = "data/results/data_vertical_default_eco.csv"
+)
+```
+
+```{r}
+# load saved data
+df_eco <- fread("data/results/data_vertical_default_eco.csv")
+```
+
+```{r}
+# subset for focal replicates
+df_eco <- df_eco[repl %in% df_focus$repl, c(
+  "repl", "gen_abs", "intake.mean",
+  "moved.mean", "assoc.mean"
+)]
+df_eco <- melt(
+  df_eco,
+  id.vars = c("gen_abs", "repl")
+)
+
+# convert to percentage
+df_eco[, value_scaled := value / value[gen_abs == 0], by = c(
+  "repl", "variable"
+)]
+
+## colours for background
+cols <- colorspace::diverging_hcl(3, palette = "Tofino", l = 50, c = 80)
+```
+
+```{r}
+p_associations =
+ggplot(df_eco[variable == "assoc.mean"]) +
+  stat_summary(
+    aes(
+      gen_abs, value,
+      col = "Associations"
+    ),
+    show.legend = FALSE,
+    geom = "line"
+  ) +
+  scale_y_continuous(
+    trans = "log10",
+    labels = scales::comma
+  ) +
+  facet_grid(
+    rows = vars(repl),
+    labeller = labeller(
+      repl = c(
+        "1" = "Pathogen persistance",
+        "2" = "Pathogen eliminated"
+      )
+    ),
+    switch = c("y")
+  ) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  scale_colour_manual(
+    values = c(
+      assoc.mean = cols[2]
+    )
+  ) +
+  scale_x_continuous(
+    # trans = ggallin::pseudolog10_trans,
+    breaks = c(-30, 0, 100),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, sgen, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  coord_cartesian(
+    xlim = c(-30, 150)
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.x = element_text(hjust = 0.5),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = "Associations",
+    colour = NULL,
+    shape = NULL
+  )
+```
+
+```{r}
+fig_eco_evo_vertical <-
+  wrap_plots(
+    p_evo,
+    p_si_importance,
+    p_associations,
+    ncol = 3,
+    guides = "collect"
+  ) &
+    plot_annotation(
+      tag_levels = c("A", 1)
+    ) &
+    theme(
+      legend.position = "bottom",
+      legend.justification = "left",
+      # legend.key.height = unit(1, units = "mm"),
+      plot.tag = element_text(
+        face = "bold",
+        size = 10
+      ),
+      axis.text.x = element_text(
+        size = 7
+      )
+    )
+
+ggsave(
+  fig_eco_evo_vertical,
+  filename = "figures/fig_eco_evo_vertical.png",
+  height = 120, width = 180, units = "mm"
+)
+```
