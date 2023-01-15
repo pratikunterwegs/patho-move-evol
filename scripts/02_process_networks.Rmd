@@ -15,52 +15,63 @@ library(glue)
 
 ```{r}
 # load files
-files = list.files("data/output/", 
-                   pattern = "Rds",#nopatho", 
-                   full.names = T)
+files <- list.files("data/output/",
+  pattern = "Rds", # nopatho",
+  full.names = T
+)
 ```
 
 Potentially restrict which outputs to process.
 
 ```{r}
 # list parameter combinations and unique output files
-param_files = list.files(
-  "data/parameters", pattern = "csv", full.names = T
+param_files <- list.files(
+  "data/parameters",
+  pattern = "csv", full.names = T
 )
-params = lapply(param_files, fread)
-params = rbindlist(params, use.names = TRUE)
+params <- lapply(param_files, fread)
+params <- rbindlist(params, use.names = TRUE, fill = TRUE)
+
+# check reproduction threshold
+params[, reprod_threshold := fifelse(
+  is.na(reprod_threshold), FALSE, reprod_threshold
+)]
+params <- params[!(reprod_threshold), ]
+
+# check for vertical transmission
+params[, vertical := fifelse(
+  is.na(vertical), FALSE, vertical
+)]
+params <- params[!(vertical), ]
 
 # subset files for default scenario
-params = params[(scenario == 1 & ((!infect_percent & dispersal == 2) | 
-                  (infect_percent & costInfect == 0.05 & regen_time == 50) |
-                  (dispersal == 10 & costInfect == 0.25 & regen_time == 50))) | 
-                  (scenario == 3),]
+params <- params[(!infect_percent & costInfect == 0.25 & regen_time == 50) |
+  (infect_percent & costInfect == 0.05 & regen_time == 50), ]
 ```
 
 ```{r}
-uids = str_extract(files, "\\d{10}")
-files = files[uids %in% as.character(params$ofi)]
+uids <- str_extract(files, "\\d{10}")
+files <- files[uids %in% as.character(params$seed)]
 ```
 
 ## Process network data
 
 ```{r}
-networks_folder = "data/results/networks"
+networks_folder <- "data/results/networks"
 if (!dir.exists(networks_folder)) {
-  message("networks folder missing; creating")
+  message("Networks folder missing; creating")
   dir.create(networks_folder, recursive = TRUE)
 }
 ```
 
 ```{r}
 for (i in files) {
-  uid = str_extract(i, "\\d{10}")
-  
-  output = readRDS(i)[["output"]]
-  
-  nt = pathomove::get_networks(output = output, assoc_threshold = 5)
-  
+  uid <- str_extract(i, "\\d{10}")
+
+  output <- readRDS(i)[["output"]]
+
+  nt <- pathomove::get_networks(output = output, assoc_threshold = 1)
+
   saveRDS(nt, file = glue("{networks_folder}/data_networks_{uid}.Rds"))
 }
 ```
-

@@ -14,24 +14,26 @@ library(stringr)
 
 ```{r}
 # list parameter combinations and unique output files
-param_files = list.files(
-  "data/parameters", pattern = "csv", full.names = T
+param_files <- list.files(
+  "data/parameters",
+  pattern = "csv", full.names = T
 )
-params = lapply(param_files, fread)
-params = rbindlist(params, use.names = TRUE)
+params <- lapply(param_files, fread)
+params <- rbindlist(params, use.names = TRUE)
 ```
 
 ```{r}
 # list Rds files in output folder
-rdfiles = list.files(
-  "data/output", pattern = "Rds", full.names = T
+rdfiles <- list.files(
+  "data/output",
+  pattern = "Rds", full.names = T
 )
-rdfile_num = str_extract(rdfiles, "\\d{10}")
+rdfile_num <- str_extract(rdfiles, "\\d{10}")
 ```
 
 ```{r}
 # which files to remove
-rdfiles_to_del = rdfile_num %in% params$ofi
+rdfiles_to_del <- rdfile_num %in% params$ofi
 
 # delete files which should be deleted
 Map(
