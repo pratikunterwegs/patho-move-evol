@@ -5,8 +5,8 @@ library(stringr)
 library(ggplot2)
 
 # param file name
-date = Sys.time() |> str_replace_all(" |:", "_")
-param_file = glue("data/parameters/parameters_{date}.csv")
+date <- Sys.time() |> str_replace_all(" |:", "_")
+param_file <- glue("data/parameters/parameters_{date}.csv")
 
 # make parameter combinations
 pathomove::make_parameter_file(
@@ -26,7 +26,7 @@ pathomove::make_parameter_file(
   regen_time = c(20, 50, 100),
   pTransmit = "0.05",
   initialInfections = 20,
-  costInfect = c(0.01, 0.02, 0.05),#c(0.1, 0.25, 0.5),
+  costInfect = c(0.01, 0.02, 0.05), # c(0.1, 0.25, 0.5),
   nThreads = 8,
   replicates = 1,
   local_dispersal = FALSE,
@@ -35,20 +35,20 @@ pathomove::make_parameter_file(
 )
 
 # the R binary path
-Rbin = file.path(R.home("bin"), "Rscript.exe")
+Rbin <- file.path(R.home("bin"), "Rscript.exe")
 
 # file to run
-rscript = "scripts/do_sim_pathomove.R"
+rscript <- "scripts/do_sim_pathomove.R"
 
 # nrow of parameter file
-row_number = seq(nrow(fread(param_file)))
+row_number <- seq(nrow(fread(param_file)))
 
 # make commands
-lines = c("cd ../", glue("{Rbin} {rscript} {param_file} {row_number}"))
+lines <- c("cd ../", glue("{Rbin} {rscript} {param_file} {row_number}"))
 
 
 # write batch file
 writeLines(
-    text = as.character(lines),
-    con = glue("scripts/pathomove_runs_{date}_sc_all.bat")
+  text = as.character(lines),
+  con = glue("scripts/pathomove_runs_{date}_sc_all.bat")
 )

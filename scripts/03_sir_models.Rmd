@@ -18,16 +18,16 @@ library(glue)
 
 ```{r}
 # disease parameters
-beta = c(1, 5, 10)
-gamma = c(0, 1)
-threshold = c(1, 5, 10)
+beta <- c(5)
+gamma <- c(1)
+threshold <- c(1, 10)
 
 # make combinations
-params_sir = CJ(beta, gamma, threshold)
+params_sir <- CJ(beta, gamma, threshold)
 
-beta = params_sir$beta
-gamma = params_sir$gamma
-threshold = params_sir$threshold
+beta <- params_sir$beta
+gamma <- params_sir$gamma
+threshold <- params_sir$threshold
 ```
 
 ## Load networks from default scenario
@@ -35,7 +35,7 @@ threshold = params_sir$threshold
 Read parameter files to subset for default parameter combination, based on the "ofi" column.
 
 ```{r}
-data_files = list.files(
+data_files <- list.files(
   "data/results/networks",
   full.names = TRUE,
   pattern = "Rds"
@@ -45,87 +45,88 @@ data_files = list.files(
 ## Run SIR models
 
 ```{r}
-sc_repl = seq(10) # the number of replicates
+sc_repl <- seq(10) # the number of replicates
 
-data_sir_models = Map(
+# the generation of pathogen introduction
+gen_patho_intro <- as.character(500)
+gen_patho_adapt <- as.character(600)
+
+data_sir_models <- Map(
   data_files, sc_repl,
   f = function(file, sc_repl) {
-    
+
     # load networks
-    ntwk = readRDS(file)
-    
+    ntwk <- readRDS(file)
+
     # pre disease
-    d_pre = Map(
+    d_pre <- Map(
       beta, gamma, threshold,
       f = function(b, g, thr) {
-        
-        nt = ntwk[["3000"]] # hardcoded for now
-        
-        params_ = as.list(as_tibble(nt)[1,])
-        
+        nt <- ntwk[[gen_patho_intro]] # hardcoded for now
+
+        params_ <- as.list(as_tibble(nt)[1, ])
+
         # filter for threshold
-        nt = nt %>% 
-          activate(edges) %>% 
-          filter(weight > thr) %>% 
+        nt <- nt %>%
+          activate(edges) %>%
+          filter(weight > thr) %>%
           activate(nodes)
-        
-        d_pre_ = igraph::sir(
+
+        d_pre_ <- igraph::sir(
           graph = nt, beta = b, gamma = g, no.sim = 25
         ) |>
           pathomove::handle_sir_data(digits = 1)
-        d_pre_$type = "pre"
-        
+        d_pre_$type <- "pre"
+
         # add parameters
         d_pre_[, names(params_) := params_]
         d_pre_[, c("beta", "gamma", "threshold") := list(b, g, thr)]
-        
+
         d_pre_
       }
     ) |>
       rbindlist()
-    
+
     # post disease
-    d_post = Map(
+    d_post <- Map(
       beta, gamma, threshold,
       f = function(b, g, thr) {
-        
-        nt = ntwk[["3500"]] # hardcoded for now
-        
-        params_ = as.list(as_tibble(nt)[1,])
-        
+        nt <- ntwk[[gen_patho_adapt]] # hardcoded for now
+
+        params_ <- as.list(as_tibble(nt)[1, ])
+
         # filter for threshold
-        nt = nt %>% 
-          activate(edges) %>% 
-          filter(weight > thr) %>% 
+        nt <- nt %>%
+          activate(edges) %>%
+          filter(weight > thr) %>%
           activate(nodes)
-        
-        d_post_ = igraph::sir(
+
+        d_post_ <- igraph::sir(
           graph = nt, beta = b, gamma = g, no.sim = 25
         ) |>
           pathomove::handle_sir_data(digits = 1)
-        d_post_$type = "post"
-        
+        d_post_$type <- "post"
+
         # add parameters
         d_post_[, names(params_) := params_]
         d_post_[, c("beta", "gamma", "threshold") := list(b, g, thr)]
-        
+
         d_post_
       }
     ) |>
       rbindlist()
-    
-    data = rbindlist(
+
+    data <- rbindlist(
       list(d_pre, d_post)
     )
-    
+
     # add simulation replicate
-    data$sc_repl = sc_repl
+    data$sc_repl <- sc_repl
     data
-    
   }
 )
 
-data_sir_models = rbindlist(data_sir_models)
+data_sir_models <- rbindlist(data_sir_models)
 
 # save data
 fwrite(
@@ -136,17 +137,15 @@ fwrite(
 
 ```{r}
 # sanity check
-data_sir_models[class != "NS" & beta == 1 & 
-                  gamma == 1 & threshold != 2 &
-                  time < 5] %>% 
-ggplot()+
+data_sir_models[class != "NS" & time < 5] %>%
+  ggplot() +
   stat_summary(
     aes(time, mean, col = type)
-  )+
+  ) +
   facet_grid(
     threshold ~ class,
     labeller = label_both
-  )+
+  ) +
   # scale_x_sqrt()+
   coord_cartesian(
     xlim = c(0, 5)

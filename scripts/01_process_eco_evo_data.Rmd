@@ -16,7 +16,7 @@ library(glue)
 
 ```{r}
 # list all files
-files = list.files(
+files <- list.files(
   path = "data/output",
   pattern = "Rds",
   full.names = TRUE
@@ -27,15 +27,16 @@ files = list.files(
 
 ```{r}
 # where to send output
-gen_data_path = "data/results/gen_data"
-morph_data_path = "data/results/morph_data"
-si_imp_path = "data/results/si_imp_data"
+gen_data_path <- "data/results/gen_data"
+morph_data_path <- "data/results/morph_data"
+si_imp_path <- "data/results/si_imp_data"
+move_assoc_data_path <- "data/results/move_assoc_data"
 
 # make directories if non existent
 lapply(
-  list(gen_data_path, morph_data_path, si_imp_path), 
+  list(gen_data_path, morph_data_path, si_imp_path, move_assoc_data_path),
   function(p) {
-    if(!dir.exists(p)) {
+    if (!dir.exists(p)) {
       # message
       message(
         glue(
@@ -51,131 +52,154 @@ lapply(
 ```{r}
 # use a loop because why not and don't want to load purrr for walk
 for (i in files) {
-  
+
   # load data
-  data = readRDS(i)
-  
-  # the posix time is the data unique identifier
-  uid = str_extract(i, "\\d{10}")
-  
+  data <- readRDS(i)
+
+  # the seed data unique identifier
+  uid <- data$params$seed
+
   # load metadata on the simulation
-  # gen_data = data$output@trait_data
-  repl = data[["replicate"]]
-  cost = data[["costInfect"]]
-  regen = data[["regen_time"]]
-  dispersal = data[["dispersal"]]
-  infect_percent = data[["infect_percent"]]
-  scenario = data[["scenario"]]
-  spillover_rate = data[["spillover_rate"]]
-  
+  repl <- data$params$replicate
+  cost <- data$params$costInfect
+  regen <- data$params$regen_time
+  dispersal <- data$params$dispersal
+  infect_percent <- data$params$infect_percent
+  scenario <- data$params$scenario
+  # get scenario tag
+  scenario_tag <- data$scenario_tag
+  p_v_transmit <- ifelse(is.null(data$params$p_v_transmit),
+    NA_character_, data$params$p_v_transmit
+  )
+  spillover_rate <- ifelse(
+    data$params$scenario == 3, data$params$spillover_rate, NA
+  )
+
   # prepare generation level data
-  gen_data = pathomove::get_trait_data(
-    data[["output"]], 
+  gen_data <- pathomove::get_trait_data(
+    data$output,
     scaled_preferences = TRUE
   )
 
   # add replicate data information
   gen_data[, repl := repl]
-  
+
   #### prepare individual level data ####
-  popsize = data[["popsize"]]
-  
+  popsize <- data$params$popsize
+
   # get social strategy and social information importance
-  gen_data = pathomove::get_social_strategy(gen_data)
-  gen_data = pathomove::get_si_importance(gen_data)
-  
+  gen_data <- pathomove::get_social_strategy(gen_data)
+  gen_data <- pathomove::get_si_importance(gen_data)
+
   # process by social strategy, summarise movement, intake and association
-  data_strategy = gen_data[, list(
+  data_strategy <- gen_data[, list(
     N = .N,
     mean_move = mean(moved),
     mean_assoc = mean(assoc),
     mean_intake = mean(intake),
     prop_infec = sum(t_infec > 0) / length(t_infec)
   ), by = c("gen", "social_strat")]
-  
+
+  # calculate the number of associations for each movement distance
+  gen_data[, moved := floor(moved)]
+  data_strategy_move_assoc <- gen_data[, list(
+    mean_assoc = mean(assoc),
+    mean_intake = mean(intake),
+    n_infected = length(t_infec > 0)
+  ), by = c("gen", "social_strat", "moved")]
+
   # count si_importance morphs
   gen_data[, si_imp := plyr::round_any(si_imp, 0.005)]
-  data_si_imp = gen_data[, list(
+  data_si_imp <- gen_data[, list(
     N = .N
   ), by = c("gen", "si_imp")]
 
-  gen_data = gen_data[, unlist(
+  gen_data <- gen_data[, unlist(
     lapply(.SD, function(x) {
       list(
         mean = mean(x),
         sd = sd(x)
       )
-    }), recursive = FALSE
-  ), 
+    }),
+    recursive = FALSE
+  ),
   .SDcols = c("energy", "intake", "moved", "assoc"),
-  by = c("gen")]
-  
+  by = c("gen")
+  ]
+
   # add simulation parameters
   invisible(
     lapply(
-      list(data_strategy, gen_data, data_si_imp), 
+      list(data_strategy, gen_data, data_si_imp, data_strategy_move_assoc),
       function(df) {
-        df[, c("repl", "cost", "regen", "dispersal", "infect_percent",
-               "scenario", "spillover_rate") := list(
-          repl, cost, regen, dispersal, infect_percent, scenario, spillover_rate
+        df[, c(
+          "repl", "cost", "regen", "dispersal", "infect_percent", "p_v_transmit",
+          "scenario", "scenario_tag"
+        ) := list(
+          repl, cost, regen, dispersal, infect_percent, p_v_transmit, scenario, scenario_tag
         )]
       }
     )
   )
-  
+
   # save data
   invisible(
     Map(
       list(
-        data_strategy, gen_data,
-        data_si_imp), 
+        data_strategy, data_strategy_move_assoc, gen_data,
+        data_si_imp
+      ),
       list(
-        morph_data_path, gen_data_path,
-        si_imp_path),
+        morph_data_path, move_assoc_data_path, gen_data_path,
+        si_imp_path
+      ),
       f = function(df, p) {
         fwrite(
           df,
           file = glue(
-            "{p}/data_gen_{uid}.csv"
+            "{p}/data_gen_{scenario_tag}_{uid}.csv"
           )
         )
       }
     )
   )
-  
 }
 ```
 
 ## Infections per generation
 
 ```{r}
-files = list.files(
-  path = "data/output", 
+files <- list.files(
+  path = "data/output/",
   pattern = "Rds", full.names = T
 )
 ```
 
 ```{r}
 # load each file and get parameters and infections over generations
-data_infections_gen = lapply(
+data_infections_gen <- lapply(
   files, function(le) {
     # load data
-    data = readRDS(le)
-    names(data)[1] = "output"
-    
+    data <- readRDS(le)
+
     # parameters
-    repl = data[["replicate"]]
-    cost = data[["costInfect"]]
-    regen = data[["regen_time"]]
-    dispersal = data[["dispersal"]]
-    infect_percent = data[["infect_percent"]]
-    scenario = data[["scenario"]]
-    spillover_rate = data[["spillover_rate"]]
-    
-    # load generations and infections
-    gens = data$output@generations
-    n_infected = data$output@infections_per_gen
-    
+    repl <- data$params$replicate
+    cost <- data$params$costInfect
+    regen <- data$params$regen_time
+    dispersal <- data$params$dispersal
+    infect_percent <- data$params$infect_percent
+    scenario <- data$params$scenario
+    scenario_tag <- data$scenario_tag
+    p_v_transmit <- data$params$p_v_transmit
+    # spillover rate if at all
+    spillover_rate <- ifelse(
+      data$params$scenario == 3, data$params$spillover_rate, NA
+    )
+
+    # load infections (logged in EACH generation)
+    n_infected <- data$output@infections_per_gen
+    gens <- seq_along(n_infected)
+
     data.table(
       cost = cost,
       regen = regen,
@@ -185,13 +209,15 @@ data_infections_gen = lapply(
       gen = gens,
       n_infected = n_infected,
       scenario = scenario,
-      spillover_rate = spillover_rate
+      scenario_tag = scenario_tag,
+      spillover_rate = spillover_rate,
+      p_v_transmit = p_v_transmit
     )
   }
 )
 
 # combine data and save
-data_infections_gen = rbindlist(data_infections_gen)
+data_infections_gen <- rbindlist(data_infections_gen, fill = TRUE)
 
 # save data
 fwrite(
@@ -204,31 +230,64 @@ fwrite(
 
 ```{r}
 # visualise infections in the case of persistent introduction
-data_persistent = data_infections_gen[scenario == 1]
+data_persistent <- data_infections_gen[scenario == 1]
 data_persistent[, scenario := fcase(
   infect_percent == 1, "percent",
   infect_percent == 0, "absolute"
 )]
 
-data_persistent[regen == 50] |>
-  ggplot()+
-  stat_summary(
-    aes(gen, n_infected, col = as.factor(cost)),
-    binwidth = c(100, NA),
-    geom = "line"
-  )+
-  facet_grid(dispersal ~ scenario)
+data_persistent |>
+  ggplot() +
+  geom_line(
+    aes(gen, n_infected, col = as.factor(cost), group = repl),
+    alpha = 0.2
+    # binwidth = c(100, NA),
+    # geom = "line"
+  ) +
+  # scale_x_log10() +
+  facet_grid(cost ~ regen)
 ```
 
 ```{r}
 # visualise infection in the case of sporadic spillover
-data_sporadic = data_infections_gen[scenario == 3]
+data_sporadic <- data_infections_gen[scenario == 3]
 
-ggplot(data_sporadic)+
+ggplot(data_sporadic) +
   stat_summary(
     aes(gen, n_infected, col = as.factor(spillover_rate)),
     binwidth = c(100, NA),
     geom = "line"
-  )+
+  ) +
   facet_grid(~dispersal)
+```
+
+```{r}
+sc_vertical <- data_infections_gen[scenario_tag == "vertical", ]
+# is the pathogen eliminated
+sc_vertical[, pathogen_eliminated := any(
+  n_infected[(gen > 500) & (gen < 700)] == 0
+),
+by = c("cost", "p_v_transmit", "repl")
+]
+
+ggplot(sc_vertical) +
+  geom_path(
+    aes(gen, n_infected, group = repl, col = pathogen_eliminated),
+    alpha = 0.5
+  ) +
+  facet_grid(
+    p_v_transmit ~ cost,
+    labeller = label_both
+  ) +
+  colorspace::scale_colour_discrete_sequential(
+    palette = "Red-Yellow",
+    rev = FALSE,
+    l1 = 10, l2 = 80,
+    # limits = c(FALSE),
+    na.value = "lightblue"
+  ) +
+  theme_test() +
+  xlim(
+    490, 600
+  )
 ```

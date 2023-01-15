@@ -1,0 +1,378 @@
+---
+editor_options: 
+  chunk_output_type: console
+---
+
+# Script to send simulation jobs to the HPC cluster
+
+
+```{r}
+# load libraries
+library(pathomove)
+library(stringr)
+library(glue)
+
+password <- readLines("data/password")
+```
+
+## Scenario 1: Repeated introduction
+
+### Default case with repeated introduction
+
+```{r}
+# param file name
+date <- Sys.time() |> str_replace_all(" |:", "_")
+
+scenario_tag <- "default_lt"
+# prepare parameters for default case
+param_file_default <- glue("data/parameters/parameters_{date}_{scenario_tag}.csv")
+
+pathomove::make_parameter_file(
+  scenario = 1,
+  popsize = 500,
+  nItems = 1800,
+  landsize = 60,
+  nClusters = 60,
+  clusterSpread = 1,
+  tmax = 100,
+  genmax = 1000,
+  g_patho_init = 500,
+  range_food = 1,
+  range_agents = 1,
+  range_move = 1,
+  handling_time = 5,
+  regen_time = c(20, 50, 100),
+  pTransmit = 0.05,
+  initialInfections = 20,
+  costInfect = c(0.1, 0.25, 0.5),
+  multithreaded = FALSE,
+  replicates = 10,
+  dispersal = 2.0, # for local-ish dispersal
+  # vertical = FALSE,
+  infect_percent = FALSE,
+  mProb = 0.01,
+  mSize = 0.01,
+  # spillover_rate = 0.01,
+  which_file = param_file_default
+)
+
+# try sending in a job
+pathomove::use_cluster(
+  ssh_con = "p284074@peregrine.hpc.rug.nl",
+  password = password,
+  script = "scripts/do_sim_pathomove.R",
+  tag = scenario_tag,
+  folder = "patho-move-evol",
+  template_job = "bash/main_job_maker_default.sh",
+  parameter_file = param_file_default
+)
+```
+
+### Repeated introduction with global natal dispersal
+
+```{r}
+# param file name
+date <- Sys.time() |> str_replace_all(" |:", "_")
+
+scenario_tag <- "global"
+# prepare parameters for global dispersal case
+param_file_global <- glue("data/parameters/parameters_{date}_{scenario_tag}.csv")
+
+pathomove::make_parameter_file(
+  scenario = 1,
+  popsize = 500,
+  nItems = 1800,
+  landsize = 60,
+  nClusters = 60,
+  clusterSpread = 1,
+  tmax = 100,
+  genmax = 1000,
+  g_patho_init = 500,
+  range_food = 1,
+  range_agents = 1,
+  range_move = 1,
+  handling_time = 5,
+  regen_time = c(20, 50, 100),
+  pTransmit = 0.05,
+  initialInfections = 20,
+  costInfect = c(0.1, 0.25, 0.5),
+  multithreaded = FALSE,
+  replicates = 10,
+  dispersal = 10.0, # for global-ish dispersal
+  # vertical = FALSE,
+  infect_percent = FALSE,
+  mProb = 0.01,
+  mSize = 0.01,
+  # spillover_rate = 0.01,
+  which_file = param_file_global
+)
+
+# try sending in a job
+pathomove::use_cluster(
+  ssh_con = "p284074@peregrine.hpc.rug.nl",
+  password = password,
+  script = "scripts/do_sim_pathomove.R",
+  tag = scenario_tag,
+  folder = "patho-move-evol",
+  template_job = "bash/main_job_maker_global.sh",
+  parameter_file = param_file_global
+)
+```
+
+### Repeated introduction with percentage costs
+
+```{r}
+# param file name
+date <- Sys.time() |> str_replace_all(" |:", "_")
+
+scenario_tag <- "percent"
+# prepare parameters for percentage costs case
+param_file_percent <- glue("data/parameters/parameters_{date}_{scenario_tag}.csv")
+
+pathomove::make_parameter_file(
+  scenario = 1,
+  popsize = 500,
+  nItems = 1800,
+  landsize = 60,
+  nClusters = 60,
+  clusterSpread = 1,
+  tmax = 100,
+  genmax = 1000,
+  g_patho_init = 500,
+  range_food = 1,
+  range_agents = 1,
+  range_move = 1,
+  handling_time = 5,
+  regen_time = c(20, 50, 100),
+  pTransmit = 0.05,
+  initialInfections = 20,
+  costInfect = c(0.025, 0.05, 0.075),
+  multithreaded = FALSE,
+  replicates = 10,
+  dispersal = 2.0, # for local-ish dispersal
+  # vertical = FALSE,
+  infect_percent = TRUE,
+  mProb = 0.01,
+  mSize = 0.01,
+  # spillover_rate = 0.01,
+  which_file = param_file_percent
+)
+
+# try sending in a job
+pathomove::use_cluster(
+  ssh_con = "p284074@peregrine.hpc.rug.nl",
+  password = password,
+  script = "scripts/do_sim_pathomove.R",
+  tag = "percent",
+  folder = "patho-move-evol",
+  template_job = "bash/main_job_maker_percent.sh",
+  parameter_file = param_file_percent
+)
+```
+
+### Repeated introduction with reproduction energy threshold
+
+```{r}
+# param file name
+date <- Sys.time() |> str_replace_all(" |:", "_")
+
+scenario_tag <- "threshold"
+# prepare parameters for reproduction threshold case
+param_file_threshold <- glue("data/parameters/parameters_{date}_{scenario_tag}.csv")
+
+pathomove::make_parameter_file(
+  scenario = 1,
+  popsize = 500,
+  nItems = 1800,
+  landsize = 60,
+  nClusters = 60,
+  clusterSpread = 1,
+  tmax = 100,
+  genmax = 1000,
+  g_patho_init = 500,
+  range_food = 1,
+  range_agents = 1,
+  range_move = 1,
+  handling_time = 5,
+  regen_time = c(50),
+  pTransmit = 0.05,
+  initialInfections = 20,
+  costInfect = c(0.1, 0.25, 0.5),
+  multithreaded = FALSE,
+  replicates = 10,
+  dispersal = 2.0, # for global-ish dispersal
+  # vertical = FALSE,
+  infect_percent = FALSE,
+  reprod_threshold = TRUE,
+  mProb = 0.01,
+  mSize = 0.01,
+  # spillover_rate = 0.01,
+  which_file = param_file_threshold
+)
+
+# try sending in a job
+pathomove::use_cluster(
+  ssh_con = "p284074@peregrine.hpc.rug.nl",
+  password = password,
+  script = "scripts/do_sim_pathomove.R",
+  folder = "patho-move-evol",
+  tag = scenario_tag,
+  template_job = "bash/main_job_maker_threshold.sh",
+  parameter_file = param_file_threshold
+)
+```
+
+### Repeated but sporadic introduction
+
+```{r}
+# param file name
+date <- Sys.time() |> str_replace_all(" |:", "_")
+
+scenario_tag <- "sporadic"
+# prepare parameters for sporadic introduction case
+param_file_sporadic <- glue("data/parameters/parameters_{date}_{scenario_tag}.csv")
+
+pathomove::make_parameter_file(
+  scenario = 3,
+  popsize = 500,
+  nItems = 1800,
+  landsize = 60,
+  nClusters = 60,
+  clusterSpread = 1,
+  tmax = 100,
+  genmax = 1000,
+  g_patho_init = 500,
+  range_food = 1,
+  range_agents = 1,
+  range_move = 1,
+  handling_time = 5,
+  regen_time = c(50),
+  pTransmit = 0.05,
+  initialInfections = 20,
+  costInfect = c(0.1, 0.25, 0.5),
+  multithreaded = FALSE,
+  replicates = 10,
+  dispersal = 2.0, # also local-ish dispersal
+  vertical = FALSE,
+  infect_percent = FALSE,
+  mProb = 0.01,
+  mSize = 0.01,
+  spillover_rate = c(0.1, 0.25, 0.5),
+  which_file = param_file_sporadic
+)
+
+# try sending in a job
+pathomove::use_cluster(
+  ssh_con = "p284074@peregrine.hpc.rug.nl",
+  password = password,
+  script = "scripts/do_sim_pathomove.R",
+  folder = "patho-move-evol",
+  template_job = "bash/main_job_maker_sporadic.sh",
+  parameter_file = param_file_sporadic
+)
+```
+
+### Repeated introduction with handling time alternatives
+
+```{r}
+# param file name
+date <- Sys.time() |> str_replace_all(" |:", "_")
+
+password <- readLines("data/password")
+
+scenario_tag <- "handling"
+
+# prepare parameters for percent case
+param_file_handling <- glue("data/parameters/parameters_{date}_handling.csv")
+
+pathomove::make_parameter_file(
+  scenario = 1,
+  popsize = 500,
+  nItems = 1800,
+  landsize = 60,
+  nClusters = 60,
+  clusterSpread = 1,
+  tmax = 100,
+  genmax = 1000,
+  g_patho_init = 500,
+  range_food = 1,
+  range_agents = 1,
+  range_move = 1,
+  handling_time = c(0, 1, 2, 10),
+  regen_time = 50,
+  pTransmit = 0.05,
+  initialInfections = 20,
+  costInfect = 0.25,
+  multithreaded = FALSE,
+  replicates = 10,
+  dispersal = 2.0, # for local-ish dispersal
+  # vertical = FALSE,
+  infect_percent = FALSE,
+  mProb = 0.01,
+  mSize = 0.01,
+  # spillover_rate = 0.01,
+  which_file = param_file_handling
+)
+
+# try sending in a job
+pathomove::use_cluster(
+  ssh_con = "p284074@peregrine.hpc.rug.nl",
+  password = password,
+  script = "scripts/do_sim_pathomove.R",
+  folder = "patho-move-evol",
+  tag = scenario_tag,
+  template_job = "bash/main_job_maker_handling.sh",
+  parameter_file = param_file_handling
+)
+```
+
+## Scenario 2: Single introduction with vertical transmission
+
+```{r}
+# param file name
+date <- Sys.time() |> str_replace_all(" |:", "_")
+
+scenario_tag <- "vertical"
+# prepare parameters for reproduction threshold case
+param_file_vertical <- glue("data/parameters/parameters_{date}_{scenario_tag}.csv")
+
+pathomove::make_parameter_file(
+  scenario = 2,
+  popsize = 500,
+  nItems = 1800,
+  landsize = 60,
+  nClusters = 60,
+  clusterSpread = 1,
+  tmax = 100,
+  genmax = 1000,
+  g_patho_init = 500,
+  range_food = 1,
+  range_agents = 1,
+  range_move = 1,
+  handling_time = 5,
+  regen_time = c(50),
+  pTransmit = 0.05,
+  p_v_transmit = c(0.1, 0.2, 0.3),
+  initialInfections = 20,
+  costInfect = c(0.1, 0.25, 0.5),
+  multithreaded = FALSE,
+  replicates = 10,
+  dispersal = 2.0, # also local-ish dispersal
+  vertical = TRUE,
+  infect_percent = FALSE,
+  mProb = 0.01,
+  mSize = 0.01,
+  which_file = param_file_vertical
+)
+
+# try sending in a job
+pathomove::use_cluster(
+  ssh_con = "p284074@peregrine.hpc.rug.nl",
+  password = password,
+  script = "scripts/do_sim_pathomove.R",
+  folder = "patho-move-evol",
+  tag = "vertical",
+  template_job = "bash/main_job_maker_vertical.sh",
+  parameter_file = param_file_vertical
+)
+```

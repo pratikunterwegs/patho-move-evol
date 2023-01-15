@@ -1,79 +1,69 @@
-args = commandArgs(TRUE)
+#### Script to run the pathomove simulation in an HPC run ####
+args <- commandArgs(TRUE)
 
+# print the working directory
 message(getwd())
 
-param_file = args[1]
+# access parameter file
+param_file <- args[1]
+# get the row to read from the parameter file
+row_n <- as.numeric(args[2])
+# get the scenario type
+# argument 3 is the array id
+scenario_tag <- args[3]
 
-row_n = as.numeric(args[2])
-
+# print the file identity to screen (to the output log)
 message(
-  paste("which file = ", param_file)
+  paste("Reading parameter file:", param_file)
 )
 
+# print the row to screen
 message(
-  paste("which row = ", row_n)
+  paste("Reading parameters from row:", row_n)
 )
 
-params = read.csv(param_file)
+# read the parameter file in
+params <- read.csv(param_file)
 
+# get replicate and remove from params
+replicate <- params[row_n, "replicate"]
+
+# print the R version
+version
+# print the pathomove package version
+devtools::package_info("pathomove", dependencies = FALSE)
+
+# load library
 library(pathomove)
 
+# print to log
+writeLines(
+  c(
+    "\n",
+    "#### Scenario information ####"
+  )
+)
+
 # run simulation
-data = pathomove::run_pathomove(
-  scenario = params$scenario[row_n],
-
-  popsize = params$popsize[row_n],
-  
-  nItems = params$popsize[row_n],
-  landsize = params$landsize[row_n],
-  nClusters = params$nClusters[row_n],
-  clusterSpread = params$clusterSpread[row_n],
-
-  tmax = params$tmax[row_n],
-  genmax = params$genmax[row_n], 
-  g_patho_init = params$g_patho_init[row_n],
-  
-  range_food = params$range_food[row_n],
-  range_agents = params$range_agents[row_n], 
-  range_move = params$range_move[row_n], 
-  handling_time = params$handling_time[row_n],
-
-  regen_time = params$regen_time[row_n],
-  pTransmit = params$pTransmit[row_n],
-
-  initialInfections = params$initialInfections[row_n],
-  costInfect = params$costInfect[row_n],
-  nThreads = params$nThreads[row_n],
-  dispersal = params$dispersal[row_n],
-  infect_percent = params$infect_percent[row_n],
-  vertical = params$vertical[row_n],
-  mProb = params$mProb[row_n],
-  mSize = params$mSize[row_n],
-  spillover_rate = params$spillover_rate[row_n]
+data <- do.call(
+  run_pathomove,
+  as.list(
+    subset(params, select = -c(replicate))[row_n, ]
+  )
 )
 
-# get params as named vector
-these_params = unlist(params[row_n,])
-
-# append list of params
-data = append(
+# append full list of parameters and the scenario tag
+data <- list(
   output = data,
-  these_params
+  params = as.list(params[row_n, ]),
+  scenario_tag = scenario_tag
 )
-names(data)[1] = "output"
 
-output_file_index = params$ofi[row_n]
-
-sc_type = dplyr::case_when(
-  params$scenario[row_n] == 0 ~ "nopatho",
-  params$scenario[row_n] == 1 ~ "persistent",
-  params$scenario[row_n] == 2 ~ "spillover",
-  params$scenario[row_n] == 3 ~ "sporadic"
-)
+seed <- params$seed[row_n]
 
 # name of rdata file
-output_file = glue::glue(
-  'data/output/scenario_{sc_type}_{output_file_index}.Rds'
+output_file <- glue::glue(
+  "data/output/scenario_{scenario_tag}_{seed}.Rds"
 )
 
 # save
