@@ -34,7 +34,7 @@ library(patchwork)
 library(colorspace)
 
 # simulate direct costs
-cost_direct = CJ(
+cost_direct <- CJ(
   intake = seq(0, 20, 1),
   ti = seq(0, 100, 5),
   delta_e = 0.25,
@@ -43,7 +43,7 @@ cost_direct = CJ(
 cost_direct[, energy := (intake - (ti * delta_e))]
 
 # simulate percentage costs
-cost_percent = CJ(
+cost_percent <- CJ(
   intake = seq(0, 20, 1),
   ti = seq(0, 100, 5),
   delta_e = 0.05,
@@ -52,24 +52,24 @@ cost_percent = CJ(
 cost_percent[, energy := (intake * (1 - delta_e)^ti)]
 
 # combine data
-cost_sims = rbindlist(
+cost_sims <- rbindlist(
   list(cost_direct, cost_percent)
 )
 
-p_costs =
-  ggplot(cost_sims)+
+p_costs <-
+  ggplot(cost_sims) +
   geom_tile(
     aes(
       intake, ti,
       fill = energy
     )
-  )+
+  ) +
   scale_fill_continuous_diverging(
     rev = T,
     palette = "Blue-Yellow",
     name = "Net\nenergy",
     c1 = 120
-  )+
+  ) +
   facet_wrap(
     ~type,
     labeller = labeller(
@@ -78,14 +78,14 @@ p_costs =
         "percent" = "Percentage cost"
       )
     )
-  )+
-  theme_test()+
+  ) +
+  theme_test() +
   theme(
     legend.key.width = unit(2, "mm")
-  )+
+  ) +
   coord_cartesian(
     expand = F
-  )+
+  ) +
   labs(
     x = "Intake",
     y = "Time infected"
