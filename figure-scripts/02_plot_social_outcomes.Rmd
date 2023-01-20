@@ -3,7 +3,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Plot social outcomes in scenario 3
+# Plot social outcomes in the default scenario
 
 ```{r}
 library(data.table)
@@ -12,13 +12,116 @@ library(patchwork)
 library(colorspace)
 ```
 
+## Associations per distance moved by strategy
+
+```{r}
+files <- list.files(
+  path = "data/results/move_assoc_data",
+  pattern = "default", full.names = TRUE
+)
+
+# read data and filter for default paramaeter combination
+data_move_assoc <- lapply(files, fread) |> rbindlist()
+data_move_assoc <- data_move_assoc[between(gen, 500, 750), ]
+data_move_assoc <- data_move_assoc[cost == 0.25 & regen == 50, ]
+
+# round moved
+data_move_assoc[, moved_bin := plyr::round_any(moved, 5)]
+data_move_assoc <- data_move_assoc[social_strat != "non-handler tracking", ]
+```
+
+```{r}
+plot_move_assoc <-
+  ggplot() +
+  geom_jitter(
+    data = data_move_assoc[gen %% 10 == 0, ],
+    aes(moved, mean_assoc, col = social_strat),
+    size = 0.1, alpha = 0.5
+  ) +
+  geom_vline(
+    xintercept = 50,
+    linewidth = 0.3, lty = "dashed", colour = "indianred"
+  ) +
+  stat_summary(
+    data = data_move_assoc,
+    aes(moved_bin, mean_assoc,
+      fill = social_strat
+    ),
+    shape = 21
+  ) +
+  annotate(
+    geom = "text",
+    x = 100,
+    y = 750,
+    label = "Post-pathogen\n500 ≤ G ≤ 750",
+    hjust = "inward",
+    fontface = "italic",
+    colour = "indianred",
+    size = 3,
+    family = "Arial"
+  ) +
+  scale_fill_discrete_sequential(
+    palette = "Viridis",
+    l1 = 15, l2 = 80,
+    rev = F,
+    breaks = c("agent avoiding", "handler tracking", "agent tracking"),
+    name = NULL,
+    labels = stringr::str_to_sentence
+  ) +
+  scale_colour_discrete_sequential(
+    palette = "Viridis",
+    c1 = 30, c2 = 40,
+    l1 = 50, l2 = 80,
+    rev = F,
+    name = NULL,
+    labels = stringr::str_to_sentence
+  ) +
+  scale_y_continuous(
+    # trans = "log10",
+    labels = scales::comma_format()
+  ) +
+  coord_cartesian(
+    # xlim = c(60, 100),
+    ylim = c(30, 1000),
+    expand = T
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    axis.text.y = element_text(
+      angle = 90,
+      hjust = 0.5
+    ),
+    legend.key.height = unit(1, "mm"),
+    legend.position = "bottom",
+    # legend.justification = "right"
+  ) +
+  labs(
+    x = "Distance moved",
+    y = "Encounters w/ individuals"
+  ) +
+  guides(
+    alpha = "none",
+    shape = "none",
+    colour = "none",
+    fill = guide_legend(
+      override.aes = list(
+        # size = 2,
+        alpha = 1
+      )
+    )
+  )
+```
+
+## Infection rate per strategy
+
 ```{r}
 # load data
 data <- fread("data/results/data_default_strategy_evo.csv")
-data <- data[gen > 2000, ]
+data <- data[between(gen, 500, 750), ]
 ```
-
-## Summarise metrics by social strategy
 
 ```{r}
 # assign broad strategy
@@ -36,107 +139,9 @@ data[, social_strat := factor(social_strat,
 )]
 ```
 
-## Plot move and encounters
-
 ```{r}
-# plot_move_encounter =
-ggplot(data) +
-  geom_jitter(
-    aes(
-      mean_move, mean_assoc,
-      fill = social_strat,
-      group = social_strat,
-      # alpha = ..density..
-    ),
-    shape = 21,
-    # size = 0.5,
-    col = "transparent",
-    show.legend = T
-  ) +
-  scale_y_log10() +
-  geom_smooth(
-    aes(
-      mean_move, mean_assoc,
-      col = social_strat
-    ),
-    se = T,
-    method = "glm",
-    show.legend = F
-  ) +
-  annotate(
-    geom = "text",
-    x = 60,
-    y = 50,
-    label = "Post-pathogen\nG > 3,500",
-    hjust = "inward",
-    fontface = "italic",
-    colour = "indianred",
-    size = 3,
-    family = "Arial"
-  ) +
-  scale_fill_discrete_sequential(
-    palette = "Viridis",
-    l1 = 15, l2 = 80,
-    rev = F,
-    breaks = c("agent avoiding", "handler tracking", "other"),
-    order = c(2, 3, 1),
-    name = NULL,
-    labels = stringr::str_to_sentence
-  ) +
-  scale_colour_discrete_sequential(
-    palette = "Viridis",
-    order = c(2, 3, 1),
-    l1 = 30, l2 = 50,
-    rev = F,
-    name = NULL,
-    labels = stringr::str_to_sentence
-  ) +
-  scale_alpha_continuous(
-    range = c(0.3, 1)
-  ) +
-  scale_y_continuous(
-    trans = "log10",
-    labels = scales::comma_format()
-  ) +
-  coord_cartesian(
-    # xlim = c(60, 100),
-    # ylim = c(30, 1000),
-    expand = T
-  ) +
-  # xlim(60, 100)+
-  theme_test(
-    base_family = "Arial",
-    base_size = 8
-  ) +
-  theme(
-    axis.text.y = element_text(
-      angle = 90,
-      hjust = 0.5
-    ),
-    legend.key.height = unit(1, "mm"),
-    legend.position = "top",
-    legend.justification = "right"
-  ) +
-  labs(
-    x = "Distance moved",
-    y = "Encounters w/ individuals"
-  ) +
-  guides(
-    alpha = "none",
-    shape = "none",
-    colour = "none",
-    fill = guide_legend(
-      override.aes = list(
-        size = 2, alpha = 1
-      )
-    )
-  )
-```
-
-
-```{r}
-# plot_infected =
-ggplot(data) +
+plot_infected <-
+  ggplot(data) +
   ggdist::stat_histinterval(
     aes(
       social_strat, prop_infec,
@@ -156,9 +161,9 @@ ggplot(data) +
     # rev = T,
     name = NULL
   ) +
-  scale_y_sqrt(
+  scale_y_continuous(
     labels = scales::percent,
-    breaks = c(0.01, 0.25, 0.5, 1)
+    # breaks = c(0.01, 0.25, 0.5, 1)
   ) +
   scale_x_discrete(
     breaks = c(
@@ -194,22 +199,22 @@ ggplot(data) +
 ```
 
 ```{r}
-# plot_soc_out =
-wrap_plots(
-  plot_move_encounter,
-  plot_infected,
-  guides = "collect",
-  design = "AAB"
-) &
-  plot_annotation(
-    tag_levels = "A"
+plot_soc_out <-
+  wrap_plots(
+    plot_move_assoc,
+    plot_infected,
+    guides = "collect",
+    design = "AAB"
   ) &
-  theme(
-    legend.position = "top",
-    plot.tag = element_text(
-      face = "bold"
+    plot_annotation(
+      tag_levels = "A"
+    ) &
+    theme(
+      legend.position = "bottom",
+      plot.tag = element_text(
+        face = "bold"
+      )
     )
-  )
 
 ggsave(
   plot = plot_soc_out,

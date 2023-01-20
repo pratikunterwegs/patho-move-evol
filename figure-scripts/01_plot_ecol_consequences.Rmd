@@ -26,7 +26,7 @@ data_all <- lapply(files, fread)
 data_all <- rbindlist(data_all)
 
 df_strat <- data_all[(dispersal == 2) & (infect_percent == F) &
-                       (scenario_tag == "default")]
+  (scenario_tag == "default")]
 df_strat <- df_strat[(cost == 0.25) & (regen == 50)]
 
 # popsize
@@ -53,34 +53,40 @@ df_strat <- fread("data/results/data_default_strategy_evo.csv")
 ## Plot evolutionary change in default scenario
 
 ```{r}
-fig_evo_social_strategy =
-ggplot() +
-  geom_line(
-    data = df_strat[social_strat != "non-handler tracking", ],
-    aes(
-      gen_abs, prop, col = social_strat,
-      group = interaction(social_strat, repl)
-    ),
-    size = 0.2, alpha = 0.6
-  ) +
-  stat_summary(
-    data = df_strat[social_strat != "non-handler tracking" & gen %% 10 == 0, ],
-    aes(
-      gen_abs, prop,
-      colour = social_strat
-    ),
-    size = 0.2,
-    shape = 16
-  ) +
+fig_evo_social_strategy <-
+  ggplot() +
   geom_vline(
-    xintercept = c(0, 25, 250),
+    xintercept = c(0, 100),
     lty = 2,
     size = 0.3,
-    col = c("red", "grey", "grey")
+    col = c("red", "grey")
   ) +
+  geom_line(
+    data = df_strat,
+    aes(gen_abs, prop,
+      colour = social_strat,
+      group = interaction(repl, social_strat)
+    ),
+    size = 0.2
+  ) +
+  # stat_summary(
+  #   data = df_strat[social_strat != "non-handler tracking" &
+  #                     (gen %% 20 == 0), ],
+  #   fun = mean,
+  #   fun.min = function(x) mean(x) - sd(x),
+  #   fun.max = function(x) mean(x) + sd(x),
+  #   aes(
+  #     gen_abs, prop,
+  #     fill = social_strat
+  #   ),
+  #   geom = "pointrange",
+  #   position = position_dodge(width = 2),
+  #   size = 0.2,
+  #   shape = 21
+  # ) +
   scale_colour_discrete_sequential(
     palette = "Viridis",
-    l2 = 80,
+    l2 = 80, # c2 = 20, c1 = 20,
     rev = FALSE,
     name = NULL,
     limits = c("agent avoiding", "agent tracking", "handler tracking"),
@@ -89,6 +95,7 @@ ggplot() +
   ) +
   scale_fill_discrete_sequential(
     palette = "Viridis",
+    l2 = 80,
     rev = FALSE,
     name = NULL,
     limits = c("agent avoiding", "agent tracking", "handler tracking"),
@@ -96,28 +103,28 @@ ggplot() +
     na.value = "lightgrey"
   ) +
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
-    breaks = c(-25, 0, 25, 100, 200),
+    # trans = ggallin::ssqrt_trans,
+    breaks = c(-500, 0, 100, 250),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(sgen, sgen + 100, sgen + 200),
+      breaks = c(1, sgen, sgen + 250),
       labels = scales::comma_format(
         accuracy = 1
       ),
       name = "Generations"
     )
-  )+
+  ) +
   scale_y_continuous(
     breaks = c(0, 0.5, 1),
     labels = scales::percent,
     name = "% Individuals"
   ) +
   coord_cartesian(
-    xlim = c(-25, 250),
+    xlim = c(NA, 250),
     ylim = c(0, 1)
   ) +
   theme_test(
@@ -147,7 +154,8 @@ files <- list.files(
 data_all <- lapply(files, fread)
 data_all <- rbindlist(data_all)
 
-df_si <- data_all[(dispersal == 2) & (infect_percent == F)]
+df_si <- data_all[(dispersal == 2) & (infect_percent == F) &
+  (scenario_tag == "default")]
 df_si <- df_si[(cost == 0.25) & (regen == 50)]
 
 # popsize
@@ -156,8 +164,7 @@ popsize <- 500
 df_si[, prop := N / popsize]
 
 # group by 1% intervals
-df_si[, si_imp := plyr::round_any(si_imp, 0.01)]
-df_si = df_si[, list(
+df_si <- df_si[, list(
   prop = sum(prop), N = sum(N)
 ), by = c("gen", "si_imp", "repl")]
 
@@ -200,12 +207,12 @@ df_si_mean[, gen_abs := gen - sgen]
 ```{r}
 hmap_cols <- colorspace::sequential_hcl(
   5,
-  palette = "sunset",
+  palette = "rocket",
   rev = TRUE
 )
 
-fig_evo_si_importance =
-ggplot() +
+fig_evo_si_importance <-
+  ggplot() +
   geom_tile(
     data = df_si[repl == 4], # 7
     aes(
@@ -214,16 +221,11 @@ ggplot() +
     ),
     width = 2
   ) +
-  geom_pointrange(
-    data = df_si_mean[gen %% 10 == 0],
-    aes(
-      gen_abs, y,
-      ymin = ymin,
-      ymax = ymax
-    ),
-    size = 0.2,
-    shape = 16,
-    colour = "grey40"
+  geom_vline(
+    xintercept = c(0, 100),
+    lty = 2,
+    size = 0.3,
+    col = c("red", "grey")
   ) +
   geom_hline(
     yintercept = 0.5,
@@ -231,11 +233,16 @@ ggplot() +
     lty = 2,
     size = 0.2
   ) +
-  geom_vline(
-    xintercept = c(0),
-    lty = 2,
-    size = 0.3,
-    col = c("red")
+  geom_pointrange(
+    data = df_si_mean[(gen %% 20 == 0), ],
+    aes(
+      gen_abs, y,
+      ymin = ymin,
+      ymax = ymax
+    ),
+    shape = 21, size = 0.2,
+    fill = "grey",
+    colour = "grey40"
   ) +
   scale_fill_gradientn(
     colours = c(
@@ -253,28 +260,27 @@ ggplot() +
     name = "% Indiv."
   ) +
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
-    breaks = c(-100, -25, 0, 100, 200),
+    breaks = c(-500, 0, 100, 250),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = sgen + c(-100, 0, 100, 200),
+      breaks = c(1, sgen, sgen + 250),
       labels = scales::comma_format(
         accuracy = 1
       ),
       name = "Generations"
     )
-  )+
+  ) +
   scale_y_continuous(
     labels = scales::percent,
     name = "% Contribution of\nsocial information"
   ) +
   coord_cartesian(
-    xlim = c(-100, 250),
-    ylim = c(0, 0.5)
+    xlim = c(NA, 250),
+    ylim = c(0, 0.75)
   ) +
   theme_test(
     base_family = "Arial",
@@ -347,7 +353,8 @@ files <- list.files(
 data_all <- lapply(files, fread)
 data_all <- rbindlist(data_all)
 
-df_eco <- data_all[(dispersal == 2) & (infect_percent == F)]
+df_eco <- data_all[(dispersal == 2) & (infect_percent == F) &
+  (scenario_tag == "default")]
 df_eco <- df_eco[(cost == 0.25) & (regen == 50)]
 
 # popsize
@@ -386,112 +393,44 @@ df_eco <- melt(
 cols <- colorspace::diverging_hcl(3, palette = "Tofino", l = 50, c = 80)
 ```
 
+## Movement
+
 ```{r}
-# plot_intake =
-ggplot(df_eco[variable %in% c("intake.mean") & gen %% 4 == 0]) +
+plot_movement <-
+  ggplot(df_eco[variable %in% c("moved.mean") & gen %% 4 == 0]) +
+  geom_vline(
+    xintercept = c(0, 100),
+    lty = 2,
+    size = 0.3,
+    col = c("red", "grey")
+  ) +
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    geom = "ribbon",
+    size = 0.1,
+    fill = lighten(cols[1], amount = 0.9),
+    col = NA,
+    show.legend = F
+  ) +
   stat_summary(
     aes(
       gen_abs, value
     ),
     geom = "line",
-    size = 0.2,
-    col = cols[3],
+    col = cols[1],
     show.legend = F
-  ) +
-  stat_summary(
-    aes(
-      gen_abs, value
-    ),
-    size = 0.2,
-    col = cols[3],
-    show.legend = F
-  ) +
-  geom_vline(
-    xintercept = c(0),
-    lty = 2,
-    size = 0.3,
-    col = c("red")
   ) +
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
-    breaks = c(-100, -25, 0, 100, 200),
+    breaks = c(-500, 0, 100, 250),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = sgen + c(-100, 0, 100, 200),
-      labels = scales::comma_format(
-        accuracy = 1
-      ),
-      name = "Generations"
-    )
-  )+
-  coord_cartesian(
-    xlim = c(-25, 250),
-    ylim = c(6.9, 7.2)
-  ) +
-  theme_test(
-    base_family = "Arial",
-    base_size = 8
-  ) +
-  theme(
-    # legend.position = c(0.2, 0.15),
-    legend.key = element_blank(),
-    legend.background = element_blank(),
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "italic"
-    ),
-    plot.background = element_blank(),
-    strip.placement = "outside"
-  ) +
-  labs(
-    x = NULL,
-    y = "Per-capita intake",
-    colour = NULL,
-    shape = NULL
-  )
-```
-
-## Movement
-
-```{r}
-# plot_movement =
-ggplot(df_eco[variable %in% c("moved.mean") & gen %% 4 == 0]) +
-  stat_summary(
-    aes(
-      gen_abs, value
-    ),
-    size = 0.2, geom = "line",
-    col = cols[1],
-    show.legend = F
-  ) +
-  stat_summary(
-    aes(
-      gen_abs, value
-    ),
-    size = 0.2,
-    col = cols[1],
-    show.legend = F
-  ) +
-  geom_vline(
-    xintercept = c(0, 25),
-    lty = 2,
-    size = 0.3,
-    col = c("red", "grey")
-  ) +
-  scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
-    breaks = c(-100, -25, 0, 100, 200),
-    labels = scales::comma_format(
-      accuracy = 1
-    ),
-    name = "Gens. after pathogen intro.",
-    sec.axis = sec_axis(
-      trans = function(x) x + sgen,
-      breaks = sgen + c(-100, 0, 100, 200),
+      breaks = c(1, sgen, sgen + 250),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -499,8 +438,8 @@ ggplot(df_eco[variable %in% c("moved.mean") & gen %% 4 == 0]) +
     )
   ) +
   coord_cartesian(
-    xlim = c(-25, 250),
-    ylim = c(45, 65)
+    xlim = c(NA, 250),
+    ylim = c(50, 65)
   ) +
   theme_test(
     base_family = "Arial",
@@ -528,40 +467,41 @@ ggplot(df_eco[variable %in% c("moved.mean") & gen %% 4 == 0]) +
 ## Associations
 
 ```{r}
-# plot_assoc =
-ggplot(df_eco[variable %in% c("assoc.mean") & gen %% 10 == 0]) +
-  stat_summary(
-    aes(
-      gen_abs, value
-    ),
-    col = cols[2],
-    geom = "line",
-    show.legend = F
-  ) +
-  stat_summary(
-    aes(
-      gen_abs, value
-    ),
-    size = 0.1,
-    col = cols[2],
-    show.legend = F
-  ) +
+plot_assoc <-
+  ggplot(df_eco[variable %in% c("assoc.mean") & gen %% 4 == 0]) +
   geom_vline(
-    xintercept = c(0, 200),
+    xintercept = c(0, 100),
     lty = 2,
     size = 0.3,
     col = c("red", "grey")
   ) +
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    geom = "ribbon",
+    size = 0.1,
+    fill = lighten(cols[2], amount = 0.9),
+    col = NA,
+    show.legend = F
+  ) +
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    geom = "line",
+    col = cols[2],
+    show.legend = F
+  ) +
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
-    breaks = c(-100, 0, 100, 200),
+    breaks = c(-500, 0, 100, 250),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, sgen, sgen + 200, genmax),
+      breaks = c(1, sgen, sgen + 250),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -573,7 +513,7 @@ ggplot(df_eco[variable %in% c("assoc.mean") & gen %% 10 == 0]) +
     labels = scales::comma
   ) +
   coord_cartesian(
-    # xlim = c(-25, 250)
+    xlim = c(NA, 250)
   ) +
   theme_test(
     base_family = "Arial",
@@ -610,9 +550,8 @@ fig_eco_evo_general <-
     # plot_agent_avoid,
     fig_evo_intermediate,
     plot_movement,
-    plot_intake,
     plot_assoc,
-    design = "AAA\nAAA\nBCD",
+    design = "AA\nAA\nBC",
     guides = "collect"
   ) &
     plot_annotation(

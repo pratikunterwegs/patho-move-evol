@@ -17,8 +17,8 @@ Load generation strategy data.
 
 ```{r}
 files <- list.files(
-  "data/results/morph_data/",
-  pattern = "data_gen_vertical",
+  "data/results/morph_data",
+  pattern = "vertical",
   full.names = TRUE
 )
 
@@ -52,7 +52,7 @@ df_strat <- fread("data/results/data_vertical_evo.csv")
 
 ```{r}
 # fig_evo_social_strategy =
-p_compare = 
+p_compare <-
   ggplot(df_strat[gen %% 2 == 0 & (social_strat != "non-handler tracking"), ]) +
   geom_path(
     aes(
@@ -141,21 +141,23 @@ ggsave(
 
 ```{r}
 # read in infections data
-df_vertical_infections = fread("data/results/data_infections_gen.csv")[
+df_vertical_infections <- fread("data/results/data_infections_gen.csv")[
   scenario_tag == "vertical",
 ]
 df_vertical_infections[, gen_abs := gen - sgen]
 
 df_vertical_infections[, pathogen_eliminated := any(
-  n_infected[(gen > sgen) & (gen < sgen + 200)] == 0
-  ),
-  by = c("cost", "p_v_transmit", "repl")]
+  n_infected[(gen > sgen) & (gen < sgen + 250)] == 0
+),
+by = c("cost", "p_v_transmit", "repl")
+]
 
 # infection persistence
-p_infections = ggplot(df_vertical_infections) +
+p_infections <- ggplot(df_vertical_infections) +
   geom_path(
     aes(gen_abs, n_infected / popsize,
-        group = repl, col = pathogen_eliminated),
+      group = repl, col = pathogen_eliminated
+    ),
     size = 0.2
   ) +
   geom_vline(
@@ -237,27 +239,30 @@ ggsave(
 Pick two focal simulations in the cost = 0.25, p(v transmit) = 0.2 scenario.
 
 ```{r}
-df_focus = df_strat[p_v_transmit == 0.2 & cost == 0.25, ]
+df_focus <- df_strat[p_v_transmit == 0.2 & cost == 0.25, ]
 
 # subset for parameters
-df_vertical_infections = df_vertical_infections[p_v_transmit == 0.2 &
-                                                  cost == 0.25, ]
+df_vertical_infections <- df_vertical_infections[p_v_transmit == 0.2 &
+  cost == 0.25, ]
 
 # get sims where pathogen is eliminated
 df_vertical_infections[scenario_tag == "vertical", pathogen_eliminated := any(
-  n_infected[(gen > 500) & (gen < 700)] == 0
-  ),
-  by = c("cost", "p_v_transmit", "repl")]
+  n_infected[(gen > 500) & (gen < 750)] == 0
+),
+by = c("cost", "p_v_transmit", "repl")
+]
 
-df_vertical_infections = df_vertical_infections[
+df_vertical_infections <- df_vertical_infections[
   repl == first(repl[pathogen_eliminated]) |
-    repl == first(repl[!pathogen_eliminated])]
+    repl == first(repl[!pathogen_eliminated])
+]
 
-df_focus = df_focus[repl %in% df_vertical_infections$repl, ]
+df_focus <- df_focus[repl %in% df_vertical_infections$repl, ]
 ```
 
 ```{r}
-p_evo = ggplot() +
+p_evo <-
+  ggplot() +
   geom_col(
     data = df_focus,
     aes(gen_abs, prop, fill = social_strat),
@@ -273,6 +278,16 @@ p_evo = ggplot() +
     size = 0.3,
     col = c("red")
   ) +
+  facet_grid(
+    rows = vars(repl),
+    labeller = labeller(
+      repl = c(
+        "1" = "Pathogen persistance",
+        "2" = "Pathogen eliminated"
+      )
+    ),
+    switch = c("y")
+  ) +
   scale_fill_discrete_sequential(
     palette = "Viridis",
     l2 = 80, alpha = 0.6,
@@ -287,26 +302,16 @@ p_evo = ggplot() +
     labels = "% Infected",
     name = NULL
   ) +
-  facet_grid(
-    rows = vars(repl),
-    labeller = labeller(
-      repl = c(
-        "1" = "Pathogen persistance",
-        "2" = "Pathogen eliminated"
-      )
-    ),
-    switch = c("y")
-  ) +
   scale_x_continuous(
     # trans = ggallin::pseudolog10_trans,
-    breaks = c(-25, 0, 25, 100, 250, genmax),
+    breaks = c(-100, 0, 100, 250),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, sgen, sgen + 100, sgen + 250, genmax),
+      breaks = c(sgen - 100, sgen, sgen + 100, sgen + 250),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -319,7 +324,7 @@ p_evo = ggplot() +
     name = "% Individuals"
   ) +
   coord_cartesian(
-    xlim = c(-30, 150),
+    xlim = c(-100, 275),
     ylim = c(0, 1),
     expand = FALSE
   ) +
@@ -351,7 +356,7 @@ data_all <- lapply(files, fread)
 data_all <- rbindlist(data_all)
 
 # make a copy
-df_si = copy(data_all)
+df_si <- copy(data_all)
 
 df_si <- df_si[(cost == 0.25) & (p_v_transmit == 0.2)]
 
@@ -378,10 +383,12 @@ df_si <- fread("data/results/data_vertical_default_si_imp.csv")
 
 ```{r}
 # get focal replicates
-df_si = df_si[repl %in% unique(df_focus$repl)]
+df_si <- df_si[repl %in% unique(df_focus$repl)]
 df_si[, si_imp := plyr::round_any(si_imp, accuracy = 0.01)]
-df_si = df_si[, list(prop = sum(prop),
-                     N = sum(N)), by = c("gen", "repl", "si_imp")]
+df_si <- df_si[, list(
+  prop = sum(prop),
+  N = sum(N)
+), by = c("gen", "repl", "si_imp")]
 df_si[, gen_abs := gen - sgen]
 ```
 
@@ -412,8 +419,8 @@ hmap_cols <- colorspace::sequential_hcl(
   rev = TRUE
 )
 
-p_si_importance =
-ggplot() +
+p_si_importance <-
+  ggplot() +
   geom_tile(
     data = df_si, # 7
     aes(
@@ -433,14 +440,14 @@ ggplot() +
     switch = c("y")
   ) +
   geom_pointrange(
-    data = df_si_mean[gen %% 20 == 0,],
+    data = df_si_mean[gen %% 20 == 0, ],
     aes(
       gen_abs, y,
       ymin = ymin,
       ymax = ymax
     ),
-    size = 0.1, shape = 1,
-    colour = "grey40"
+    size = 0.3, shape = 21,
+    colour = "grey40", fill = "grey"
   ) +
   geom_hline(
     yintercept = 0.5,
@@ -489,7 +496,7 @@ ggplot() +
     name = "% Contribution of social information"
   ) +
   coord_cartesian(
-    xlim = c(-50, NA),
+    xlim = c(-100, 250),
     ylim = c(0, 0.75)
   ) +
   theme_test(
@@ -528,7 +535,7 @@ files <- list.files(
 data_all <- lapply(files, fread)
 data_all <- rbindlist(data_all)
 
-df_eco <- data_all[cost == 0.25 & p_v_transmit == 0.2,]
+df_eco <- data_all[cost == 0.25 & p_v_transmit == 0.2, ]
 
 # popsize
 popsize <- 500
@@ -571,8 +578,8 @@ cols <- colorspace::diverging_hcl(3, palette = "Tofino", l = 50, c = 80)
 ```
 
 ```{r}
-p_associations =
-ggplot(df_eco[variable == "assoc.mean"]) +
+p_associations <-
+  ggplot(df_eco[variable == "assoc.mean"]) +
   stat_summary(
     aes(
       gen_abs, value,
