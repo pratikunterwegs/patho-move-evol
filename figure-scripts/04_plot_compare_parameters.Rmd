@@ -27,7 +27,10 @@ data_all <- lapply(files, fread)
 df_strat <- rbindlist(data_all)
 
 # get sim type
-df_strat <- df_strat[scenario == 1, ]
+df_strat <- df_strat[scenario_tag %in% c(
+  "default", "percent",
+  "global"
+), ]
 
 # popsize
 popsize <- 500
@@ -37,16 +40,14 @@ g_bin <- 10
 df_strat[, gen_bin := (floor(gen / g_bin) * g_bin)]
 
 # get time since pathogen
-sgen <- 2000
-genmax <- 2500
+sgen <- 500
+genmax <- 1000
 df_strat[, gen_abs := gen_bin - sgen]
-
-df_strat <- df_strat[gen %% 10 == 0, ]
 
 df_strat <- df_strat[, list(
   prop = sum(prop) / (replicates)
 ), by = c(
-  "gen", "social_strat",
+  "gen", "social_strat", "scenario_tag",
   "cost", "regen", "infect_percent", "dispersal"
 )]
 
@@ -56,18 +57,9 @@ df_strat[, regen_r := gen_time / regen]
 ```
 
 ```{r}
-# handle main types of simulation: default, percent, and global
-df_strat[, sim_type := fcase(
-  infect_percent == T, "percent",
-  dispersal == 10, "global",
-  dispersal == 2, "default"
-)]
-```
-
-```{r}
 df_strat <- split(
   df_strat,
-  by = "sim_type"
+  by = "scenario_tag"
 )
 ```
 
@@ -78,25 +70,24 @@ df_strat <- split(
 plots_evo <- lapply(
   df_strat,
   function(df) {
-
-    # p =
-    ggplot(df_strat) +
-      geom_line(
+    p <-
+      ggplot(df) +
+      geom_col(
         aes(
           gen, prop,
-          col = social_strat
+          fill = social_strat
         ),
-        width = 100,
-        size = 1
-        # position = "stack"
+        width = 2,
+        size = 1,
+        position = "stack"
       ) +
       geom_vline(
         xintercept = sgen,
         lty = 2,
-        size = 0.3,
+        linewidth = 0.3,
         col = "red"
       ) +
-      scale_colour_discrete_sequential(
+      scale_fill_discrete_sequential(
         palette = "Viridis",
         l2 = 80,
         rev = F,
@@ -106,7 +97,7 @@ plots_evo <- lapply(
         na.value = "lightgrey"
       ) +
       scale_x_continuous(
-        breaks = c(1000, sgen, genmax),
+        # breaks = c(1000, sgen, genmax),
         name = "Generations",
         labels = scales::comma,
         sec.axis = dup_axis(
@@ -129,22 +120,22 @@ plots_evo <- lapply(
         cost ~ regen_r,
         as.table = F,
         switch = c("y"),
-        # labeller = labeller(
-        #   cost = function(x) {
-        #     if(x >= 0.1) {
-        #       sprintf("δE = %s", x)
-        #     } else {
-        #       scales::percent(as.numeric(x), prefix = "δE = ")
-        #     }
-        #   },
-        #   regen_r = function(x) sprintf("R = %s times/gen", x)
-        # )
+        labeller = labeller(
+          cost = function(x) {
+            if (x >= 0.1) {
+              sprintf("δE = %s", x)
+            } else {
+              scales::percent(as.numeric(x), prefix = "δE = ")
+            }
+          },
+          regen_r = function(x) sprintf("R = %s times/gen", x)
+        )
       ) +
       coord_cartesian(
-        xlim = c(1000, NA),
+        # xlim = c(1000, NA),
         expand = F
       ) +
-      theme_grey(
+      theme_test(
         base_size = 8,
         base_family = "Arial"
       ) +
@@ -194,7 +185,7 @@ ggsave(
 # list files, read, and filter for default model options
 files <- list.files(
   "data/results/gen_data",
-  pattern = "csv",
+  pattern = "(default)|(percent)|(global)",
   full.names = TRUE
 )
 
@@ -202,26 +193,19 @@ data_all <- lapply(files, fread)
 data_all <- rbindlist(data_all)
 
 data_all <- data_all[scenario == 1, ]
-data <- data_all
-# data = data[!((cost == 0.1) & (infect_percent))]
+data <- copy(data_all)
 
 # get time since pathogen
-sgen <- 3000
-genmax <- 5000
+sgen <- 500
+genmax <- 1000
 gen_time <- 100
+
 # plot regen as rate per generation timesteps
 data[, regen_r := gen_time / regen]
 
 # select a range of generations before and after
-data <- data[between(gen, sgen - 200, sgen) |
-  between(gen, sgen + 100, sgen + 300)]
-
-# handle main types of simulation: default, percent, and global
-data[, sim_type := fcase(
-  infect_percent == T, "percent",
-  dispersal == 10, "global",
-  dispersal == 2, "default"
-)]
+data <- data[between(gen, sgen - 100, sgen) |
+  between(gen, sgen + 200, sgen + 300)]
 
 # label pre and post pathogen generations
 data[, period := fifelse(
@@ -236,7 +220,7 @@ data[, period := factor(
 # split by simulation type
 data <- split(
   data,
-  by = "sim_type"
+  by = "scenario_tag"
 )
 ```
 
@@ -270,15 +254,14 @@ plots_eco <- Map(
       df, col_pal, names,
       f = function(le, col, n) {
         pl <- ggplot(le) +
-          geom_boxplot(
-            # fun = mean,
-            # fun.min = function(x) mean(x) - sd(x),
-            # fun.max = function(x) mean(x) + sd(x),
+          stat_summary(
+            fun = median,
+            fun.min = function(x) median(x) - sd(x),
+            fun.max = function(x) median(x) + sd(x),
             aes(
               period, value
             ),
-            width = 0.2,
-            outlier.size = 0.2,
+            shape = 21,
             fill = col
           ) +
           facet_grid(
