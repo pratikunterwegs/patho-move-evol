@@ -15,8 +15,8 @@ library(glue)
 
 ```{r}
 # load files
-files <- list.files("data/output/",
-  pattern = "Rds", # nopatho",
+files <- list.files("data/output",
+  pattern = "(default)|(percent)|(global)", # nopatho",
   full.names = T
 )
 ```
@@ -30,23 +30,26 @@ param_files <- list.files(
   pattern = "csv", full.names = T
 )
 params <- lapply(param_files, fread)
+tags <- str_extract(param_files, pattern = "_[^_]+$") |>
+  str_remove(pattern = c("_")) |>
+  str_remove(pattern = ".csv")
+
+# add scenario tags
+params <- Map(params, tags, f = function(df, name) {
+  df$scenario_tag <- name
+  df
+})
+
 params <- rbindlist(params, use.names = TRUE, fill = TRUE)
 
-# check reproduction threshold
-params[, reprod_threshold := fifelse(
-  is.na(reprod_threshold), FALSE, reprod_threshold
-)]
-params <- params[!(reprod_threshold), ]
-
-# check for vertical transmission
-params[, vertical := fifelse(
-  is.na(vertical), FALSE, vertical
-)]
-params <- params[!(vertical), ]
-
 # subset files for default scenario
-params <- params[(!infect_percent & costInfect == 0.25 & regen_time == 50) |
-  (infect_percent & costInfect == 0.05 & regen_time == 50), ]
+params <- params[scenario_tag %in% c("default", "percent", "global"), ]
+params <- params[(scenario_tag == "default" & costInfect == 0.25 &
+  regen_time == 50) |
+  (scenario_tag == "global" & costInfect == 0.25 &
+    regen_time == 50) |
+  (scenario_tag == "percent" & costInfect == 0.05 &
+    regen_time == 50), ]
 ```
 
 ```{r}
@@ -75,3 +78,102 @@ for (i in files) {
   saveRDS(nt, file = glue("{networks_folder}/data_networks_{uid}.Rds"))
 }
 ```
+
+## Quantifying transmission chains
+
+```{r}
+generations <- c(500, 700) # generation of introduction, + 200
+
+if (!dir.exists("data/results/transmission_chains")) {
+  dir.create("data/results/transmission_chains")
+}
+
+transmission_data <- lapply(files, function(file) {
+  output <- readRDS(file)
+
+  gen_data <- pathomove::get_trait_data(output$output)
+
+  gen_data <- gen_data[gen %in% generations, ]
+  pathomove::get_social_strategy(gen_data)
+  gen_data <- split(
+    gen_data,
+    by = "gen"
+  )
+
+  # get transmission chains for visualisation
+  transmission_chains <- lapply(
+    gen_data, pathomove::get_transmission_chain
+  )
+
+  saveRDS(
+    transmission_chains,
+    file = sprintf(
+      "data/results/transmission_chains/data_chains_%s_%i.Rds",
+      output$scenario_tag, output$params$seed
+    )
+  )
+
+  # get N infected per individual
+  n_infected <- lapply(
+    gen_data, function(df) {
+      df[!is.na(src_infect), list(n_infected = .N), by = c("src_infect", "gen")][, list(freq = .N), by = c("n_infected", "gen")]
+    }
+  )
+
+  # prepare parameters
+  repl <- output$params$replicate
+  cost <- output$params$costInfect
+  regen <- output$params$regen_time
+  handling_time <- ifelse(is.null(output$params$handling_time),
+    NA_real_, output$params$handling_time
+  )
+  dispersal <- output$params$dispersal
+  infect_percent <- output$params$infect_percent
+  scenario <- output$params$scenario
+  # get scenario tag
+  scenario_tag <- output$scenario_tag
+  p_v_transmit <- ifelse(is.null(output$params$p_v_transmit),
+    NA_real_, output$params$p_v_transmit
+  )
+  spillover_rate <- ifelse(
+    output$params$scenario == 3, output$params$spillover_rate, NA
+  )
+
+  # bind list and add parameters
+  n_infected <- rbindlist(n_infected)
+  n_infected[, c(
+    "cost", "regen", "dispersal", "handling_time",
+    "repl", "scenario_tag", "spillover_rate",
+    "p_v_transmit"
+  ) := list(
+    cost, regen, dispersal, handling_time,
+    repl, scenario_tag, spillover_rate, p_v_transmit
+  )]
+
+  n_infected
+})
+
+# collect all transmission chain data and save
+transmission_data <- rbindlist(transmission_data)
+# sum lengths in each scenario tag
+transmission_data <- transmission_data[, list(freq = sum(freq)), by = c(
+  "n_infected", "gen", "cost", "regen", "dispersal",
+  "handling_time", "scenario_tag"
+)]
+
+# save data
+fwrite(
+  transmission_data,
+  file = "data/results/transmission_data.csv"
+)
+```
+
+```{r}
+ggplot(transmission_data) +
+  geom_col(
+    aes(n_infected, freq, fill = as.factor(gen)),
+    position = position_dodge(width = 0.5)
+  ) +
+  facet_grid(~scenario_tag)
+```
+

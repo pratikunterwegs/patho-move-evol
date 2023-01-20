@@ -49,7 +49,7 @@ sc_repl <- seq(10) # the number of replicates
 
 # the generation of pathogen introduction
 gen_patho_intro <- as.character(500)
-gen_patho_adapt <- as.character(600)
+gen_patho_adapt <- as.character(700)
 
 data_sir_models <- Map(
   data_files, sc_repl,
