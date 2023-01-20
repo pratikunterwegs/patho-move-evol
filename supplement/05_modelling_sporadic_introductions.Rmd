@@ -35,47 +35,47 @@ library(patchwork)
 
 
 ```{r eval=FALSE, include=FALSE}
-files = list.files(
-  "data/results/morph_data", 
+files <- list.files(
+  "data/results/morph_data",
   pattern = "csv",
   full.names = TRUE
 )
 
-data_all = lapply(files, fread)
-df_strat = rbindlist(data_all)
+data_all <- lapply(files, fread)
+df_strat <- rbindlist(data_all)
 
 # get sim type
-df_strat = df_strat[scenario == 3,]
+df_strat <- df_strat[scenario == 3, ]
 
 # popsize
-popsize = 500
-replicates = 10
+popsize <- 500
+replicates <- 10
 df_strat[, prop := N / popsize]
-g_bin = 100
+g_bin <- 100
 df_strat[, gen_bin := (floor(gen / g_bin) * g_bin)]
 
 # get time since pathogen
-sgen = 3000
-genmax = 5000
+sgen <- 3000
+genmax <- 5000
 df_strat[, gen_abs := gen_bin - sgen]
 
-df_strat = df_strat[gen %% 100 == 0,]
+df_strat <- df_strat[gen %% 100 == 0, ]
 
-df_strat = df_strat[, list(
+df_strat <- df_strat[, list(
   prop = sum(prop) / (replicates)
 ), by = c(
-  "gen", "social_strat", 
+  "gen", "social_strat",
   "cost", "regen", "dispersal", "spillover_rate"
 )]
 
 # regeneration rate
-gen_time = 100
+gen_time <- 100
 df_strat[, regen_r := gen_time / regen]
 ```
 
 ```{r eval=FALSE, include=FALSE}
-fig_evo_strategy_sporadic = 
-  ggplot(df_strat)+
+fig_evo_strategy_sporadic <-
+  ggplot(df_strat) +
   geom_col(
     aes(
       gen, prop,
@@ -83,13 +83,13 @@ fig_evo_strategy_sporadic =
     ),
     width = 100,
     position = "stack"
-  )+
+  ) +
   geom_vline(
     xintercept = sgen,
     lty = 2,
     size = 0.3,
     col = "red"
-  )+
+  ) +
   scale_fill_discrete_sequential(
     palette = "Viridis",
     l2 = 80,
@@ -98,7 +98,7 @@ fig_evo_strategy_sporadic =
     limits = c("agent avoiding", "agent tracking", "handler tracking"),
     labels = stringr::str_to_sentence,
     na.value = "lightgrey"
-  )+
+  ) +
   scale_x_continuous(
     breaks = c(1000, sgen, genmax),
     name = "Generations",
@@ -108,7 +108,7 @@ fig_evo_strategy_sporadic =
       labels = "Initial pathogen introduction",
       name = "Increasing probability of pathogen introduction \u279c"
     )
-  )+
+  ) +
   scale_y_continuous(
     labels = scales::percent,
     breaks = NULL,
@@ -118,33 +118,33 @@ fig_evo_strategy_sporadic =
       labels = scales::percent,
       name = "% Individuals"
     )
-  )+
+  ) +
   facet_grid(
     cost ~ spillover_rate,
-    as.table = F, 
+    as.table = F,
     switch = c("y"),
     labeller = labeller(
       spillover_rate = function(x) {
         scales::percent(as.numeric(x), prefix = "p(Intro) = ")
       },
       cost = function(x) {
-        if(x >= 0.1) {
+        if (x >= 0.1) {
           sprintf("δE = %s", x)
         } else {
           scales::percent(as.numeric(x), prefix = "δE = ")
         }
       }
     )
-  )+
+  ) +
   coord_cartesian(
     expand = F
-  )+
+  ) +
   theme_test(
-    base_size = 8, 
+    base_size = 8,
     base_family = "Arial"
-  )+
+  ) +
   theme(
-    legend.position = "top", 
+    legend.position = "top",
     legend.key.height = unit(1, "mm"),
     strip.placement = "outside",
     strip.text = ggtext::element_markdown(),
@@ -155,53 +155,53 @@ fig_evo_strategy_sporadic =
   )
 
 # plot generations between introductions
-p = c(0.05, 0.1, 0.25)
-gen_intervals = lapply(p, rgeom, n = 1000)
-data_gen = data.table(
+p <- c(0.05, 0.1, 0.25)
+gen_intervals <- lapply(p, rgeom, n = 1000)
+data_gen <- data.table(
   p = p, gen_intervals
 )
 # unnest
-data_gen = data_gen[, list(
+data_gen <- data_gen[, list(
   gen_intervals = unlist(gen_intervals)
 ), by = c("p")]
 # add one
 data_gen[, gen_intervals := gen_intervals + 1]
 
 # figure of generations between introductions
-fig_gen_interval = 
-  ggplot(data_gen)+
+fig_gen_interval <-
+  ggplot(data_gen) +
   geom_histogram(
     aes(gen_intervals, y = ..count.. / 1000),
     binwidth = 2,
     fill = "steelblue"
-  )+
+  ) +
   facet_grid(
     cols = vars(p),
-    as.table = F, 
+    as.table = F,
     switch = c("y"),
     labeller = labeller(
       p = function(x) {
         scales::percent(as.numeric(x), prefix = "p(Intro) = ")
       }
     )
-  )+
+  ) +
   coord_cartesian(
     xlim = c(1, 50),
     expand = F
-  )+
+  ) +
   scale_y_continuous(
     labels = scales::percent,
     name = "Probability"
-  )+
+  ) +
   scale_x_continuous(
     name = "Gens. between pathogen introductions"
-  )+
+  ) +
   theme_test(
-    base_size = 8, 
+    base_size = 8,
     base_family = "Arial"
-  )+
+  ) +
   theme(
-    legend.position = "top", 
+    legend.position = "top",
     legend.key.height = unit(1, "mm"),
     strip.placement = "outside",
     strip.text = ggtext::element_markdown(),
@@ -212,21 +212,21 @@ fig_gen_interval =
   )
 
 # wrap figures
-fig_evo_strategy_sporadic =
-wrap_plots(
-  fig_gen_interval,
-  fig_evo_strategy_sporadic,
-  ncol = 1,
-  design = "A\nB\nB\nB"
-) &
-  plot_annotation(
-    tag_levels = c("A")
+fig_evo_strategy_sporadic <-
+  wrap_plots(
+    fig_gen_interval,
+    fig_evo_strategy_sporadic,
+    ncol = 1,
+    design = "A\nB\nB\nB"
   ) &
-  theme(
-    plot.tag = element_text(
-      face = "bold"
+    plot_annotation(
+      tag_levels = c("A")
+    ) &
+    theme(
+      plot.tag = element_text(
+        face = "bold"
+      )
     )
-  )
 
 # save figure
 ggsave(

@@ -31,7 +31,7 @@ library(colorspace)
 ```
 
 ```{r}
-l = pathomove::get_test_landscape(
+l <- pathomove::get_test_landscape(
   nItems = 1800,
   landsize = 60,
   nClusters = 60,
@@ -39,30 +39,30 @@ l = pathomove::get_test_landscape(
   regen_time = 50
 )
 
-global = data.frame(
+global <- data.frame(
   x = 30 + rnorm(30, 0, 10),
   y = 30 + rnorm(30, 0, 10),
   type = "global"
 )
 
-local = data.frame(
+local <- data.frame(
   x = 30 + rnorm(30, 0, 2),
   y = 30 + rnorm(30, 0, 2),
   type = "local"
 )
 
-agents = rbind(global, local)
+agents <- rbind(global, local)
 ```
 
 ```{r}
-p = ggplot(l)+
+p <- ggplot(l) +
   geom_bin2d(
     aes(
       x, y,
       fill = ..count..
     ),
     show.legend = F
-  )+
+  ) +
   geom_segment(
     data = agents,
     aes(
@@ -72,7 +72,7 @@ p = ggplot(l)+
     ),
     size = 0.2,
     show.legend = F
-  )+
+  ) +
   geom_point(
     data = agents,
     aes(
@@ -82,14 +82,14 @@ p = ggplot(l)+
     ),
     size = 1,
     show.legend = F
-  )+
+  ) +
   scale_colour_discrete_diverging(
     palette = "Blue-Red 2"
-  )+
+  ) +
   scale_fill_continuous_sequential(
     palette = "Greens 2"
-  )+
-  theme_test()+
+  ) +
+  theme_test() +
   theme(
     axis.title.x = element_blank(),
     axis.title.y = element_blank()

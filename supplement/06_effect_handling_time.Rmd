@@ -1,0 +1,139 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(data.table)
+```
+
+## Handling time
+
+```{r}
+files <- list.files(
+  "data/results/morph_data",
+  pattern = "handling",
+  full.names = TRUE
+)
+
+data_all <- lapply(files, fread)
+data_all <- rbindlist(data_all)
+
+# popsize
+popsize <- 500
+data_all[, prop := N / popsize]
+
+# get time since pathogen
+sgen <- 500
+genmax <- 1000
+data_all[, gen_abs := gen - sgen]
+
+# save for plotting and upload
+fwrite(
+  data_all,
+  file = "data/results/data_handling_strategy_evo.csv"
+)
+```
+
+```{r}
+ggplot(data_all) +
+  geom_area(
+    aes(gen, N,
+      fill = social_strat,
+      group = interaction(social_strat, repl)
+    ),
+    # size = 0.1
+  ) +
+  facet_grid(
+    cols = vars(handling_time),
+    rows = vars(repl)
+  )
+```
+
+## Threshold
+
+```{r}
+files <- list.files(
+  "data/results/morph_data",
+  pattern = "threshold",
+  full.names = TRUE
+)
+
+data_all <- lapply(files, fread)
+data_all <- rbindlist(data_all)
+
+# popsize
+popsize <- 500
+data_all[, prop := N / popsize]
+
+# get time since pathogen
+sgen <- 500
+genmax <- 1000
+data_all[, gen_abs := gen - sgen]
+
+# save for plotting and upload
+fwrite(
+  data_all,
+  file = "data/results/data_threshold_strategy_evo.csv"
+)
+```
+
+```{r}
+ggplot(data_all) +
+  geom_area(
+    aes(gen, N,
+      fill = social_strat,
+      group = interaction(social_strat, repl)
+    ),
+    # size = 0.1
+  ) +
+  facet_grid(
+    cols = vars(cost),
+    rows = vars(repl)
+  )
+```
+
+## Percent
+
+```{r}
+files <- list.files(
+  "data/results/morph_data",
+  pattern = "percent",
+  full.names = TRUE
+)
+
+data_all <- lapply(files, fread)
+data_all <- rbindlist(data_all)
+
+# popsize
+popsize <- 500
+data_all[, prop := N / popsize]
+
+# get time since pathogen
+sgen <- 500
+genmax <- 1000
+data_all[, gen_abs := gen - sgen]
+
+# save for plotting and upload
+fwrite(
+  data_all,
+  file = "data/results/data_percent_strategy_evo.csv"
+)
+```
+
+```{r}
+ggplot(data_all) +
+  geom_line(
+    aes(gen, N,
+      col = social_strat,
+      group = interaction(social_strat, repl)
+    ),
+    size = 0.1
+  ) +
+  facet_grid(
+    cols = vars(regen),
+    rows = vars(cost),
+    as.table = FALSE
+  )
+```
