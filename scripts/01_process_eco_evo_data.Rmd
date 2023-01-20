@@ -63,13 +63,16 @@ for (i in files) {
   repl <- data$params$replicate
   cost <- data$params$costInfect
   regen <- data$params$regen_time
+  handling_time <- ifelse(is.null(data$params$handling_time),
+    NA_real_, data$params$handling_time
+  )
   dispersal <- data$params$dispersal
   infect_percent <- data$params$infect_percent
   scenario <- data$params$scenario
   # get scenario tag
   scenario_tag <- data$scenario_tag
   p_v_transmit <- ifelse(is.null(data$params$p_v_transmit),
-    NA_character_, data$params$p_v_transmit
+    NA_real_, data$params$p_v_transmit
   )
   spillover_rate <- ifelse(
     data$params$scenario == 3, data$params$spillover_rate, NA
@@ -109,7 +112,7 @@ for (i in files) {
   ), by = c("gen", "social_strat", "moved")]
 
   # count si_importance morphs
-  gen_data[, si_imp := plyr::round_any(si_imp, 0.005)]
+  gen_data[, si_imp := plyr::round_any(si_imp, 0.01)]
   data_si_imp <- gen_data[, list(
     N = .N
   ), by = c("gen", "si_imp")]
@@ -133,10 +136,12 @@ for (i in files) {
       list(data_strategy, gen_data, data_si_imp, data_strategy_move_assoc),
       function(df) {
         df[, c(
-          "repl", "cost", "regen", "dispersal", "infect_percent", "p_v_transmit",
+          "repl", "cost", "regen", "dispersal", "infect_percent",
+          "p_v_transmit", "handling_time",
           "scenario", "scenario_tag"
         ) := list(
-          repl, cost, regen, dispersal, infect_percent, p_v_transmit, scenario, scenario_tag
+          repl, cost, regen, dispersal, infect_percent, p_v_transmit,
+          handling_time, scenario, scenario_tag
         )]
       }
     )
@@ -166,6 +171,21 @@ for (i in files) {
 }
 ```
 
+```{r}
+files <- list.files("data/output", pattern = "default", full.names = TRUE)
+data <- readRDS(files[45])
+output <- data$output
+
+output@agent_parameters
+
+a <- pathomove::get_trait_data(output)
+pathomove::get_social_strategy(a)
+
+b <- a[, list(moved = mean(moved)), by = c("gen", "social_strat")]
+ggplot(b, aes(gen, moved, col = social_strat)) +
+  geom_line(size = 0.1)
+```
+
 ## Infections per generation
 
 ```{r}
@@ -186,12 +206,17 @@ data_infections_gen <- lapply(
     repl <- data$params$replicate
     cost <- data$params$costInfect
     regen <- data$params$regen_time
+    handling_time <- ifelse(is.null(data$params$handling_time),
+      NA_real_, data$params$handling_time
+    )
     dispersal <- data$params$dispersal
     infect_percent <- data$params$infect_percent
     scenario <- data$params$scenario
+    # get scenario tag
     scenario_tag <- data$scenario_tag
-    p_v_transmit <- data$params$p_v_transmit
-    # spillover rate if at all
+    p_v_transmit <- ifelse(is.null(data$params$p_v_transmit),
+      NA_real_, data$params$p_v_transmit
+    )
     spillover_rate <- ifelse(
       data$params$scenario == 3, data$params$spillover_rate, NA
     )
@@ -205,6 +230,7 @@ data_infections_gen <- lapply(
       regen = regen,
       dispersal = dispersal,
       infect_percent = infect_percent,
+      handling_time = handling_time,
       repl = repl,
       gen = gens,
       n_infected = n_infected,
