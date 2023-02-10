@@ -3,9 +3,9 @@
 #SBATCH --partition=regular
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --job-name=pathomove_handling
+#SBATCH --job-name=pathomove_sporadic
 #SBATCH --array=1-n_array
-#SBATCH --output=/home/p284074/patho-move-evol/data/output/pathomove_handling_%a.log
+#SBATCH --output=/home/p284074/patho-move-evol/data/output/pathomove_spatial_%a.log
 #SBATCH --mem=8000
 
 pwd
