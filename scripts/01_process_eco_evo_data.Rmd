@@ -49,34 +49,37 @@ lapply(
 )
 ```
 
+List parameter files and link with output files.
+
+```{r}
+parameters <- list.files(
+  "data/parameters/",
+  pattern = "csv", full.names = TRUE
+)
+
+# bind together
+parameters <- lapply(parameters, fread) |> rbindlist(fill = TRUE)
+
+# link with output
+output <- data.table(
+  file = files,
+  seed = as.integer(str_extract(files, "\\d{10}"))
+)
+
+output <- merge(
+  output, parameters,
+  by = "seed"
+)
+```
+
 ```{r}
 # use a loop because why not and don't want to load purrr for walk
-for (i in files) {
+for (i in seq_len(nrow(output))) {
 
   # load data
-  data <- readRDS(i)
-
-  # the seed data unique identifier
-  uid <- data$params$seed
-
-  # load metadata on the simulation
-  repl <- data$params$replicate
-  cost <- data$params$costInfect
-  regen <- data$params$regen_time
-  handling_time <- ifelse(is.null(data$params$handling_time),
-    NA_real_, data$params$handling_time
-  )
-  dispersal <- data$params$dispersal
-  infect_percent <- data$params$infect_percent
-  scenario <- data$params$scenario
-  # get scenario tag
+  data <- readRDS(output$file[i])
+  # scenario tag
   scenario_tag <- data$scenario_tag
-  p_v_transmit <- ifelse(is.null(data$params$p_v_transmit),
-    NA_real_, data$params$p_v_transmit
-  )
-  spillover_rate <- ifelse(
-    data$params$scenario == 3, data$params$spillover_rate, NA
-  )
 
   # prepare generation level data
   gen_data <- pathomove::get_trait_data(
@@ -84,11 +87,8 @@ for (i in files) {
     scaled_preferences = TRUE
   )
 
-  # add replicate data information
-  gen_data[, repl := repl]
-
   #### prepare individual level data ####
-  popsize <- data$params$popsize
+  popsize <- output$popsize[i]
 
   # get social strategy and social information importance
   gen_data <- pathomove::get_social_strategy(gen_data)
@@ -100,6 +100,7 @@ for (i in files) {
     mean_move = mean(moved),
     mean_assoc = mean(assoc),
     mean_intake = mean(intake),
+    mean_energy = mean(energy),
     prop_infec = sum(t_infec > 0) / length(t_infec)
   ), by = c("gen", "social_strat")]
 
@@ -131,18 +132,13 @@ for (i in files) {
   ]
 
   # add simulation parameters
+  params <- as.list(output[i, -c("seed", "file")])
   invisible(
     lapply(
       list(data_strategy, gen_data, data_si_imp, data_strategy_move_assoc),
       function(df) {
-        df[, c(
-          "repl", "cost", "regen", "dispersal", "infect_percent",
-          "p_v_transmit", "handling_time",
-          "scenario", "scenario_tag"
-        ) := list(
-          repl, cost, regen, dispersal, infect_percent, p_v_transmit,
-          handling_time, scenario, scenario_tag
-        )]
+        df[, names(params) := params]
+        df[, scenario_tag := scenario_tag]
       }
     )
   )
@@ -162,7 +158,7 @@ for (i in files) {
         fwrite(
           df,
           file = glue(
-            "{p}/data_gen_{scenario_tag}_{uid}.csv"
+            "{p}/data_gen_{scenario_tag}_{output$seed[i]}.csv"
           )
         )
       }
@@ -173,72 +169,54 @@ for (i in files) {
 
 ```{r}
 files <- list.files("data/output", pattern = "default", full.names = TRUE)
-data <- readRDS(files[45])
+data <- readRDS(files[42])
 output <- data$output
 
 output@agent_parameters
+output@eco_parameters
 
 a <- pathomove::get_trait_data(output)
 pathomove::get_social_strategy(a)
+pathomove::get_si_importance(a)
 
-b <- a[, list(moved = mean(moved)), by = c("gen", "social_strat")]
-ggplot(b, aes(gen, moved, col = social_strat)) +
-  geom_line(size = 0.1)
+b <- a[, .N, by = c("gen", "social_strat")]
+ggplot(b) +
+  geom_col(
+    aes(gen, N, fill = social_strat),
+    width = 5
+  )
+
+ggplot(
+  a[gen %between% c(3000, 3500), ],
+  aes(moved, assoc, col = social_strat)
+) +
+  scale_y_log10() +
+  geom_jitter(size = 0.1)
 ```
 
 ## Infections per generation
 
 ```{r}
-files <- list.files(
-  path = "data/output/",
-  pattern = "Rds", full.names = T
-)
-```
-
-```{r}
 # load each file and get parameters and infections over generations
 data_infections_gen <- lapply(
-  files, function(le) {
+  seq_len(nrow(output)), function(i) {
     # load data
-    data <- readRDS(le)
+    data <- readRDS(output$file[i])
+    scenario_tag <- data$scenario_tag
+
+    # generations and infections
+    n_infected <- data$output@infections_per_gen
+    gens <- seq(0, max(data$output@generations))
 
     # parameters
-    repl <- data$params$replicate
-    cost <- data$params$costInfect
-    regen <- data$params$regen_time
-    handling_time <- ifelse(is.null(data$params$handling_time),
-      NA_real_, data$params$handling_time
-    )
-    dispersal <- data$params$dispersal
-    infect_percent <- data$params$infect_percent
-    scenario <- data$params$scenario
-    # get scenario tag
-    scenario_tag <- data$scenario_tag
-    p_v_transmit <- ifelse(is.null(data$params$p_v_transmit),
-      NA_real_, data$params$p_v_transmit
-    )
-    spillover_rate <- ifelse(
-      data$params$scenario == 3, data$params$spillover_rate, NA
-    )
+    params <- as.list(output[i, -c("file", "seed")])
 
-    # load infections (logged in EACH generation)
-    n_infected <- data$output@infections_per_gen
-    gens <- seq_along(n_infected)
-
-    data.table(
-      cost = cost,
-      regen = regen,
-      dispersal = dispersal,
-      infect_percent = infect_percent,
-      handling_time = handling_time,
-      repl = repl,
+    df <- data.table(
       gen = gens,
       n_infected = n_infected,
-      scenario = scenario,
-      scenario_tag = scenario_tag,
-      spillover_rate = spillover_rate,
-      p_v_transmit = p_v_transmit
+      scenario_tag = scenario_tag
     )
+    df[, names(params) := params]
   }
 )
 
@@ -317,3 +295,11 @@ ggplot(sc_vertical) +
     490, 600
   )
 ```
+
+```{r}
+data_infections_gen[scenario_tag == "vertical", ] |>
+  ggplot(aes(gen, n_infected)) +
+  geom_point(size = 0.2) +
+  facet_grid(p_v_transmit ~ costInfect)
+```
+

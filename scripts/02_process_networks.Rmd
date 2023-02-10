@@ -82,7 +82,7 @@ for (i in files) {
 ## Quantifying transmission chains
 
 ```{r}
-generations <- c(500, 700) # generation of introduction, + 200
+generations <- c(3000, 3500) # generation of introduction, + 200
 
 if (!dir.exists("data/results/transmission_chains")) {
   dir.create("data/results/transmission_chains")

@@ -12,6 +12,279 @@ library(patchwork)
 library(colorspace)
 ```
 
+## Social strategies differ in movement and intake, but not energy
+
+```{r}
+df_strat <- fread("data/results/data_default_strategy_evo.csv")
+```
+
+```{r}
+df_strat <- df_strat[, c(
+  "gen", "gen_abs", "social_strat",
+  "mean_move", "mean_assoc", "mean_intake",
+  "mean_energy"
+)]
+
+# cast long
+df_strat <- melt(df_strat, id.vars = c("gen", "gen_abs", "social_strat"))
+
+# remove non-handler tracking
+df_strat <- df_strat[social_strat != "non-handler tracking"]
+```
+
+Plot strategy differences in movement.
+
+```{r}
+plot_diff_move <-
+  ggplot(df_strat[variable %in% c("mean_move") & gen %% 100 == 0]) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  stat_summary(
+    aes(gen_abs, value, col = social_strat),
+    geom = "line", size = 0.2, show.legend = FALSE
+  ) +
+  stat_summary(
+    aes(gen_abs, value, col = social_strat),
+    size = 0.2,
+    shape = 1, show.legend = FALSE
+  ) +
+  scale_y_continuous(
+    # trans = ggallin::pseudolog10_trans
+  ) +
+  scale_x_continuous(
+    breaks = c(-500, 0, 500, 2000),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(sgen, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  scale_colour_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80, # c2 = 20, c1 = 20,
+    rev = FALSE,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  ) +
+  coord_cartesian(
+    xlim = c(-500, 2000)
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "bottom",
+    legend.key = element_blank(),
+    legend.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    plot.background = element_blank(),
+    strip.placement = "outside"
+  ) +
+  labs(
+    x = NULL,
+    y = "Distance moved",
+    colour = NULL,
+    shape = NULL
+  ) +
+  guides(
+    shape = NULL,
+    colour = guide_legend(
+      override.aes = list(
+        shape = 15
+      )
+    )
+  )
+```
+
+Plot strategy differences in intake.
+
+```{r}
+plot_diff_intake <-
+  ggplot(df_strat[variable %in% c("mean_intake") & gen %% 100 == 0]) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  stat_summary(
+    aes(gen_abs, value, col = social_strat),
+    geom = "line", size = 0.2, show.legend = FALSE
+  ) +
+  stat_summary(
+    aes(gen_abs, value, col = social_strat),
+    size = 0.2,
+    shape = 2, show.legend = FALSE
+  ) +
+  scale_y_continuous(
+    # trans = ggallin::pseudolog10_trans
+  ) +
+  scale_x_continuous(
+    breaks = c(-500, 0, 500, 2000),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(sgen, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  scale_colour_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80, # c2 = 20, c1 = 20,
+    rev = FALSE,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  ) +
+  coord_cartesian(
+    xlim = c(-500, 2000)
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "bottom",
+    legend.key = element_blank(),
+    legend.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    plot.background = element_blank(),
+    strip.placement = "outside"
+  ) +
+  labs(
+    x = NULL,
+    y = "Per-capita intake",
+    colour = NULL,
+    shape = NULL
+  ) +
+  guides(
+    shape = NULL,
+    colour = guide_legend(
+      override.aes = list(
+        shape = 15
+      )
+    )
+  )
+```
+
+Plot strategy differences in energy.
+
+```{r}
+plot_diff_energy <-
+  ggplot(df_strat[variable %in% c("mean_energy") & gen %% 100 == 0]) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  stat_summary(
+    aes(gen_abs, value, col = social_strat),
+    geom = "line", size = 0.2, show.legend = FALSE
+  ) +
+  stat_summary(
+    aes(gen_abs, value, col = social_strat),
+    size = 0.2,
+    shape = 5, show.legend = FALSE
+  ) +
+  scale_y_continuous(
+    # trans = ggallin::pseudolog10_trans
+  ) +
+  scale_x_continuous(
+    breaks = c(-500, 0, 500, 2000),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(sgen, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  scale_colour_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80, # c2 = 20, c1 = 20,
+    rev = FALSE,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  ) +
+  coord_cartesian(
+    xlim = c(-500, 2000),
+    ylim = c(-6, NA)
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "bottom",
+    legend.key = element_blank(),
+    legend.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    plot.background = element_blank(),
+    strip.placement = "outside"
+  ) +
+  labs(
+    x = NULL,
+    y = "Per-capita energy",
+    colour = NULL,
+    shape = NULL
+  ) +
+  guides(
+    shape = NULL,
+    colour = guide_legend(
+      override.aes = list(
+        shape = 15
+      )
+    )
+  )
+```
+
+```{r}
+plot_strat_diff <- wrap_plots(
+  plot_diff_move, plot_diff_intake, plot_diff_energy,
+  ncol = 3, guides = "collect"
+) & theme(
+  legend.position = "none"
+)
+```
+
 ## Associations per distance moved by strategy
 
 ```{r}
@@ -22,8 +295,8 @@ files <- list.files(
 
 # read data and filter for default paramaeter combination
 data_move_assoc <- lapply(files, fread) |> rbindlist()
-data_move_assoc <- data_move_assoc[between(gen, 500, 750), ]
-data_move_assoc <- data_move_assoc[cost == 0.25 & regen == 50, ]
+data_move_assoc <- data_move_assoc[between(gen, 3000, 3500), ]
+data_move_assoc <- data_move_assoc[costInfect == 0.25 & regen_time == 50, ]
 
 # round moved
 data_move_assoc[, moved_bin := plyr::round_any(moved, 5)]
@@ -53,10 +326,10 @@ plot_move_assoc <-
     geom = "text",
     x = 100,
     y = 750,
-    label = "Post-pathogen\n500 ≤ G ≤ 750",
+    label = "Post-pathogen\n3000 ≤ G ≤ 3500",
     hjust = "inward",
     fontface = "italic",
-    colour = "indianred",
+    colour = "red",
     size = 3,
     family = "Arial"
   ) +
@@ -120,7 +393,7 @@ plot_move_assoc <-
 ```{r}
 # load data
 data <- fread("data/results/data_default_strategy_evo.csv")
-data <- data[between(gen, 500, 750), ]
+data <- data[between(gen, 3000, 3500), ]
 ```
 
 ```{r}
@@ -193,7 +466,7 @@ plot_infected <-
     axis.text.x = element_blank()
   ) +
   labs(
-    x = "Social information\nstrategy",
+    x = "Social movement\nstrategy",
     y = "% Infected"
   )
 ```
@@ -201,13 +474,14 @@ plot_infected <-
 ```{r}
 plot_soc_out <-
   wrap_plots(
+    plot_strat_diff,
     plot_move_assoc,
     plot_infected,
     guides = "collect",
-    design = "AAB"
+    design = "AAA\nBBC\nBBC"
   ) &
     plot_annotation(
-      tag_levels = "A"
+      tag_levels = c("A", 1)
     ) &
     theme(
       legend.position = "bottom",
@@ -219,8 +493,8 @@ plot_soc_out <-
 ggsave(
   plot = plot_soc_out,
   file = "figures/fig_social_outcomes.png",
-  height = 80,
-  width = 120,
+  height = 150,
+  width = 150,
   units = "mm"
 )
 ```

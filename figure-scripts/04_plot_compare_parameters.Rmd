@@ -28,9 +28,8 @@ df_strat <- rbindlist(data_all)
 
 # get sim type
 df_strat <- df_strat[scenario_tag %in% c(
-  "default", "percent",
-  "global"
-), ]
+  "default", "global"
+) | (scenario_tag == "percent" & infect_percent), ]
 
 # popsize
 popsize <- 500
@@ -40,20 +39,20 @@ g_bin <- 10
 df_strat[, gen_bin := (floor(gen / g_bin) * g_bin)]
 
 # get time since pathogen
-sgen <- 500
-genmax <- 1000
+sgen <- 3000
+genmax <- 5000
 df_strat[, gen_abs := gen_bin - sgen]
 
 df_strat <- df_strat[, list(
   prop = sum(prop) / (replicates)
 ), by = c(
   "gen", "social_strat", "scenario_tag",
-  "cost", "regen", "infect_percent", "dispersal"
+  "costInfect", "regen_time", "infect_percent", "dispersal"
 )]
 
 # regeneration rate
 gen_time <- 100
-df_strat[, regen_r := gen_time / regen]
+df_strat[, regen_r := gen_time / regen_time]
 ```
 
 ```{r}
@@ -77,7 +76,7 @@ plots_evo <- lapply(
           gen, prop,
           fill = social_strat
         ),
-        width = 2,
+        width = 5,
         size = 1,
         position = "stack"
       ) +
@@ -117,11 +116,11 @@ plots_evo <- lapply(
         )
       ) +
       facet_grid(
-        cost ~ regen_r,
+        costInfect ~ regen_r,
         as.table = F,
         switch = c("y"),
         labeller = labeller(
-          cost = function(x) {
+          costInfect = function(x) {
             if (x >= 0.1) {
               sprintf("δE = %s", x)
             } else {
@@ -161,7 +160,7 @@ plots_evo <- lapply(
 ggsave(
   plot = plots_evo[["default"]],
   filename = "figures/fig_evo_strategy_default.png",
-  height = 120, width = 120, units = "mm"
+  height = 150, width = 150, units = "mm"
 )
 
 # save supplementary figure for percent costs
