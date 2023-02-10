@@ -25,17 +25,15 @@ files <- list.files(
 data_all <- lapply(files, fread)
 data_all <- rbindlist(data_all)
 
-df_strat <- data_all[(dispersal == 2) & (infect_percent == F) &
-  (scenario_tag == "default")]
-df_strat <- df_strat[(cost == 0.25) & (regen == 50)]
+df_strat <- data_all[(costInfect == 0.25) & (regen_time == 50)]
 
 # popsize
 popsize <- 500
 df_strat[, prop := N / popsize]
 
 # get time since pathogen
-sgen <- 500
-genmax <- 1000
+sgen <- 3000
+genmax <- 5000
 df_strat[, gen_abs := gen - sgen]
 
 # save for plotting and upload
@@ -61,29 +59,28 @@ fig_evo_social_strategy <-
     size = 0.3,
     col = c("red", "grey")
   ) +
-  geom_line(
-    data = df_strat,
-    aes(gen_abs, prop,
-      colour = social_strat,
-      group = interaction(repl, social_strat)
+  stat_summary(
+    data = df_strat[social_strat != "non-handler tracking" &
+      (gen %% 50 == 0), ],
+    aes(
+      gen_abs, prop,
+      col = social_strat
     ),
-    size = 0.2
+    size = 0.2,
+    geom = "line"
   ) +
-  # stat_summary(
-  #   data = df_strat[social_strat != "non-handler tracking" &
-  #                     (gen %% 20 == 0), ],
-  #   fun = mean,
-  #   fun.min = function(x) mean(x) - sd(x),
-  #   fun.max = function(x) mean(x) + sd(x),
-  #   aes(
-  #     gen_abs, prop,
-  #     fill = social_strat
-  #   ),
-  #   geom = "pointrange",
-  #   position = position_dodge(width = 2),
-  #   size = 0.2,
-  #   shape = 21
-  # ) +
+  stat_summary(
+    data = df_strat[social_strat != "non-handler tracking" &
+      (gen %% 50 == 0), ],
+    aes(
+      gen_abs, prop,
+      col = social_strat
+    ),
+    size = 0.2,
+    position = position_dodge(width = 2),
+    # size = 0.2,
+    # shape = 21
+  ) +
   scale_colour_discrete_sequential(
     palette = "Viridis",
     l2 = 80, # c2 = 20, c1 = 20,
@@ -103,15 +100,15 @@ fig_evo_social_strategy <-
     na.value = "lightgrey"
   ) +
   scale_x_continuous(
-    # trans = ggallin::ssqrt_trans,
-    breaks = c(-500, 0, 100, 250),
+    trans = ggallin::ssqrt_trans,
+    breaks = c(-500, 0, 100, 500, 2000),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, sgen, sgen + 250),
+      breaks = c(sgen - 500, sgen, sgen + 500, sgen + 2000),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -124,7 +121,7 @@ fig_evo_social_strategy <-
     name = "% Individuals"
   ) +
   coord_cartesian(
-    xlim = c(NA, 250),
+    xlim = c(-500, 2000),
     ylim = c(0, 1)
   ) +
   theme_test(
@@ -154,9 +151,7 @@ files <- list.files(
 data_all <- lapply(files, fread)
 data_all <- rbindlist(data_all)
 
-df_si <- data_all[(dispersal == 2) & (infect_percent == F) &
-  (scenario_tag == "default")]
-df_si <- df_si[(cost == 0.25) & (regen == 50)]
+df_si <- data_all[(costInfect == 0.25) & (regen_time == 50)]
 
 # popsize
 popsize <- 500
@@ -169,8 +164,8 @@ df_si <- df_si[, list(
 ), by = c("gen", "si_imp", "repl")]
 
 # get time since pathogen
-sgen <- 500
-genmax <- 1000
+sgen <- 3000
+genmax <- 5000
 df_si[, gen_abs := gen - sgen]
 
 # save for plotting and upload
@@ -207,19 +202,19 @@ df_si_mean[, gen_abs := gen - sgen]
 ```{r}
 hmap_cols <- colorspace::sequential_hcl(
   5,
-  palette = "rocket",
+  palette = "sunset",
   rev = TRUE
 )
 
 fig_evo_si_importance <-
   ggplot() +
   geom_tile(
-    data = df_si[repl == 4], # 7
+    data = df_si[replicate == 4],
     aes(
       gen_abs, si_imp,
       fill = N / popsize
     ),
-    width = 2
+    width = 5
   ) +
   geom_vline(
     xintercept = c(0, 100),
@@ -234,14 +229,13 @@ fig_evo_si_importance <-
     size = 0.2
   ) +
   geom_pointrange(
-    data = df_si_mean[(gen %% 20 == 0), ],
+    data = df_si_mean[(gen %% 100 == 0), ],
     aes(
       gen_abs, y,
       ymin = ymin,
       ymax = ymax
     ),
-    shape = 21, size = 0.2,
-    fill = "grey",
+    shape = 16, size = 0.2,
     colour = "grey40"
   ) +
   scale_fill_gradientn(
@@ -260,14 +254,14 @@ fig_evo_si_importance <-
     name = "% Indiv."
   ) +
   scale_x_continuous(
-    breaks = c(-500, 0, 100, 250),
+    breaks = c(-500, 0, 500, 2000),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, sgen, sgen + 250),
+      breaks = c(sgen - 500, sgen, sgen + 500, sgen + 2000),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -279,8 +273,8 @@ fig_evo_si_importance <-
     name = "% Contribution of\nsocial information"
   ) +
   coord_cartesian(
-    xlim = c(NA, 250),
-    ylim = c(0, 0.75)
+    xlim = c(-500, 2000),
+    ylim = c(0, 0.5)
   ) +
   theme_test(
     base_family = "Arial",
@@ -340,6 +334,15 @@ ggsave(
 
 ## Data ecological outcomes
 
+```{r}
+ggplot(df_strat, aes(gen, mean_intake)) +
+  geom_point(
+    aes(col = social_strat),
+    size = 0.1
+  )
+```
+
+
 Load generation data.
 
 ```{r}
@@ -353,16 +356,14 @@ files <- list.files(
 data_all <- lapply(files, fread)
 data_all <- rbindlist(data_all)
 
-df_eco <- data_all[(dispersal == 2) & (infect_percent == F) &
-  (scenario_tag == "default")]
-df_eco <- df_eco[(cost == 0.25) & (regen == 50)]
+df_eco <- data_all[(costInfect == 0.25) & (regen_time == 50)]
 
 # popsize
 popsize <- 500
 
 # get time since pathogen
-sgen <- 500
-genmax <- 1000
+sgen <- 3000
+genmax <- 5000
 df_eco[, gen_abs := gen - sgen]
 
 # save for plotting and upload
@@ -382,11 +383,12 @@ df_eco <- fread("data/results/data_default_eco.csv")
 ```{r}
 df_eco <- df_eco[, c(
   "gen_abs", "intake.mean", "gen",
-  "moved.mean", "assoc.mean", "repl"
+  "energy.mean",
+  "moved.mean", "assoc.mean", "replicate"
 )]
 df_eco <- melt(
   df_eco,
-  id.vars = c("gen_abs", "gen", "repl")
+  id.vars = c("gen_abs", "gen", "replicate")
 )
 
 ## colours for background
@@ -397,7 +399,7 @@ cols <- colorspace::diverging_hcl(3, palette = "Tofino", l = 50, c = 80)
 
 ```{r}
 plot_movement <-
-  ggplot(df_eco[variable %in% c("moved.mean") & gen %% 4 == 0]) +
+  ggplot(df_eco[variable %in% c("moved.mean") & gen %% 100 == 0]) +
   geom_vline(
     xintercept = c(0, 100),
     lty = 2,
@@ -408,29 +410,29 @@ plot_movement <-
     aes(
       gen_abs, value
     ),
-    geom = "ribbon",
-    size = 0.1,
-    fill = lighten(cols[1], amount = 0.9),
-    col = NA,
+    geom = "line",
+    col = cols[1],
+    size = 0.2,
     show.legend = F
   ) +
   stat_summary(
     aes(
       gen_abs, value
     ),
-    geom = "line",
+    # geom = "line",
     col = cols[1],
+    size = 0.1,
     show.legend = F
   ) +
   scale_x_continuous(
-    breaks = c(-500, 0, 100, 250),
+    breaks = c(-500, 0, 500, 2000),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, sgen, sgen + 250),
+      breaks = c(sgen, genmax),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -438,8 +440,8 @@ plot_movement <-
     )
   ) +
   coord_cartesian(
-    xlim = c(NA, 250),
-    ylim = c(50, 65)
+    xlim = c(-500, 2000),
+    ylim = c(50, NA)
   ) +
   theme_test(
     base_family = "Arial",
@@ -468,7 +470,7 @@ plot_movement <-
 
 ```{r}
 plot_assoc <-
-  ggplot(df_eco[variable %in% c("assoc.mean") & gen %% 4 == 0]) +
+  ggplot(df_eco[variable %in% c("assoc.mean") & gen %% 100 == 0]) +
   geom_vline(
     xintercept = c(0, 100),
     lty = 2,
@@ -479,29 +481,28 @@ plot_assoc <-
     aes(
       gen_abs, value
     ),
-    geom = "ribbon",
-    size = 0.1,
-    fill = lighten(cols[2], amount = 0.9),
-    col = NA,
+    geom = "line",
+    col = cols[2],
+    size = 0.2,
     show.legend = F
   ) +
   stat_summary(
     aes(
       gen_abs, value
     ),
-    geom = "line",
     col = cols[2],
+    size = 0.1,
     show.legend = F
   ) +
   scale_x_continuous(
-    breaks = c(-500, 0, 100, 250),
+    breaks = c(-500, 0, 500, 2000),
     labels = scales::comma_format(
       accuracy = 1
     ),
     name = "Gens. after pathogen intro.",
     sec.axis = sec_axis(
       trans = function(x) x + sgen,
-      breaks = c(1, sgen, sgen + 250),
+      breaks = c(sgen, genmax),
       labels = scales::comma_format(
         accuracy = 1
       ),
@@ -513,7 +514,8 @@ plot_assoc <-
     labels = scales::comma
   ) +
   coord_cartesian(
-    xlim = c(NA, 250)
+    xlim = c(-500, 2000),
+    # ylim = c(50, NA)
   ) +
   theme_test(
     base_family = "Arial",
@@ -542,16 +544,99 @@ plot_assoc <-
   )
 ```
 
+```{r}
+col_energy <- colorspace::sequential_hcl(5, palette = "Purples")[2]
+
+plot_energy <-
+  ggplot(df_eco[variable %in% c("energy.mean") & (gen %% 100 == 0)]) +
+  geom_vline(
+    xintercept = c(0, 100),
+    lty = 2,
+    size = 0.3,
+    col = c("red", "grey")
+  ) +
+  geom_hline(
+    yintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  stat_summary(
+    data = df_eco[variable %in% c("intake.mean") & (gen %% 100 == 0)],
+    aes(gen_abs, value),
+    col = cols[3],
+    size = 0.1
+  ) +
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    geom = "line",
+    col = col_energy,
+    size = 0.2,
+    show.legend = F
+  ) +
+  stat_summary(
+    aes(
+      gen_abs, value
+    ),
+    col = col_energy,
+    size = 0.1,
+    show.legend = TRUE
+  ) +
+  scale_x_continuous(
+    breaks = c(-500, 0, 500, 2000),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(sgen, genmax),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  coord_cartesian(
+    xlim = c(-500, 2000),
+    # ylim = c(50, NA)
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    # legend.position = c(0.2, 0.15),
+    legend.key = element_blank(),
+    legend.background = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(
+      face = "italic"
+    ),
+    plot.background = element_blank(),
+    strip.placement = "outside"
+  ) +
+  labs(
+    x = NULL,
+    y = "Net energy",
+    colour = NULL,
+    shape = NULL
+  )
+```
+
+
 ## Make Figure 1
 
 ```{r}
 fig_eco_evo_general <-
   wrap_plots(
-    # plot_agent_avoid,
     fig_evo_intermediate,
     plot_movement,
+    plot_energy,
     plot_assoc,
-    design = "AA\nAA\nBC",
+    design = "AAA\nAAA\nBCD",
     guides = "collect"
   ) &
     plot_annotation(

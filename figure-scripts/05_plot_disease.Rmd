@@ -9,147 +9,10 @@ library(colorspace)
 library(patchwork)
 ```
 
-
-```{r}
-# spillover data and rounding
-popsize <- 500
-replicates <- 10
-
-data_sir_models <- fread("data/results/data_sir_models.csv")
-
-# select scenarios
-data_sir_models <- data_sir_models[scenario == "Novel pathogen"]
-
-# data_sir_models$mean = data_sir_models$mean / 500
-data_sir_models <- data_sir_models[class == "NR" & gamma == 1 &
-  beta == 5 & threshold %in% c(1, 10)]
-
-# select scenario
-data_default <- data_sir_models[regen_time == 50 & costInfect == 0.25]
-
-# round time, with larger bins later in time
-# ie, increments of 0, 0.25, 0.5, 1, 2, 5, 10 etc.
-data_default[, tround := plyr::round_any(time, 0.25)]
-data_default[, tround := fifelse(
-  time > 5, plyr::round_any(time, 0.5),
-  tround
-)]
-data_default[, type := factor(type, levels = c("pre", "post"))]
-
-# save data default sir
-fwrite(
-  data_default,
-  file = "data/results/data_default_sir.csv"
-)
-```
-
-```{r}
-# load saved data to save time
-data_default <- fread("data/results/data_default_sir.csv")
-data_default[, type := factor(type, levels = c("pre", "post"))]
-# data_default = split(data_default, by = "threshold")
-```
-
-```{r}
-# plot the progress of disease in default network sir models
-fig_sir <-
-  ggplot(data_default) +
-  geom_hline(
-    yintercept = 0.5,
-    col = "grey",
-    size = 0.2
-  ) +
-  geom_jitter(
-    aes(
-      time, mean / popsize,
-      col = type,
-      group = interaction(repl, sc_repl, threshold)
-    ),
-    size = 0.1,
-    show.legend = F
-  ) +
-  stat_summary(
-    aes(
-      tround, mean / popsize,
-      fill = type,
-      shape = type,
-      group = interaction(type, threshold, beta)
-    ),
-    position = position_dodge(width = 0.1),
-    show.legend = F
-  ) +
-  facet_wrap(
-    ~threshold,
-    labeller = labeller(
-      threshold = c(
-        "1" = "1 encounter",
-        "10" = "10 encounters"
-      )
-    )
-  ) +
-  scale_colour_discrete_diverging(
-    c1 = 30,
-    l1 = 50, l2 = 80,
-    palette = "Blue-Red 2",
-    rev = FALSE,
-    breaks = c("pre", "post"),
-    labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
-  ) +
-  scale_fill_discrete_diverging(
-    palette = "Blue-Red 2",
-    rev = FALSE,
-    breaks = c("pre", "post"),
-    labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
-  ) +
-  scale_shape_manual(
-    values = c(
-      "pre" = 21,
-      "post" = 24
-    ),
-    breaks = c("pre", "post"),
-    labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
-  ) +
-  scale_y_continuous(
-    labels = scales::percent,
-    breaks = c(0, 0.5, 1)
-  ) +
-  # scale_x_sqrt()+
-  theme_test(
-    base_family = "Arial",
-    base_size = 8
-  ) +
-  theme(
-    legend.position = "top",
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "bold"
-    ),
-    # strip.placement = "outside",
-    axis.text.y = element_text(
-      angle = 90,
-      hjust = 0.5,
-      size = 6
-    )
-  ) +
-  coord_cartesian(
-    xlim = c(0, 6),
-    ylim = c(0, 1)
-  ) +
-  labs(
-    x = "SIR model time",
-    y = "% Agents infected",
-    fill = NULL,
-    colour = NULL,
-    shape = NULL
-  )
-```
-
-## Infections per generation
-
 ```{r}
 # some parameters
-sgen <- 500
-genmax <- 1000
+sgen <- 3000
+genmax <- 5000
 popsize <- 500
 
 # load data
@@ -157,7 +20,8 @@ data_infections_gen <- fread("data/results/data_infections_gen.csv")
 
 # subset data
 data_infections_gen <- data_infections_gen[scenario_tag == "default"]
-data_infections_gen <- data_infections_gen[cost == 0.25 & regen == 50 &
+data_infections_gen <- data_infections_gen[costInfect == 0.25 &
+  regen_time == 50 &
   dispersal == 2]
 # data_infections_gen[, gen_bin := round(gen, digits = -2)]
 
@@ -173,31 +37,36 @@ data_infections_gen[, gen_abs := gen - sgen]
 ```{r}
 # make figures
 fig_gen_infect <-
-  ggplot(data_infections_gen[gen >= sgen & gen %% 10 == 0]) +
+  ggplot(data_infections_gen[gen >= sgen & gen %% 50 == 0]) +
+  stat_bin2d(
+    data = data_infections_gen[gen >= sgen],
+    aes(
+      gen_abs, n_infected / popsize
+    ),
+    linewidth = 0.1,
+    linetype = "dashed",
+    show.legend = F
+  ) +
   geom_hline(
     yintercept = 0.5,
     col = "grey",
     size = 0.2
   ) +
-  geom_line(
-    aes(
-      gen_abs, n_infected / popsize,
-      group = repl
-    ),
-    linewidth = 0.1,
-    colour = "indianred",
-    show.legend = F
-  ) +
   stat_summary(
     aes(
       gen_abs, n_infected / popsize
     ),
-    fill = "brown",
-    shape = 21,
+    fill = "firebrick",
+    shape = 21, size = 0.2,
     show.legend = FALSE
   ) +
+  scale_fill_continuous_sequential(
+    palette = "Reds",
+    l1 = 70, l2 = 100,
+    c1 = 50, c2 = 10
+  ) +
   scale_x_continuous(
-    breaks = c(-500, 0, 100, 250),
+    breaks = c(-500, 0, 500, 2000),
     labels = scales::comma_format(
       accuracy = 1
     ),
@@ -205,12 +74,12 @@ fig_gen_infect <-
   ) +
   scale_y_continuous(
     labels = scales::percent,
-    breaks = c(0, 0.5, 1),
+    breaks = c(0.2, 0.5, 0.8),
     name = "% Population infected"
   ) +
   coord_cartesian(
-    xlim = c(NA, 250),
-    ylim = c(0, 1)
+    # xlim = c(NA, 250),
+    ylim = c(0.2, 0.8)
   ) +
   theme_test(
     base_family = "Arial",
@@ -226,6 +95,7 @@ fig_gen_infect <-
 ```
 
 ```{r}
+# add layers
 plot_disease <- wrap_plots(
   fig_gen_infect, fig_sir,
   guides = "collect",
