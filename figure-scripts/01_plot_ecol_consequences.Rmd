@@ -3,6 +3,8 @@ editor_options:
   chunk_output_type: console
 ---
 
+# Plot eco-evolutionary change in the default scenario
+
 ```{r}
 library(data.table)
 
@@ -11,7 +13,7 @@ library(patchwork)
 library(colorspace)
 ```
 
-## Focal strategy data
+## Load evolutionary data
 
 Load generation strategy data.
 
@@ -56,7 +58,7 @@ fig_evo_social_strategy <-
   geom_vline(
     xintercept = c(0, 100),
     lty = 2,
-    size = 0.3,
+    linewidth = 0.3,
     col = c("red", "grey")
   ) +
   stat_summary(
@@ -77,9 +79,7 @@ fig_evo_social_strategy <-
       col = social_strat
     ),
     size = 0.2,
-    position = position_dodge(width = 2),
-    # size = 0.2,
-    # shape = 21
+    position = position_dodge(width = 2)
   ) +
   scale_colour_discrete_sequential(
     palette = "Viridis",
@@ -139,7 +139,7 @@ fig_evo_social_strategy <-
   )
 ```
 
-## Data social information importance
+## Load social information importance
 
 ```{r}
 files <- list.files(
@@ -161,7 +161,7 @@ df_si[, prop := N / popsize]
 # group by 1% intervals
 df_si <- df_si[, list(
   prop = sum(prop), N = sum(N)
-), by = c("gen", "si_imp", "repl")]
+), by = c("gen", "si_imp", "replicate")]
 
 # get time since pathogen
 sgen <- 3000
@@ -197,7 +197,7 @@ df_si_mean[, c("y", "ymin", "ymax") := list(
 df_si_mean[, gen_abs := gen - sgen]
 ```
 
-### Figure social information importance
+## Plot social information importance
 
 ```{r}
 hmap_cols <- colorspace::sequential_hcl(
@@ -290,16 +290,16 @@ fig_evo_si_importance <-
     legend.text = element_text(
       size = 6
     ),
-    # axis.text.x = element_text(hjust = 0.5, size = 6),
     axis.text.y = element_text(
       angle = 90, hjust = 0.5
     )
   )
 ```
 
-### Intermediate figure SI change
+## Plot intermediate figure
 
 ```{r}
+# prepare intermediate figure
 fig_evo_intermediate <- wrap_plots(
   fig_evo_social_strategy,
   fig_evo_si_importance,
@@ -332,16 +332,7 @@ ggsave(
 )
 ```
 
-## Data ecological outcomes
-
-```{r}
-ggplot(df_strat, aes(gen, mean_intake)) +
-  geom_point(
-    aes(col = social_strat),
-    size = 0.1
-  )
-```
-
+## Load ecological outcomes
 
 Load generation data.
 
@@ -378,7 +369,7 @@ fwrite(
 df_eco <- fread("data/results/data_default_eco.csv")
 ```
 
-### Intake
+### Prepare data for plotting
 
 ```{r}
 df_eco <- df_eco[, c(
@@ -395,11 +386,12 @@ df_eco <- melt(
 cols <- colorspace::diverging_hcl(3, palette = "Tofino", l = 50, c = 80)
 ```
 
-## Movement
+### Plot change in movement
 
 ```{r}
 plot_movement <-
-  ggplot(df_eco[variable %in% c("moved.mean") & gen %% 100 == 0]) +
+  ggplot(df_eco[variable %in% c("moved.mean") &
+    gen %% 100 == 0]) +
   geom_vline(
     xintercept = c(0, 100),
     lty = 2,
@@ -419,7 +411,6 @@ plot_movement <-
     aes(
       gen_abs, value
     ),
-    # geom = "line",
     col = cols[1],
     size = 0.1,
     show.legend = F
@@ -448,7 +439,6 @@ plot_movement <-
     base_size = 8
   ) +
   theme(
-    # legend.position = c(0.2, 0.15),
     legend.key = element_blank(),
     legend.background = element_blank(),
     strip.background = element_blank(),
@@ -466,11 +456,12 @@ plot_movement <-
   )
 ```
 
-## Associations
+### Plot change in associations
 
 ```{r}
 plot_assoc <-
-  ggplot(df_eco[variable %in% c("assoc.mean") & gen %% 100 == 0]) +
+  ggplot(df_eco[variable %in% c("assoc.mean") &
+    gen %% 100 == 0]) +
   geom_vline(
     xintercept = c(0, 100),
     lty = 2,
@@ -514,15 +505,13 @@ plot_assoc <-
     labels = scales::comma
   ) +
   coord_cartesian(
-    xlim = c(-500, 2000),
-    # ylim = c(50, NA)
+    xlim = c(-500, 2000)
   ) +
   theme_test(
     base_family = "Arial",
     base_size = 8
   ) +
   theme(
-    # legend.position = c(0.2, 0.15),
     legend.key = element_blank(),
     legend.background = element_blank(),
     strip.background = element_blank(),
@@ -544,11 +533,14 @@ plot_assoc <-
   )
 ```
 
+### Plot change in energy and intake
+
 ```{r}
 col_energy <- colorspace::sequential_hcl(5, palette = "Purples")[2]
 
 plot_energy <-
-  ggplot(df_eco[variable %in% c("energy.mean") & (gen %% 100 == 0)]) +
+  ggplot(df_eco[variable %in% c("energy.mean") &
+    (gen %% 100 == 0)]) +
   geom_vline(
     xintercept = c(0, 100),
     lty = 2,
@@ -562,7 +554,8 @@ plot_energy <-
     col = c("red")
   ) +
   stat_summary(
-    data = df_eco[variable %in% c("intake.mean") & (gen %% 100 == 0)],
+    data = df_eco[variable %in% c("intake.mean") &
+      (gen %% 100 == 0)],
     aes(gen_abs, value),
     col = cols[3],
     size = 0.1
@@ -600,15 +593,13 @@ plot_energy <-
     )
   ) +
   coord_cartesian(
-    xlim = c(-500, 2000),
-    # ylim = c(50, NA)
+    xlim = c(-500, 2000)
   ) +
   theme_test(
     base_family = "Arial",
     base_size = 8
   ) +
   theme(
-    # legend.position = c(0.2, 0.15),
     legend.key = element_blank(),
     legend.background = element_blank(),
     strip.background = element_blank(),
@@ -626,10 +617,10 @@ plot_energy <-
   )
 ```
 
-
-## Make Figure 1
+## Save figure: Eco-evolutionary outcomes summary
 
 ```{r}
+# prepare and save figure
 fig_eco_evo_general <-
   wrap_plots(
     fig_evo_intermediate,
@@ -643,9 +634,7 @@ fig_eco_evo_general <-
       tag_levels = c("A", 1)
     ) &
     theme(
-      # legend.position = "top",
       legend.justification = "center",
-      # legend.key.height = unit(1, units = "mm"),
       plot.tag = element_text(
         face = "bold",
         size = 10
