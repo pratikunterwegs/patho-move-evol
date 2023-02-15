@@ -3,7 +3,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-## Figures for the vertical transmission scenario
+## Plot outcomes in the vertical transmission scenario
 
 ```{r}
 library(data.table)
@@ -13,7 +13,7 @@ library(patchwork)
 library(colorspace)
 ```
 
-Load generation strategy data.
+## Load strategy frequency change data
 
 ```{r}
 files <- list.files(
@@ -48,10 +48,12 @@ fwrite(
 df_strat <- fread("data/results/data_vertical_evo.csv")
 ```
 
-## Plot evolutionary change across scenarios
+## Plot outcomes across parameter combinations
+
+### Plot evolutionary change in all replicates
 
 ```{r}
-# fig_evo_social_strategy =
+# prepare figure comparing types of outcomes
 p_compare <-
   ggplot(df_strat[gen %% 2 == 0 & (social_strat != "non-handler tracking"), ]) +
   geom_path(
@@ -131,13 +133,13 @@ p_compare <-
 ggsave(
   p_compare,
   filename = "supplement/figures/fig_evo_change_vertical.png",
-  height = 150,
-  width = 150,
+  height = 120,
+  width = 120,
   units = "mm"
 )
 ```
 
-## Plot all infections
+### Plot infections in all replicates
 
 ```{r}
 # read in infections data
@@ -190,7 +192,6 @@ p_infections <-
     name = NULL
   ) +
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
     breaks = c(0, 250, 500),
     labels = scales::comma_format(
       accuracy = 1
@@ -232,13 +233,13 @@ p_infections <-
 ggsave(
   p_infections,
   filename = "supplement/figures/fig_infection_vertical.png",
-  height = 150,
-  width = 150,
+  height = 120,
+  width = 120,
   units = "mm"
 )
 ```
 
-## Plot infections in default scenario
+### Plot infections and strategy change for the default scenario
 
 ```{r}
 # infections in the default combination
@@ -271,7 +272,6 @@ p_infections_default <-
     name = NULL
   ) +
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
     breaks = c(0, 250, 500),
     labels = scales::comma_format(
       accuracy = 1
@@ -310,9 +310,11 @@ p_infections_default <-
   )
 ```
 
-## Plot evolutionary change and infections
+## Plot evolutionary change and infections for the default parameter combination
 
 Pick two focal simulations in the cost = 0.25, p(v transmit) = 0.2 scenario.
+
+### Prepare data on strategies and infections
 
 ```{r}
 df_focus <- df_strat[p_v_transmit == 0.2 & costInfect == 0.25, ]
@@ -323,7 +325,7 @@ df_vertical_infections <- df_vertical_infections[p_v_transmit == 0.2 &
 
 # get sims where pathogen is eliminated
 df_vertical_infections[scenario_tag == "vertical", pathogen_eliminated := any(
-  n_infected[(gen > sgen) & (gen < sgen + 500)] == 0
+  n_infected[(gen > sgen) & (gen < (sgen + 500))] == 0
 ),
 by = c("costInfect", "p_v_transmit", "replicate")
 ]
@@ -334,8 +336,10 @@ df_vertical_infections_focus <- df_vertical_infections[
     replicate == first(replicate[!pathogen_eliminated])
 ]
 
-df_focus <- df_focus[replicate %in% df_vertical_infections$replicate, ]
+df_focus <- df_focus[replicate %in% df_vertical_infections_focus$replicate, ]
 ```
+
+### Plot evolutionary change and infections
 
 ```{r}
 p_evo <-
@@ -367,9 +371,8 @@ p_evo <-
   ) +
   scale_fill_discrete_sequential(
     palette = "Viridis",
-    l2 = 80, alpha = 0.4,
-    rev = FALSE,
-    name = NULL,
+    l2 = 70, alpha = 1, c1 = 20, c2 = 40,
+    rev = FALSE, name = NULL,
     limits = c("agent avoiding", "agent tracking", "handler tracking"),
     labels = stringr::str_to_sentence,
     na.value = "lightgrey"
@@ -380,7 +383,6 @@ p_evo <-
     name = NULL
   ) +
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
     breaks = c(-500, 0, 500),
     labels = scales::comma_format(
       accuracy = 1
@@ -420,222 +422,7 @@ p_evo <-
   )
 ```
 
-## Social information importance
-
-```{r}
-files <- list.files(
-  "data/results/si_imp_data",
-  pattern = "vertical",
-  full.names = TRUE
-)
-
-data_all <- lapply(files, fread)
-data_all <- rbindlist(data_all)
-
-# make a copy
-df_si <- copy(data_all)
-
-df_si <- df_si[(costInfect == 0.25) & (p_v_transmit == 0.2)]
-
-# popsize
-popsize <- 500
-
-df_si[, prop := N / popsize]
-
-# get time since pathogen
-sgen <- 3000
-genmax <- 5000
-
-# save for plotting and upload
-fwrite(
-  df_si,
-  file = "data/results/data_vertical_default_si_imp.csv"
-)
-```
-
-```{r}
-# load saved data
-df_si <- fread("data/results/data_vertical_default_si_imp.csv")
-```
-
-```{r}
-# get SI importance
-df_si[, si_imp := plyr::round_any(si_imp, accuracy = 0.01)]
-df_si <- df_si[, list(
-  prop = sum(prop),
-  N = sum(N)
-), by = c("gen", "replicate", "si_imp")]
-df_si[, gen_abs := gen - sgen]
-
-# check whether the pathogen is eliminated
-df_eliminated <- unique(df_vertical_infections[
-  , c("replicate", "pathogen_eliminated")
-])
-
-# merge with SI dataframes
-df_si <- merge(df_si, df_eliminated, by = c("replicate"))
-
-# get focal replicates
-df_si_focus <- df_si[replicate %in% unique(df_focus$replicate)]
-```
-
-
-```{r}
-# get weighted mean and variance in social info importance
-# replicate 2 is an anomaly with very high SI use, although strategies are
-# similar across replicates
-df_si_mean <- df_si[, list(
-  mean = weighted.mean(si_imp, w = N),
-  sd = Hmisc::wtd.var(si_imp, weights = N)
-), by = c("gen", "pathogen_eliminated")]
-
-df_si_mean[, c("y", "ymin", "ymax") := list(
-  mean,
-  mean - sd,
-  mean + sd
-)]
-df_si_mean[, gen_abs := gen - sgen]
-```
-
-## Ecological outcomes
-
-Load generation data.
-
-```{r}
-# list files, read, and filter for default model options
-files <- list.files(
-  "data/results/gen_data",
-  pattern = "vertical",
-  full.names = TRUE
-)
-
-data_all <- lapply(files, fread)
-data_all <- rbindlist(data_all)
-
-df_eco <- data_all[costInfect == 0.25 & p_v_transmit == 0.2, ]
-
-# popsize
-popsize <- 500
-
-# get time since pathogen
-sgen <- 3000
-genmax <- 5000
-df_eco[, gen_abs := gen - sgen]
-
-# save for plotting and upload
-fwrite(
-  df_eco,
-  file = "data/results/data_vertical_default_eco.csv"
-)
-```
-
-```{r}
-# load saved data
-df_eco <- fread("data/results/data_vertical_default_eco.csv")
-```
-
-```{r}
-# subset for useful columns
-df_eco <- df_eco[, c(
-  "replicate", "gen_abs", "intake.mean",
-  "moved.mean", "assoc.mean"
-)]
-
-# add whether the pathogen is eliminated
-df_eco <- merge(df_eco, df_eliminated, by = "replicate")
-
-df_eco <- melt(
-  df_eco,
-  id.vars = c("gen_abs", "pathogen_eliminated", "replicate")
-)
-
-# convert to percentage
-df_eco[, value_scaled := value / value[gen_abs == 0], by = c(
-  "replicate", "pathogen_eliminated", "variable"
-)]
-
-## colours for background
-cols <- colorspace::diverging_hcl(3, palette = "Tofino", l = 50, c = 80)
-```
-
-```{r}
-p_associations <-
-  ggplot(df_eco[variable == "assoc.mean"]) +
-  geom_line(
-    aes(
-      gen_abs, value,
-      col = "Associations",
-      group = c(replicate)
-    ),
-    show.legend = FALSE,
-    linewidth = 0.3
-  ) +
-  scale_y_continuous(
-    trans = "log10",
-    labels = scales::comma
-  ) +
-  facet_grid(
-    rows = vars(pathogen_eliminated),
-    labeller = labeller(
-      repl = c(
-        "1" = "Pathogen persistance",
-        "2" = "Pathogen eliminated"
-      )
-    ),
-    switch = c("y")
-  ) +
-  geom_vline(
-    xintercept = c(0),
-    lty = 2,
-    size = 0.3,
-    col = c("red")
-  ) +
-  scale_colour_manual(
-    values = c(
-      assoc.mean = cols[2]
-    )
-  ) +
-  scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
-    breaks = c(-100, 0, 500),
-    labels = scales::comma_format(
-      accuracy = 1
-    ),
-    name = "Gens. after pathogen intro.",
-    sec.axis = sec_axis(
-      trans = function(x) x + sgen,
-      breaks = c(sgen - 100, sgen, sgen + 500),
-      labels = scales::comma_format(
-        accuracy = 1
-      ),
-      name = "Generations"
-    )
-  ) +
-  coord_cartesian(
-    xlim = c(-100, 500)
-  ) +
-  theme_test(
-    base_family = "Arial",
-    base_size = 8
-  ) +
-  theme(
-    legend.position = "top",
-    legend.key.height = unit(1, "mm"),
-    legend.key.width = unit(2, "mm"),
-    axis.text.x = element_text(hjust = 0.5),
-    axis.text.y = element_text(
-      angle = 90, hjust = 0.5
-    )
-  ) +
-  labs(
-    x = NULL,
-    y = "Associations",
-    colour = NULL,
-    shape = NULL
-  )
-```
-
-## Histogram of elimination times
+### Summarise elimination by parameters
 
 ```{r}
 # read in infections data
@@ -664,6 +451,7 @@ df_outcomes <- df_outcomes[, .N, by = c(
   "costInfect", "p_v_transmit"
 )]
 
+# plot count of replicates with elimination
 plot_summarise_vertical <-
   ggplot(df_outcomes) +
   geom_col(
@@ -681,9 +469,9 @@ plot_summarise_vertical <-
     )
   ) +
   scale_fill_discrete_diverging(
-    palette = "Blue-Yellow",
+    palette = "Blue-Red 3",
     rev = TRUE,
-    l1 = 80, l2 = 100,
+    l1 = 50, l2 = 80,
     labels = c("Pathogen persists", "Pathogen eliminated"),
     name = NULL
   ) +
@@ -715,8 +503,7 @@ plot_summarise_vertical <-
   )
 ```
 
-
-## Combine plots
+### Prepare main text figure
 
 ```{r}
 fig_eco_evo_vertical <-
@@ -729,8 +516,6 @@ fig_eco_evo_vertical <-
     ) &
     theme(
       legend.position = "bottom",
-      # legend.justification = "left",
-      # legend.key.height = unit(1, units = "mm"),
       plot.tag = element_text(
         face = "bold",
         size = 10

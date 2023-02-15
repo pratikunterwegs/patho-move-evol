@@ -3,7 +3,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Plot social outcomes in the default scenario
+# Plot strategy-specific differences in ecological outcomes
 
 ```{r}
 library(data.table)
@@ -12,7 +12,7 @@ library(patchwork)
 library(colorspace)
 ```
 
-## Social strategies differ in movement and intake, but not energy
+## Load strategy-wise outcome data
 
 ```{r}
 df_strat <- fread("data/results/data_default_strategy_evo.csv")
@@ -30,13 +30,19 @@ df_strat <- melt(df_strat, id.vars = c("gen", "gen_abs", "social_strat"))
 
 # remove non-handler tracking
 df_strat <- df_strat[social_strat != "non-handler tracking"]
+
+# log strategy data
+sgen <- 3000
+genmax <- 5000
 ```
 
-Plot strategy differences in movement.
+## Plot strategy differences in movement
 
 ```{r}
+# plot strategy differences in movement distance
 plot_diff_move <-
-  ggplot(df_strat[variable %in% c("mean_move") & gen %% 100 == 0]) +
+  ggplot(df_strat[variable %in% c("mean_move") &
+    gen %% 100 == 0]) +
   geom_vline(
     xintercept = c(0),
     lty = 2,
@@ -51,9 +57,6 @@ plot_diff_move <-
     aes(gen_abs, value, col = social_strat),
     size = 0.2,
     shape = 1, show.legend = FALSE
-  ) +
-  scale_y_continuous(
-    # trans = ggallin::pseudolog10_trans
   ) +
   scale_x_continuous(
     breaks = c(-500, 0, 500, 2000),
@@ -72,7 +75,7 @@ plot_diff_move <-
   ) +
   scale_colour_discrete_sequential(
     palette = "Viridis",
-    l2 = 80, # c2 = 20, c1 = 20,
+    l2 = 80,
     rev = FALSE,
     name = NULL,
     limits = c("agent avoiding", "agent tracking", "handler tracking"),
@@ -113,11 +116,13 @@ plot_diff_move <-
   )
 ```
 
-Plot strategy differences in intake.
+## Plot strategy differences in intake
 
 ```{r}
+# plot strategy differences in intake
 plot_diff_intake <-
-  ggplot(df_strat[variable %in% c("mean_intake") & gen %% 100 == 0]) +
+  ggplot(df_strat[variable %in% c("mean_intake") &
+    gen %% 100 == 0]) +
   geom_vline(
     xintercept = c(0),
     lty = 2,
@@ -132,9 +137,6 @@ plot_diff_intake <-
     aes(gen_abs, value, col = social_strat),
     size = 0.2,
     shape = 2, show.legend = FALSE
-  ) +
-  scale_y_continuous(
-    # trans = ggallin::pseudolog10_trans
   ) +
   scale_x_continuous(
     breaks = c(-500, 0, 500, 2000),
@@ -153,7 +155,7 @@ plot_diff_intake <-
   ) +
   scale_colour_discrete_sequential(
     palette = "Viridis",
-    l2 = 80, # c2 = 20, c1 = 20,
+    l2 = 80,
     rev = FALSE,
     name = NULL,
     limits = c("agent avoiding", "agent tracking", "handler tracking"),
@@ -194,9 +196,10 @@ plot_diff_intake <-
   )
 ```
 
-Plot strategy differences in energy.
+## Plot strategy differences in energy
 
 ```{r}
+# plot strategy differences in energy
 plot_diff_energy <-
   ggplot(df_strat[variable %in% c("mean_energy") & gen %% 100 == 0]) +
   geom_vline(
@@ -213,9 +216,6 @@ plot_diff_energy <-
     aes(gen_abs, value, col = social_strat),
     size = 0.2,
     shape = 5, show.legend = FALSE
-  ) +
-  scale_y_continuous(
-    # trans = ggallin::pseudolog10_trans
   ) +
   scale_x_continuous(
     breaks = c(-500, 0, 500, 2000),
@@ -234,7 +234,7 @@ plot_diff_energy <-
   ) +
   scale_colour_discrete_sequential(
     palette = "Viridis",
-    l2 = 80, # c2 = 20, c1 = 20,
+    l2 = 80,
     rev = FALSE,
     name = NULL,
     limits = c("agent avoiding", "agent tracking", "handler tracking"),
@@ -276,6 +276,8 @@ plot_diff_energy <-
   )
 ```
 
+## Prepare combined figures
+
 ```{r}
 plot_strat_diff <- wrap_plots(
   plot_diff_move, plot_diff_intake, plot_diff_energy,
@@ -285,7 +287,9 @@ plot_strat_diff <- wrap_plots(
 )
 ```
 
-## Associations per distance moved by strategy
+## Plot associations per distance moved by strategy
+
+### Load data on associations per movement
 
 ```{r}
 files <- list.files(
@@ -296,7 +300,8 @@ files <- list.files(
 # read data and filter for default paramaeter combination
 data_move_assoc <- lapply(files, fread) |> rbindlist()
 data_move_assoc <- data_move_assoc[between(gen, 3000, 3500), ]
-data_move_assoc <- data_move_assoc[costInfect == 0.25 & regen_time == 50, ]
+data_move_assoc <- data_move_assoc[costInfect == 0.25 &
+  regen_time == 50, ]
 
 # round moved
 data_move_assoc[, moved_bin := plyr::round_any(moved, 5)]
@@ -304,6 +309,7 @@ data_move_assoc <- data_move_assoc[social_strat != "non-handler tracking", ]
 ```
 
 ```{r}
+# plot associations per movement distance
 plot_move_assoc <-
   ggplot() +
   geom_jitter(
@@ -350,11 +356,9 @@ plot_move_assoc <-
     labels = stringr::str_to_sentence
   ) +
   scale_y_continuous(
-    # trans = "log10",
     labels = scales::comma_format()
   ) +
   coord_cartesian(
-    # xlim = c(60, 100),
     ylim = c(30, 1000),
     expand = T
   ) +
@@ -368,8 +372,7 @@ plot_move_assoc <-
       hjust = 0.5
     ),
     legend.key.height = unit(1, "mm"),
-    legend.position = "bottom",
-    # legend.justification = "right"
+    legend.position = "bottom"
   ) +
   labs(
     x = "Distance moved",
@@ -381,14 +384,15 @@ plot_move_assoc <-
     colour = "none",
     fill = guide_legend(
       override.aes = list(
-        # size = 2,
         alpha = 1
       )
     )
   )
 ```
 
-## Infection rate per strategy
+## Plot infection rate per strategy
+
+### Load data on infection rate per strategy
 
 ```{r}
 # load data
@@ -413,15 +417,14 @@ data[, social_strat := factor(social_strat,
 ```
 
 ```{r}
+# plot infection rate histogram per strategy
 plot_infected <-
   ggplot(data) +
   ggdist::stat_histinterval(
     aes(
       social_strat, prop_infec,
-      # colour = social_strat,
       fill = social_strat,
-      group = social_strat,
-      # alpha = ..pdf..
+      group = social_strat
     ),
     size = 0.5,
     n = 31,
@@ -431,12 +434,10 @@ plot_infected <-
     palette = "Viridis",
     l2 = 80,
     order = c(2, 1, 3),
-    # rev = T,
     name = NULL
   ) +
   scale_y_continuous(
-    labels = scales::percent,
-    # breaks = c(0.01, 0.25, 0.5, 1)
+    labels = scales::percent
   ) +
   scale_x_discrete(
     breaks = c(
@@ -471,7 +472,10 @@ plot_infected <-
   )
 ```
 
+## Prepare figure for strategy-wise ecological differences
+
 ```{r}
+# prepare and plot figure for strategy-wise social differences
 plot_soc_out <-
   wrap_plots(
     plot_strat_diff,
@@ -493,8 +497,7 @@ plot_soc_out <-
 ggsave(
   plot = plot_soc_out,
   file = "figures/fig_social_outcomes.png",
-  height = 150,
-  width = 150,
+  height = 120, width = 120,
   units = "mm"
 )
 ```

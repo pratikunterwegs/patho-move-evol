@@ -1,10 +1,9 @@
 ---
-output: html_document
 editor_options: 
   chunk_output_type: console
 ---
 
-# Plot networks in final generations
+# Plot social-spatial structure
 
 ```{r}
 library(data.table)
@@ -16,8 +15,6 @@ library(patchwork)
 ```
 
 ## Load networks from default scenario
-
-Read parameter files to subset for default parameter combination, based on the "ofi" column.
 
 ```{r}
 params <- list.files(
@@ -38,22 +35,28 @@ data_files <- glue("data/results/networks/data_networks_{params$seed}.Rds")
 ```
 
 ```{r}
+# read in networks
 data_ntwk <- lapply(data_files, function(file) {
   nt <- readRDS(file)
   nt
 })
 ```
 
-## Degree distribution
+## Plot degree distribution
+
+### Prepare degree data
 
 ```{r}
+# prepare generations for degree distributions
 gen_patho_intro <- as.character(3000)
 gen_patho_adapt <- as.character(3500)
 
+# calculate centrality degree
 degree_data <- lapply(
   data_ntwk, function(le) {
     le_pre <- le[[gen_patho_intro]]
     le_post <- le[[gen_patho_adapt]]
+    
     # pre pathogen degree
     le_pre <- mutate(
       le_pre,
@@ -92,9 +95,12 @@ fwrite(
 ```
 
 ```{r}
+# set the factor levels
 degree_data <- fread("data/results/data_default_degree_distribution.csv")
 degree_data$type <- factor(degree_data$type, levels = c("pre", "post"))
 ```
+
+### Prepare degree distribution data
 
 ```{r}
 # popsize per sim
@@ -102,6 +108,7 @@ popsize <- 500
 # how many replicates
 replicates <- 10
 
+# plot degree distribution data
 plot_degree <-
   ggplot(degree_data) +
   geom_histogram(
@@ -126,7 +133,6 @@ plot_degree <-
     )
   ) +
   scale_x_continuous(
-    # trans = ggallin::pseudolog10_trans,
     breaks = c(0, 10, 50, 500),
     labels = function(x) {
       scales::percent(
@@ -137,7 +143,6 @@ plot_degree <-
     name = "% Pop. encountered"
   ) +
   scale_y_continuous(
-    # breaks = c(0, 0.1, 0.25),
     labels = scales::percent_format(accuracy = 1)
   ) +
   theme_test(
@@ -163,7 +168,7 @@ plot_degree <-
   )
 ```
 
-## Default scenario network plots
+## Prepare networks data
 
 ```{r}
 # select a replicate
@@ -184,7 +189,7 @@ ntwk_pre <- ntwks_example[[gen_patho_intro]] %>%
   filter(weight > quantile(weight, probs = 0.33)) %>%
   activate(nodes)
 
-# select a nice network. Note this may be a different replicate
+# select a nice network
 # networks are plotted for illustration only
 ntwks_example <- data_ntwk[[repl]]
 ntwk_post <- ntwks_example[[gen_patho_adapt]] %>%
@@ -210,6 +215,8 @@ ggraph(ntwk_pre, x = xn, y = yn) +
     ylim = c(0, 60)
   )
 ```
+
+## Plot network data
 
 ```{r}
 # make network figures
@@ -289,6 +296,8 @@ networkplots <- lapply(
 )
 ```
 
+### Prepare intermediate networks plot
+
 ```{r}
 # wrap plots
 plot_networks <-
@@ -312,7 +321,9 @@ ggsave(
 )
 ```
 
-## Transmission chains
+## Load and plot transmission chains
+
+### Load chain data
 
 ```{r}
 # read data
@@ -335,6 +346,8 @@ chains <- lapply(chains, function(g) {
     )
 })
 ```
+
+### Plot and save transmission chains
 
 ```{r}
 plot_chains <- (lapply(chains, function(g) {
@@ -443,6 +456,8 @@ plot_chain_size <-
   )
 ```
 
+## Save figure: networks and sociality metrics
+
 ```{r}
 plot_distributions <- wrap_plots(
   plot_degree, plot_chain_size,
@@ -474,167 +489,4 @@ ggsave(
   width = 180,
   units = "mm"
 )
-```
-
-## Plot infection related outcomes
-
-```{r}
-# spillover data and rounding
-popsize <- 500
-replicates <- 10
-
-data_sir_models <- fread("data/results/data_sir_models.csv")
-
-# select scenarios
-data_sir_models <- data_sir_models[scenario == "Novel pathogen"]
-
-# data_sir_models$mean = data_sir_models$mean / 500
-data_sir_models <- data_sir_models[class == "NR" & gamma == 1 &
-  beta == 5 & threshold %in% c(1, 10)]
-
-# select scenario
-data_default <- data_sir_models[regen_time == 50 & costInfect == 0.25]
-
-# round time, with larger bins later in time
-# ie, increments of 0, 0.25, 0.5, 1, 2, 5, 10 etc.
-data_default[, tround := plyr::round_any(time, 0.25)]
-data_default[, tround := fifelse(
-  time > 5, plyr::round_any(time, 0.5),
-  tround
-)]
-data_default[, type := factor(type, levels = c("pre", "post"))]
-
-# save data default sir
-fwrite(
-  data_default,
-  file = "data/results/data_default_sir.csv"
-)
-```
-
-```{r}
-# load saved data to save time
-data_default <- fread("data/results/data_default_sir.csv")
-data_default[, type := factor(type, levels = c("pre", "post"))]
-# data_default = split(data_default, by = "threshold")
-```
-
-```{r}
-# plot the progress of disease in default network sir models
-fig_sir <-
-  ggplot(data_default) +
-  geom_hline(
-    yintercept = 0.5,
-    col = "grey",
-    size = 0.2
-  ) +
-  geom_jitter(
-    aes(
-      time, mean / popsize,
-      col = type,
-      group = interaction(repl, sc_repl, threshold)
-    ),
-    size = 0.1,
-    show.legend = F
-  ) +
-  stat_summary(
-    aes(
-      tround, mean / popsize,
-      fill = type,
-      shape = type,
-      group = interaction(type, threshold, beta)
-    ),
-    position = position_dodge(width = 0.1),
-    show.legend = F
-  ) +
-  facet_wrap(
-    ~threshold,
-    labeller = labeller(
-      threshold = c(
-        "1" = "1 encounter",
-        "10" = "10 encounters"
-      )
-    )
-  ) +
-  scale_colour_discrete_diverging(
-    c1 = 30,
-    l1 = 50, l2 = 80,
-    palette = "Blue-Red 2",
-    rev = FALSE,
-    breaks = c("pre", "post"),
-    labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
-  ) +
-  scale_fill_discrete_diverging(
-    palette = "Blue-Red 2",
-    rev = FALSE,
-    breaks = c("pre", "post"),
-    labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
-  ) +
-  scale_shape_manual(
-    values = c(
-      "pre" = 21,
-      "post" = 24
-    ),
-    breaks = c("pre", "post"),
-    labels = c("Pre-pathogen intro.", "Post-pathogen intro.")
-  ) +
-  scale_y_continuous(
-    labels = scales::percent,
-    breaks = c(0, 0.5, 1)
-  ) +
-  # scale_x_sqrt()+
-  theme_test(
-    base_family = "Arial",
-    base_size = 8
-  ) +
-  theme(
-    legend.position = "top",
-    strip.background = element_blank(),
-    strip.text = element_text(
-      face = "bold"
-    ),
-    # strip.placement = "outside",
-    axis.text.y = element_text(
-      angle = 90,
-      hjust = 0.5,
-      size = 6
-    )
-  ) +
-  coord_cartesian(
-    xlim = c(0, 6),
-    ylim = c(0, 1)
-  ) +
-  labs(
-    x = "SIR model time",
-    y = "% Agents infected",
-    fill = NULL,
-    colour = NULL,
-    shape = NULL
-  )
-```
-
-## Load networks from alternative scenarios
-
-Read parameter files to subset for default parameter combination, based on the "ofi" column.
-
-```{r}
-params <- list.files(
-  "data/parameters",
-  pattern = "csv", full.names = T
-)
-params <- lapply(params, fread) |>
-  rbindlist()
-```
-
-```{r}
-params <- params[(costInfect == 0.05 & regen_time == 50) |
-  (costInfect == 0.25 & regen_time == 50 & dispersal == 10)]
-
-data_files <- glue("data/results/networks/data_networks_{params$ofi}.Rds")
-```
-
-```{r}
-data_ntwk <- lapply(data_files, function(file) {
-  nt <- readRDS(file)
-  nt # we previously saved networks under the name nt
-})
 ```
