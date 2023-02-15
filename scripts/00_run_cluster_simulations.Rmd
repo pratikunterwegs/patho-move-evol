@@ -267,6 +267,7 @@ pathomove::use_cluster(
   password = password,
   script = "scripts/do_sim_pathomove.R",
   folder = "patho-move-evol",
+  tag = scenario_tag,
   template_job = "bash/main_job_maker_sporadic.sh",
   parameter_file = param_file_sporadic
 )
