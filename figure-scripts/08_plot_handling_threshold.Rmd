@@ -1,0 +1,279 @@
+# Examine the effect of handling time and a reproduction threshold
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(colorspace)
+```
+
+## Handling time
+
+```{r}
+files <- list.files(
+  "data/results/morph_data",
+  pattern = "handling",
+  full.names = TRUE
+)
+
+data_all <- lapply(files, fread)
+data_all <- rbindlist(data_all)
+
+# popsize
+popsize <- 500
+data_all[, prop := N / popsize]
+
+# get time since pathogen
+sgen <- 500
+genmax <- 1000
+data_all[, gen_abs := gen - sgen]
+
+# save for plotting and upload
+fwrite(
+  data_all,
+  file = "data/results/data_handling_strategy_evo.csv"
+)
+```
+
+```{r}
+plot_handling_time = ggplot(data_all) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  geom_line(
+    aes(gen_abs, N / popsize,
+      colour = social_strat,
+      group = interaction(social_strat, repl)
+    ),
+    linewidth = 0.1
+  ) +
+  facet_wrap(
+    facets = vars(handling_time),
+    labeller = labeller(
+      handling_time = function(x) {
+        sprintf("T<sub>H</sub> = %i", as.integer(x))
+      }
+    )
+  ) +
+  scale_colour_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80, # c2 = 20, c1 = 20,
+    rev = FALSE,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  ) +
+  scale_fill_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80,
+    rev = FALSE,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  ) +
+  scale_x_continuous(
+    # trans = ggallin::ssqrt_trans,
+    breaks = c(-500, 0, 100, 250),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, sgen, sgen + 250),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  scale_y_continuous(
+    breaks = c(0, 0.5, 1),
+    labels = scales::percent,
+    name = "% Individuals"
+  ) +
+  coord_cartesian(
+    ylim = c(0, 1)
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.x = element_text(hjust = 0.5),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    ),
+    strip.text = ggtext::element_markdown()
+  )
+
+ggsave(
+  plot_handling_time, filename = "supplement/figures/fig_evo_handling_time.png",
+  width = 120, height = 120, units = "mm"
+)
+```
+
+## Threshold
+
+```{r}
+files <- list.files(
+  "data/results/morph_data",
+  pattern = "threshold",
+  full.names = TRUE
+)
+
+data_all <- lapply(files, fread)
+data_all <- rbindlist(data_all)
+
+# popsize
+popsize <- 500
+data_all[, prop := N / popsize]
+
+# get time since pathogen
+sgen <- 500
+genmax <- 1000
+data_all[, gen_abs := gen - sgen]
+
+# save for plotting and upload
+fwrite(
+  data_all,
+  file = "data/results/data_threshold_strategy_evo.csv"
+)
+```
+
+```{r}
+plot_evo_threshold = ggplot(data_all) +
+  geom_vline(
+    xintercept = c(0),
+    lty = 2,
+    size = 0.3,
+    col = c("red")
+  ) +
+  geom_line(
+    aes(gen_abs, N / popsize,
+      colour = social_strat,
+      group = interaction(social_strat, repl)
+    ),
+    size = 0.1
+  ) +
+  facet_grid(
+    cols = vars(cost),
+    labeller = labeller(
+      cost = function(x) {
+        sprintf("δE = %s", x)
+      }
+    )
+  ) +
+  scale_colour_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80, # c2 = 20, c1 = 20,
+    rev = FALSE,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  ) +
+  scale_fill_discrete_sequential(
+    palette = "Viridis",
+    l2 = 80,
+    rev = FALSE,
+    name = NULL,
+    limits = c("agent avoiding", "agent tracking", "handler tracking"),
+    labels = stringr::str_to_sentence,
+    na.value = "lightgrey"
+  ) +
+  scale_x_continuous(
+    # trans = ggallin::ssqrt_trans,
+    breaks = c(-500, 0, 100, 250),
+    labels = scales::comma_format(
+      accuracy = 1
+    ),
+    name = "Gens. after pathogen intro.",
+    sec.axis = sec_axis(
+      trans = function(x) x + sgen,
+      breaks = c(1, sgen, sgen + 250),
+      labels = scales::comma_format(
+        accuracy = 1
+      ),
+      name = "Generations"
+    )
+  ) +
+  scale_y_continuous(
+    breaks = c(0, 0.5, 1),
+    labels = scales::percent,
+    name = "% Individuals"
+  ) +
+  coord_cartesian(
+    ylim = c(0, 1)
+  ) +
+  theme_test(
+    base_family = "Arial",
+    base_size = 8
+  ) +
+  theme(
+    legend.position = "top",
+    legend.key.height = unit(1, "mm"),
+    legend.key.width = unit(2, "mm"),
+    axis.text.x = element_text(hjust = 0.5),
+    axis.text.y = element_text(
+      angle = 90, hjust = 0.5
+    )
+  )
+
+ggsave(
+  plot_evo_threshold,
+  filename = "supplement/figures/fig_evo_threshold.png",
+  width = 150, height = 60, units = "mm"
+)
+```
+
+## Percent
+
+```{r}
+files <- list.files(
+  "data/results/morph_data",
+  pattern = "percent",
+  full.names = TRUE
+)
+
+data_all <- lapply(files, fread)
+data_all <- rbindlist(data_all)
+
+# popsize
+popsize <- 500
+data_all[, prop := N / popsize]
+
+# get time since pathogen
+sgen <- 500
+genmax <- 1000
+data_all[, gen_abs := gen - sgen]
+
+# save for plotting and upload
+fwrite(
+  data_all,
+  file = "data/results/data_percent_strategy_evo.csv"
+)
+```
+
+```{r}
+ggplot(data_all) +
+  geom_line(
+    aes(gen, N,
+      col = social_strat,
+      group = interaction(social_strat, repl)
+    ),
+    size = 0.1
+  ) +
+  facet_grid(
+    cols = vars(regen),
+    rows = vars(cost),
+    as.table = FALSE
+  )
+```
