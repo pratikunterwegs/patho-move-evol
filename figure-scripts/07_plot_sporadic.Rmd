@@ -3,6 +3,8 @@ editor_options:
   chunk_output_type: console
 ---
 
+# Plot evolutionary change with sporadic introduction
+
 ```{r eval=FALSE,include=FALSE}
 # load libraries
 library(data.table)
@@ -15,27 +17,21 @@ library(patchwork)
 ```{r eval=FALSE, include=FALSE}
 files <- list.files(
   "data/results/morph_data",
-  pattern = "csv",
+  pattern = "sporadic",
   full.names = TRUE
 )
 
 data_all <- lapply(files, fread)
 df_strat <- rbindlist(data_all)
 
-# get sim type
-df_strat <- df_strat[scenario == 3, ]
-
 # popsize
 popsize <- 500
 replicates <- 10
 df_strat[, prop := N / popsize]
-g_bin <- 100
-df_strat[, gen_bin := (floor(gen / g_bin) * g_bin)]
 
 # get time since pathogen
 sgen <- 3000
 genmax <- 5000
-df_strat[, gen_abs := gen_bin - sgen]
 
 df_strat <- df_strat[gen %% 100 == 0, ]
 
@@ -43,12 +39,12 @@ df_strat <- df_strat[, list(
   prop = sum(prop) / (replicates)
 ), by = c(
   "gen", "social_strat",
-  "cost", "regen", "dispersal", "spillover_rate"
+  "costInfect", "regen_time", "dispersal", "spillover_rate"
 )]
 
 # regeneration rate
 gen_time <- 100
-df_strat[, regen_r := gen_time / regen]
+df_strat[, regen_r := gen_time / regen_time]
 ```
 
 ```{r eval=FALSE, include=FALSE}
@@ -65,7 +61,7 @@ fig_evo_strategy_sporadic <-
   geom_vline(
     xintercept = sgen,
     lty = 2,
-    size = 0.3,
+    linewidth = 0.3,
     col = "red"
   ) +
   scale_fill_discrete_sequential(
@@ -98,14 +94,14 @@ fig_evo_strategy_sporadic <-
     )
   ) +
   facet_grid(
-    cost ~ spillover_rate,
+    costInfect ~ spillover_rate,
     as.table = F,
     switch = c("y"),
     labeller = labeller(
       spillover_rate = function(x) {
         scales::percent(as.numeric(x), prefix = "p(Intro) = ")
       },
-      cost = function(x) {
+      costInfect = function(x) {
         if (x >= 0.1) {
           sprintf("δE = %s", x)
         } else {
@@ -124,7 +120,6 @@ fig_evo_strategy_sporadic <-
   theme(
     legend.position = "top",
     legend.key.height = unit(1, "mm"),
-    strip.placement = "outside",
     strip.text = ggtext::element_markdown(),
     axis.text.x = element_text(hjust = 0.5, size = 6),
     axis.text.x.top = element_text(
@@ -149,7 +144,7 @@ data_gen[, gen_intervals := gen_intervals + 1]
 fig_gen_interval <-
   ggplot(data_gen) +
   geom_histogram(
-    aes(gen_intervals, y = ..count.. / 1000),
+    aes(gen_intervals, y = after_stat(count) / 1000),
     binwidth = 2,
     fill = "steelblue"
   ) +
@@ -181,7 +176,6 @@ fig_gen_interval <-
   theme(
     legend.position = "top",
     legend.key.height = unit(1, "mm"),
-    strip.placement = "outside",
     strip.text = ggtext::element_markdown(),
     axis.text.x = element_text(hjust = 0.5, size = 6),
     axis.text.x.top = element_text(
