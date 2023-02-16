@@ -10,6 +10,10 @@ library(patchwork)
 library(colorspace)
 ```
 
+# Comparing ecological outcomes across parameter combinations
+
+![**Changes in population-level outcomes following pathogen introduction.** The introduction of the infectious pathogen leads to rapid evolutionary changes in movement strategies (see Figures 2 and 5; main text) across most combinations of landscape productivity and infection cost. In all combinations where there is rapid evolutionary shift in social-movement strategies, there is a similar change in the population's behavioural outcomes, with more movement and fewer associations. However, there is no change in per-capita intake. Each subplot in each panel shows the mean and standard error of the per-capita values for **(A)** distance moved, **(B)** intake, **(C)** number of associations, or encounters, with other individuals. Means and standard deviations are shown before (G = 3,000) and after (G = 3,500) pathogen introduction; each data point represents 10 replicates of the relevant parameter combination. In most cases, standard error is too small to be visible.](figures/fig_eco_compare_default.png)
+
 # Effect of modelling choices on simulation outcomes
 
 Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020;@netz2021;@gupte2021a].
@@ -85,7 +89,7 @@ p_costs <-
 
 ggsave(
   p_costs,
-  filename = "figures/fig_cost_structure.png",
+  filename = "supplement/figures/fig_cost_structure.png",
   height = 3, width = 6
 )
 ```
@@ -94,12 +98,12 @@ ggsave(
 
 ### Evolutionary outcomes of the percentage cost implementation
 
-The social movement strategies evolved prior to pathogen introduction are identical to those seen in our default implementation.
+The social movement strategies evolved prior to pathogen introduction are identical to those seen in our default implementation (Fig. S3).
 This is because the percentage cost implementation differs from the default only after the pathogen is introduced.
 After pathogen introduction, there is a rapid evolutionary shift in movement strategies similar to that in our default implementation, but only when the costs of infection are relatively high ($\delta E$ = 7.5%), and the usefulness of social information is limited by the abundance of food items ($R$ = 5).
 Under these conditions, the agent avoiding strategy becomes the commonest strategy.
 Under conditions of median landscape productivity and intermediate to high pathogen costs ($\delta E \in$ 5.0% and 7.5%, $R$ = 2), the agent avoiding strategy also emerges, but forms only a low proportion of the population.
-Under all other conditions, the handler tracking strategy continues as the commonest strategy.
+Under all other conditions, the handler tracking strategy continues as the commonest strategy (Fig. S3).
 
 ![**Rapid evolutionary change under some conditions in an alternative implementation of disease costs.** In our alternative, percentage costs implementation of the infectious pathogen, there is a rapid shift in the mix of movement strategies after pathogen introduction, but only when the costs of infection are relatively high (7.5%), and the usefulness of social information is limited by the abundance of food items (R = 5). In these cases, the agent avoiding strategy is the commonest social movement strategy, forming a smaller proportion of the population mixture of social movement strategies when the infection cost is lower, or when the usefulness of social information is greater (lower $\delta E$ and lower $R$ respectively).](figures/fig_evo_change_percent_cost.png){ width=70% }
 
@@ -118,7 +122,7 @@ In this case, and because of the sparse distribution of resource patches on the 
 
 By forcing animals in each new generation to encounter ecological circumstances potentially different from those of their parents, implementing global dispersal can help investigate whether animals' evolved movement strategies are truly 'optimal' at the global scale [@gupte2021a].
 We implementated global dispersal by running 10 replicates of each parameter combination (3 combinations of $\delta E$ = 0.25 and $R \in$ 1, 2, 5; 30 simulations in all), with dispersal set to 10.
-This means that individuals' initial positions are drawn from a normal distribution with standard deviation = 10, centred on the location of their parent.
+This means that individuals' initial positions are drawn from a normal distribution with standard deviation = 10, centred on the location of their parent (Fig. S4).
 
 ```{r echo=FALSE}
 l <- pathomove::get_test_landscape(
@@ -187,7 +191,7 @@ p <- ggplot(l) +
 
 ggsave(
   p,
-  filename = "figures/fig_global_dispersal.png",
+  filename = "supplement/figures/fig_global_dispersal.png",
   height = 3,
   width = 3
 )
@@ -195,7 +199,7 @@ ggsave(
 
 ![**Differences between small-scale and large-scale natal dispersal.** Initialising individuals in each new generation within a standard deviation of 10 units around their parent (**blue**; parent at [30, 30]) places can lead them to encounter potentially very different ecological, and social, circumstances from those of their parent. In contrast, individuals initialised close to their parents (within a standard deviation of 2 units; **red**) encounter very similar conditions as their parent. The latter also leads to substantial competition among kin. We used 10 units to represent (nearly) global dispersal, and 2 units to represent local dispersal; this is controlled by the simulation parameter _dispersal_, which takes a numeric argument.](figures/fig_global_dispersal.png)
 
-We found that our model is broadly robust to implementing large-scale natal dispersal, with the evolutionary outcomes very similar to those seen in our default implementation with small-scale natal dispersal (see main text Figs. 2, 6).
+We found that our model is broadly robust to implementing large-scale natal dispersal, with the evolutionary outcomes very similar to those seen in our default implementation with small-scale natal dispersal (Fig. S5A, compare main text Figs. 2, 6).
 Since individuals are initialised relatively far away from their parent's position, they encounter potentially very different ecological conditions, both in terms of the number of other individuals, and the local availability of food items.
 As a result, most individuals evolve a 'handler tracking' social movement strategy before the introduction of the novel pathogen.
 This strategy allows individuals to gain the benefits of social information on the location of a resource patch (of which handlers are an indirect cue), while avoiding potential competitors, as well as potentially moving away from areas without many food items.
@@ -206,7 +210,7 @@ The effect of landscape productivity on the mix of proportions of the pre- and p
 
 Individuals may skip reproduction when their body condition is below some threshold, as would be expcted when infected by a transmissible pathogen.
 We explored how restricting reproduction to only those individuals which had a positive energy balance ($\sum \text{intake} > \delta E\sum \text{time~infected}$) would affect our simulation outcomes.
-We found that for our default parameter combination the handler tracking strategy persists as the commonest strategy after pathogen introduction, with agent avoidance making up a small proportion of the population \textbf{(SI Appendix Fig. S\ldots)}.
+We found that for our default parameter combination the handler tracking strategy persists as the commonest strategy after pathogen introduction, with agent avoidance making up a small proportion of the population \textbf{(SI Appendix Fig. S5B)}.
 At a lower infection cost ($\delta E$ = 0.1), there is broadly no effect of pathogen introduction on the evolved social movement strategy, and handler tracking persists at a high frequency.
 When infection costs are higher ($\delta E$ = 0.5), handler tracking still persists after pathogen introduction, but with frequent and strong irruptions of agent avoiding individuals over the generations following introduction.
 
@@ -214,23 +218,48 @@ When infection costs are higher ($\delta E$ = 0.5), handler tracking still persi
 
 In our model, the availability of inadvertent social information on the location of food item clusters is controlled by the handling time parameter $T_H$ (default = 5 timesteps).
 We explored the effect of the availabiltiy of social information on which social movement strategies were evolved after pathogen introduction by running our default implementation of scenario 1 ($\delta E$ = 0.25, $R$ = 2) with four alternative values of handling time: 0, 1, 2, and 10.
-We found that at low handling times ($T_H \in$ 1, 2), the handler tracking strategy persists as the dominant strategy after pathogen introduction, with a small proportion of agent avoiding individuals \textbf{(SI Appendix Fig. S\ldots)}.
+We found that at low handling times ($T_H \in$ 1, 2), the handler tracking strategy persists as the dominant strategy after pathogen introduction, with a small proportion of agent avoiding individuals **(SI Appendix Fig. S5C)**.
 When handling time is doubled from the default ($T_H$ = 10), the agent avoiding strategy rapidly becomes the dominant strategy.
 As handling time increases, more individuals are immobilised as handlers, increasing the availability of inadvertent social information that is helpful in locating resources.
 However, after pathogen introduction, the cumulative risk of pathogen transmission is also increased with increased handling time when two handlers are within transmission distance, and one of them is infected.
 These results then suggest that the evolution of how social information is used can be strongly influenced by its indirect costs (here, transmission risk).
-When individuals do not need to handle food before consuming it ($T_H$ = 0), a mixture of handler tracking and agent avoiding strategies persists in the population from the beginning of the simulation, with no change following pathogen introduction \textbf{(SI Appendix Fig. S\ldots)}.
+When individuals do not need to handle food before consuming it ($T_H$ = 0), a mixture of handler tracking and agent avoiding strategies persists in the population from the beginning of the simulation, with no change following pathogen introduction **(SI Appendix Fig. S5C)**.
 In this case, there are never any handlers, and thus oscillations in social movement strategy most likely represent neutral variation around the handler preference $s_H$; most individuals would more accurately be described as `non-handler avoiding'.
 
 ![Overall, implementing large-scale natal dispersal does not appear to alter the evolution of sociality under the risk of pathogen transmission from the results obtained in our default implementation of scenario 1.](figures/fig_eco_evo_alternatives.png)
 
 ## Spatial structure of the resource landscape
 
-![](figures/fig_eco_evo_spatial.png)
+Since ours is a spatial model, and the explicit consideration of space and movement is key to its outcomes, we very briefly examined the effect of landscape spatial structure on the evolutionary outcomes of our scenario 1 (Fig. S6A).
+We expected spatial structure to have a substantial effect as suggested in previous studies [@he2020].
+To do this, we ran ten replicates of our default scenario with two alternative food item distributions: in the first, we distributed food items uniformly across the landscape, while in the second, we modelled a landscape that was patchier than our default, with only 10 food item clusters (default number of clusters = 60).
+We compared the outcomes on these landscapes with those from our default scenario, with all parameters expect spatial structure kept the same ($R$ = 2, $\delta E$ = 0.25, $N$ food items = 1,800; Fig. S6B).
+
+Landscape spatial structure influences the mixture of social movement strategies evolved before pathogen introductions (Fig. S6A).
+On the uniform landscape, handler tracking was the commonest strategy before pathogen introduction, with nearly all individuals of this strategy.
+In contrast, on the more patchy landscape, the indiscriminately social agent tracking strategy was the most common before pathogen introductions.
+Both of these are in contrast with our default scenario, in which most individuals were handler tracking, but with a substantial proportion of agent tracking individuals.
+
+This overall pattern is likely due to the increasing benefit of social information and the increasing costs of movement between profitable areas of the landscape.
+Specifically, as landscapes become more clustered, direct food item cues become more difficult to find, as food items are found in smaller and denser patches.
+This increases the value of sociality, as individuals are likely to found near food item clusters.
+Furthermore, the indirect costs of movement also increase on patchy resource landscapes, as individuals have to pay an increased cost in time (which could have been spent foraging) in moving between food item clusters.
+In an implementation not formally shown here, the same effect can be achieved by adding a small cost to each movement step --- this leads to the evolution of indiscriminate sociality in the form of agent tracking on the default landscape as well.
+Overall, both the increasing local density of food items and the costs of movement lead to an increase in agent tracking, as individuals prefer to trade movement costs for the costs of increased local competition for food items.
+
+Following pathogen introduction, populations on both landscapes undergo a rapid evolutionary transition to a mixture of handler tracking and agent avoiding strategies, which is similar to the change observed in our default scenario (Fig. S6A).
+However, the landscapes differ in the proportions of the two strategies, with agent avoidance more common on the uniform landscape than on the patchy landscape.
+Interestingly, both of these extremes of landscape structure have more agent avoiding individuals than our default landscape of 60 food item clusters.
+On the uniform landscape, this is likely because food items are readily found with the need for indirect social cues, and so most individuals avoid each other.
+It is less clear why this is the case on the more patchy landscape --- it is possible that the denser food item patches lead to more associations and more rapid pathogen spread, with handler tracking individuals infected for longer periods than agent avoiding ones, leading to an intake-infection trade-off.
+
+Overall, this scenario demonstrates how spatial structure can play an important role in the evolution of social movement strategies, but also how the risk of infection can lead to landscapes with very different spatial structures eventually populated by similar social movement strategies.
+
+![**Landscape spatial structure influences the evolution of social movement strategies before, but not after, pathogen introduction.** **(A)** In two implementations with different spatial structures ($R$ = 2, $\delta E$ = 0.25), pre-pathogen dynamics are actually more different than post-introduction ones. On landscapes with a uniform food distribution (left panel: _Uniform distribution_), all individuals before pathogen introduction were handler tracking. Yet on more clustered landscapes (right panel: _10 food patches_; default = 60, center panel), the rare agent tracking strategy is most common before pathogen introduction. This is likely because the time cost of moving between distant patches on clustered landscapes is higher than that of exploitation competition. After pathogen introduction, agent avoidance rapdily becomes a common strategy. It is more dominant on uniform landscapes (approx. 80\%) likely because the usefulness of social information is lower there.](figures/fig_eco_evo_spatial.png)
 
 ## Sporadic introduction of infectious pathogens
 
-We implemented a variant of our main model, in which the infectious pathogen is introduced only sporadically after the first introduction event (at G = 3,000).
+Finally, we implemented a variant of our main model, in which the infectious pathogen is introduced only sporadically after the first introduction event (at G = 3,000; Fig. S7).
 Specifically, we modelled probabilistic introduction of the pathogen in each generation following the initial introduction.
 We call the per-generation probability of a novel pathogen introduction event the 'spillover rate'.
 We ran 10 replicates each of this model variant and examined whether there was a similar evolutionary shift in social movement strategies as seen in our default implementation.
@@ -240,19 +269,16 @@ We kept all other model parameters similar to the default scenario of our main m
 Cross-species novel pathogen introductions are likely to become more common with climate change, and so we chose these spillover rate values to represent different scenarios under altered global regimes of pathogen transfer.
 Our model's default implementation may be seen as an extreme case of the models considered here, with a spillover rate of 1.0.
 
-### Model implementation {-}
-
 In our model code, the sporadic introduction is implemented by drawing the number of generations until the next pathogen introduction event from a geometric distribution whose probability parameter is given by the spillover rates described above.
 Zero values are handled by converting them into ones.
-At our lowest spillover rate, up to 100 generations could pass between pathogen introductions, while at our highest rates, there are rarely more than 10 generations between introductions.
+At our lowest spillover rate, up to 100 generations could pass between pathogen introductions, while at our highest rates, there are rarely more than 10 generations between introductions (Fig. S7A).
 
-
-The social movement strategies evolved prior to pathogen introduction are identical to those seen in our default implementation, as expected.
+The social movement strategies evolved prior to pathogen introduction are identical to those seen in our default implementation (Fig. S7B).
 However, following pathogen introduction, we found that there was little to change in the population-level mixture of movement strategies in this model variant (see figure).
 This is regardless of the probability of a novel pathogen introduction (our so-called 'spillover rate'), and the cost of infection by a pathogen.
-Across the simulation, the commonest social movement strategy remains 'agent tracking', i.e., preferring locations with multiple individuals regardless of their foraging status.
-
+Across the simulation, the commonest social movement strategy remains handler tracking, i.e., preferring locations with multiple individuals regardless of their foraging status.
 Since there is little to no change in social movement strategies, we did not expect nor find changes in ecological outcomes.
 
-![**No evolutionary change in social movement strategies when novel pathogen introduction events are relatively uncommon.** **(A)** In our alternative implementation of the model, the pathogen is only introduced sporadically after the initial introduction (G = 3,000; red line in panel B). **(B)** When the introductions are relatively rare and sporadic, there is no shift in the mixture of movement strategies after pathogen introduction. The agent tracking strategy remains common across parameter combinations. ](figures/fig_evo_strategy_sporadic.png){ width=70% }
+![**No evolutionary change in social movement strategies when novel pathogen introduction events are relatively uncommon.** **(A)** In our alternative implementation of the model, the pathogen is only introduced sporadically after the initial introduction (G = 3,000; red line in panel B). **(B)** When the introductions are relatively rare and sporadic, there is no shift in the mixture of movement strategies after pathogen introduction. The handler tracking strategy remains common across parameter combinations. ](figures/fig_evo_strategy_sporadic.png){ width=70% }
 
+# References
