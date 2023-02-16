@@ -19,7 +19,7 @@ bibliography: "references.bib"
 csl: oikos.csl
 link-citations: yes
 github-repo: pratikunterwegs/patho-move-evol
-description: "Supplementary Material for _Novel pathogen introduction rapidly alters the evolution of movement, restructuring animal societies_"
+description: "Supplementary Material for _Novel pathogen introduction triggers rapid evolution in animal social movement strategies_"
 ---
 
 \newpage
