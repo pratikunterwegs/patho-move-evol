@@ -56,7 +56,7 @@ degree_data <- lapply(
   data_ntwk, function(le) {
     le_pre <- le[[gen_patho_intro]]
     le_post <- le[[gen_patho_adapt]]
-    
+
     # pre pathogen degree
     le_pre <- mutate(
       le_pre,
@@ -121,6 +121,15 @@ plot_degree <-
     bins = 25, alpha = 0.9,
     col = NA,
     show.legend = F
+  ) +
+  facet_grid(
+    cols = vars(type),
+    labeller = labeller(
+      type = c(
+        "pre" = "Pre-",
+        "post" = "Post-"
+      )
+    )
   ) +
   scale_fill_discrete_diverging(
     palette = "Blue-Red",
@@ -412,21 +421,58 @@ ggsave(
 chain_size_data <- fread("data/results/transmission_data.csv")
 chain_size_data <- chain_size_data[scenario_tag == "default", ]
 
+# set factor levels
+chain_size_data[, stage := factor(stage, levels = c("pre", "post"))]
+```
+
+### Fit distributions on data
+
+```{r}
+# prepare for fitdistrplus
+chain_size_summary <- chain_size_data[, c(
+  "stage", "n_infected", "mean_freq",
+  "replicate"
+)]
+chain_size_summary <- split(chain_size_summary, by = "stage")
+
+chain_size_summary <- lapply(
+  chain_size_summary, function(df) {
+    v <- rep(df$n_infected, times = df$mean_freq)
+
+    fitdistrplus::fitdist(v, distr = "nbinom", discrete = TRUE)
+  }
+)
+```
+
+
+```{r}
 plot_chain_size <-
   ggplot(chain_size_data) +
-  geom_col(
-    aes(n_infected, freq, fill = as.factor(gen)),
-    position = position_dodge(width = 0.5),
-    width = 2
+  stat_summary(
+    aes(
+      x = as.integer(n_infected), y = mean_freq,
+      fill = as.factor(stage)
+    ),
+    geom = "col",
+    show.legend = FALSE
   ) +
-  scale_fill_discrete_diverging(
-    palette = "Blue-Red",
-    rev = F,
-    l1 = 50,
+  scale_fill_viridis_d(
+    option = "F",
+    begin = 0.5, end = 0.2,
+    # l1 = 50, l2 = 70,
     name = NULL,
     labels = c(
       "Pathogen-naive (G = 3000)",
       "Pathogen-adapted (G = 3500)"
+    )
+  ) +
+  facet_grid(
+    cols = vars(stage),
+    labeller = labeller(
+      stage = c(
+        "pre" = "3,000 ≤ G ≤ 3,100",
+        "post" = "3,500 ≤ G ≤ 3,600"
+      )
     )
   ) +
   theme_test(
@@ -444,12 +490,9 @@ plot_chain_size <-
     plot.background = element_blank(),
     panel.background = element_blank()
   ) +
-  coord_cartesian(
-    xlim = c(0, 10)
-  ) +
   labs(
-    x = "Forward infections",
-    y = "Count"
+    x = "Secondary infections",
+    y = "Mean count"
   ) +
   guides(
     fill = guide_legend()
@@ -462,31 +505,30 @@ plot_chain_size <-
 plot_distributions <- wrap_plots(
   plot_degree, plot_chain_size,
   guides = "collect"
-) &
-  theme(legend.position = "bottom")
+)
 
 plot_sociality <-
-  wrap_plots(
-    plot_networks,
-    plot_distributions,
-    design = "AA\nAA\nAA\nBB"
+wrap_plots(
+  plot_networks,
+  plot_distributions,
+  design = "AA\nAA\nAA\nBB"
+) &
+  plot_annotation(
+    tag_levels = c("A")
   ) &
-    plot_annotation(
-      tag_levels = c("A")
-    ) &
-    theme(
-      plot.tag = element_text(
-        face = "bold"
-      ),
-      legend.position = "bottom"
-    )
+  theme(
+    plot.tag = element_text(
+      face = "bold"
+    ),
+    legend.position = "bottom"
+  )
 
 # save plot
 ggsave(
   plot = plot_sociality,
   filename = "figures/fig_networks.png",
-  height = 130,
-  width = 180,
+  height = 120,
+  width = 150,
   units = "mm"
 )
 ```
