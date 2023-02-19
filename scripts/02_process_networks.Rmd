@@ -89,8 +89,12 @@ generations <- c(seq(sgen, sgen + 100), seq(sgen + 500, sgen + 600)) # generatio
 if (!dir.exists("data/results/transmission_chains")) {
   dir.create("data/results/transmission_chains")
 }
+```
 
-transmission_data <- lapply(files, function(file) {
+### Save transmission chains
+
+```{r}
+lapply(files, function(file) {
   output <- readRDS(file)
 
   gen_data <- pathomove::get_trait_data(output$output)
@@ -105,7 +109,7 @@ transmission_data <- lapply(files, function(file) {
     by = "gen"
   )
 
-  # get transmission chains for visualisation
+  ## get transmission chains for visualisation
   transmission_chains <- lapply(
     gen_data[c("3000", "3500")], pathomove::get_transmission_chain
   )
@@ -116,6 +120,26 @@ transmission_data <- lapply(files, function(file) {
       "data/results/transmission_chains/data_chains_%s_%i.Rds",
       output$scenario_tag, output$params$seed
     )
+  )
+})
+```
+
+
+```{r}
+# process secondary infection data and summarise
+transmission_data <- lapply(files, function(file) {
+  output <- readRDS(file)
+
+  gen_data <- pathomove::get_trait_data(output$output)
+
+  # scenario tag
+  scenario_tag <- output$scenario_tag
+
+  gen_data <- gen_data[gen %in% generations, ]
+  pathomove::get_social_strategy(gen_data)
+  gen_data <- split(
+    gen_data,
+    by = "gen"
   )
 
   # bind gen data again
@@ -143,16 +167,16 @@ transmission_data <- lapply(files, function(file) {
   infection_data[, n_infected := nafill(n_infected, fill = 0)]
 
   # count forward infections or secondary cases
-  infection_data <- infection_data[, list(freq = .N), by = c("gen", "n_infected")]
+  infection_data <- infection_data[, list(freq = .N), 
+                                   by = c("gen", "n_infected", "social_strat")]
 
   # get simulation stage
   infection_data[, stage := fifelse(gen <= sgen + 500, "pre", "post")]
-
+  
   # summarise mean secondary infections
   infection_data <- infection_data[, list(
     mean_freq = round(mean(freq))
-  ), by = c("n_infected", "stage")]
-
+  ), by = c("n_infected", "stage", "social_strat")]
 
   # prepare parameters
   params <- output$params[names(output$params) != "seed"]
@@ -174,11 +198,11 @@ fwrite(
 ```
 
 ```{r}
-ggplot(transmission_data) +
+ggplot(transmission_data[scenario_tag == "default"]) +
   stat_summary(
-    aes(n_infected, mean_freq),
-    col = "black",
-    geom = "col"
+    aes(n_infected, mean_freq, fill = social_strat),
+    # col = "black",
+    geom = "col", position = "dodge"
   ) +
   facet_grid(stage ~ scenario_tag)
 ```
