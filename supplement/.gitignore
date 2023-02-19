@@ -4,3 +4,4 @@
 *.pdf
 !figures
 !.gitignore
+supplementary_material.Rmd
