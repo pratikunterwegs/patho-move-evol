@@ -82,7 +82,9 @@ for (i in files) {
 ## Quantifying transmission chains
 
 ```{r}
-generations <- c(3000, 3500) # generation of introduction, + 200
+# introduction generation
+sgen <- 3000
+generations <- c(seq(sgen, sgen + 100), seq(sgen + 500, sgen + 600)) # generation of introduction, + 200
 
 if (!dir.exists("data/results/transmission_chains")) {
   dir.create("data/results/transmission_chains")
@@ -93,6 +95,9 @@ transmission_data <- lapply(files, function(file) {
 
   gen_data <- pathomove::get_trait_data(output$output)
 
+  # scenario tag
+  scenario_tag <- output$scenario_tag
+
   gen_data <- gen_data[gen %in% generations, ]
   pathomove::get_social_strategy(gen_data)
   gen_data <- split(
@@ -102,7 +107,7 @@ transmission_data <- lapply(files, function(file) {
 
   # get transmission chains for visualisation
   transmission_chains <- lapply(
-    gen_data, pathomove::get_transmission_chain
+    gen_data[c("3000", "3500")], pathomove::get_transmission_chain
   )
 
   saveRDS(
@@ -113,55 +118,55 @@ transmission_data <- lapply(files, function(file) {
     )
   )
 
-  # get N infected per individual
-  n_infected <- lapply(
-    gen_data, function(df) {
-      df[!is.na(src_infect), list(n_infected = .N), by = c("src_infect", "gen")][, list(freq = .N), by = c("n_infected", "gen")]
-    }
+  # bind gen data again
+  gen_data <- rbindlist(gen_data)
+
+  # assign an id to all individuals
+  gen_data[, id := seq(500), by = "gen"]
+
+  # get all infected individuals, including those infected in the final timestep
+  infected <- gen_data[t_infec > 0 | (!is.na(src_infect) & (src_infect != 0)), ]
+
+  # get all infection source data
+  infect_source <- gen_data[!is.na(src_infect) & (src_infect != 0),
+    list(n_infected = .N),
+    by = c("src_infect", "gen")
+  ]
+
+  # combine infection source and infected agent data
+  infection_data <- merge(infected, infect_source,
+    by.x = c("id", "gen"),
+    by.y = c("src_infect", "gen"), all = TRUE
   )
+
+  # fill zeros for NAs in n_infected
+  infection_data[, n_infected := nafill(n_infected, fill = 0)]
+
+  # count forward infections or secondary cases
+  infection_data <- infection_data[, list(freq = .N), by = c("gen", "n_infected")]
+
+  # get simulation stage
+  infection_data[, stage := fifelse(gen <= sgen + 500, "pre", "post")]
+
+  # summarise mean secondary infections
+  infection_data <- infection_data[, list(
+    mean_freq = round(mean(freq))
+  ), by = c("n_infected", "stage")]
+
 
   # prepare parameters
-  repl <- output$params$replicate
-  cost <- output$params$costInfect
-  regen <- output$params$regen_time
-  handling_time <- ifelse(is.null(output$params$handling_time),
-    NA_real_, output$params$handling_time
-  )
-  dispersal <- output$params$dispersal
-  infect_percent <- output$params$infect_percent
-  scenario <- output$params$scenario
-  # get scenario tag
-  scenario_tag <- output$scenario_tag
-  p_v_transmit <- ifelse(is.null(output$params$p_v_transmit),
-    NA_real_, output$params$p_v_transmit
-  )
-  spillover_rate <- ifelse(
-    output$params$scenario == 3, output$params$spillover_rate, NA
-  )
+  params <- output$params[names(output$params) != "seed"]
+  infection_data[, names(params) := params]
+  infection_data[, scenario_tag := scenario_tag]
 
-  # bind list and add parameters
-  n_infected <- rbindlist(n_infected)
-  n_infected[, c(
-    "cost", "regen", "dispersal", "handling_time",
-    "repl", "scenario_tag", "spillover_rate",
-    "p_v_transmit"
-  ) := list(
-    cost, regen, dispersal, handling_time,
-    repl, scenario_tag, spillover_rate, p_v_transmit
-  )]
-
-  n_infected
+  # return infection data
+  infection_data
 })
 
-# collect all transmission chain data and save
-transmission_data <- rbindlist(transmission_data)
-# sum lengths in each scenario tag
-transmission_data <- transmission_data[, list(freq = sum(freq)), by = c(
-  "n_infected", "gen", "cost", "regen", "dispersal",
-  "handling_time", "scenario_tag"
-)]
+# collect all transmission chain data
+transmission_data <- rbindlist(transmission_data, fill = TRUE)
 
-# save data
+# save data - replicates are separate!
 fwrite(
   transmission_data,
   file = "data/results/transmission_data.csv"
@@ -170,10 +175,11 @@ fwrite(
 
 ```{r}
 ggplot(transmission_data) +
-  geom_col(
-    aes(n_infected, freq, fill = as.factor(gen)),
-    position = position_dodge(width = 0.5)
+  stat_summary(
+    aes(n_infected, mean_freq),
+    col = "black",
+    geom = "col"
   ) +
-  facet_grid(~scenario_tag)
+  facet_grid(stage ~ scenario_tag)
 ```
 
