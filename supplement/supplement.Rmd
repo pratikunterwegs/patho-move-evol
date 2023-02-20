@@ -16,7 +16,7 @@ library(colorspace)
 
 # Effect of modelling choices on simulation outcomes
 
-Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020;@netz2021;@gupte2021a].
+Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020;@netz2021;@gupte2021].
 We show the effect of varying implementation on some key aspects of our model, with a focus on our scenario 1 (with repeated pathogen introduction): (1) how the infectious pathogen imposes fitness costs, (2) where individuals are initialised, or 'born', on the landscape relative to their parents' positions (which may be thought of as natal dispersal), (3) whether individuals are allowed to reproduce when they have a negative energy balance, (4) the duration for which social information is available, in the form of changes to the handling time, (5) changes to the spatial structure of the landscape, and (6) the sporadic introduction of the pathogen.
 
 ## Infection cost as a reduction in foraging efficiency
@@ -109,7 +109,7 @@ Under all other conditions, the handler tracking strategy continues as the commo
 
 ## Large-scale natal dispersal of individuals
 
-Some models initialise the individuals in each new generation at random locations on the landscape [see e.g. @gupte2021a]; this can be called large-scale or 'global' natal dispersal.
+Some models initialise the individuals in each new generation at random locations on the landscape [see e.g. @gupte2021]; this can be called large-scale or 'global' natal dispersal.
 This is a reasonable choice when modelling animals during a specific stage of their life cycle, such as after arriving on a wintering or breeding site after migration.
 Our default choice, on the other hand, is small-scale or 'local' natal dispersal, where individuals are initialised close to their parent's last position.
 This is also defensible, as many organisms do not disperse very far from their ancestors.
@@ -120,7 +120,7 @@ Successful individuals are likely to have more offspring than unsuccessful indiv
 This means that many individuals are initialised near profitable patches.
 In this case, and because of the sparse distribution of resource patches on the landscape, individuals adapt to tolerate their many neighbours (who are often kin), as avoiding them would lead to also moving away from a profitable patch.
 
-By forcing animals in each new generation to encounter ecological circumstances potentially different from those of their parents, implementing global dispersal can help investigate whether animals' evolved movement strategies are truly 'optimal' at the global scale [@gupte2021a].
+By forcing animals in each new generation to encounter ecological circumstances potentially different from those of their parents, implementing global dispersal can help investigate whether animals' evolved movement strategies are truly 'optimal' at the global scale [@gupte2021].
 We implementated global dispersal by running 10 replicates of each parameter combination (3 combinations of $\delta E$ = 0.25 and $R \in$ 1, 2, 5; 30 simulations in all), with dispersal set to 10.
 This means that individuals' initial positions are drawn from a normal distribution with standard deviation = 10, centred on the location of their parent (Fig. S4).
 
@@ -231,7 +231,7 @@ In this case, there are never any handlers, and thus oscillations in social move
 ## Spatial structure of the resource landscape
 
 Since ours is a spatial model, and the explicit consideration of space and movement is key to its outcomes, we very briefly examined the effect of landscape spatial structure on the evolutionary outcomes of our scenario 1 (Fig. S6A).
-We expected spatial structure to have a substantial effect as suggested in previous studies [@he2020].
+We expected spatial structure to have a substantial effect as suggested in previous studies [@he2021].
 To do this, we ran ten replicates of our default scenario with two alternative food item distributions: in the first, we distributed food items uniformly across the landscape, while in the second, we modelled a landscape that was patchier than our default, with only 10 food item clusters (default number of clusters = 60).
 We compared the outcomes on these landscapes with those from our default scenario, with all parameters expect spatial structure kept the same ($R$ = 2, $\delta E$ = 0.25, $N$ food items = 1,800; Fig. S6B).
 
