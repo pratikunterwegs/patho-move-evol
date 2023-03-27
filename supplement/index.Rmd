@@ -15,8 +15,7 @@ documentclass: article
 toc-depth: 2
 secnumdepth: 2
 geometry: "left=3cm, right=3cm, top=2.5cm, bottom=2.5cm"
-bibliography: "references.bib"
-csl: oikos.csl
+bibliography: "references.json"
 link-citations: yes
 github-repo: pratikunterwegs/patho-move-evol
 description: "Supplementary Material for _Novel pathogen introduction triggers rapid evolution in animal social movement strategies_"
