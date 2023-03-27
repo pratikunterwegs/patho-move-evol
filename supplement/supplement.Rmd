@@ -12,89 +12,20 @@ library(colorspace)
 
 # Comparing ecological outcomes across parameter combinations
 
-![**Changes in population-level outcomes following pathogen introduction.** The introduction of the infectious pathogen leads to rapid evolutionary changes in movement strategies (see Figures 2 and 5; main text) across most combinations of landscape productivity and infection cost. In all combinations where there is rapid evolutionary shift in social-movement strategies, there is a similar change in the population's behavioural outcomes, with more movement and fewer associations. However, there is no change in per-capita intake. Each subplot in each panel shows the mean and standard error of the per-capita values for **(A)** distance moved, **(B)** intake, **(C)** number of associations, or encounters, with other individuals. Means and standard deviations are shown before (G = 3,000) and after (G = 3,500) pathogen introduction; each data point represents 10 replicates of the relevant parameter combination. In most cases, standard error is too small to be visible.](figures/fig_eco_compare_default.png)
+![**Changes in population-level outcomes following pathogen introduction.** The introduction of the infectious pathogen leads to rapid evolutionary changes in movement strategies (see Figures 2 and 5; main text) across most combinations of landscape productivity and infection cost. In all combinations where there is rapid evolutionary shift in social-movement strategies, there is a similar change in the population's behavioural outcomes, with more movement and fewer associations. However, there is no change in per-capita intake. Each subplot in each panel shows the mean and standard error of the per-capita values for **(A)** distance moved (blue circles), **(B)** intake (green circles), **(C)** number of associations, or encounters, with other individuals (grey circles). Means and standard deviations are shown before (G = 3,000) and after (G = 3,500) pathogen introduction; each data point represents 10 replicates of the relevant parameter combination. In most cases, standard error is too small to be visible.](figures/fig_eco_compare_default.png)
 
 # Effect of modelling choices on simulation outcomes
 
-Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020;@netz2021;@gupte2021].
+Modelling choices can have a substantial effect on the outcomes of simulations with multiple, complex interactions among components [@scherer2020;@netz2021;@gupte2023].
 We show the effect of varying implementation on some key aspects of our model, with a focus on our scenario 1 (with repeated pathogen introduction): (1) how the infectious pathogen imposes fitness costs, (2) where individuals are initialised, or 'born', on the landscape relative to their parents' positions (which may be thought of as natal dispersal), (3) whether individuals are allowed to reproduce when they have a negative energy balance, (4) the duration for which social information is available, in the form of changes to the handling time, (5) changes to the spatial structure of the landscape, and (6) the sporadic introduction of the pathogen.
 
 ## Infection cost as a reduction in foraging efficiency
 
 In our model's default implementation, the infectious pathogen imposes a direct cost, $\delta E$, on individuals, in each timestep that they are infected.
-For an individual with intake $N$, the net energetic gain $E$ after being infected by a pathogen for $t$ timesteps is $E = N - (\delta E \times t)$.
+For an individual with lifetime intake $N$, the net energetic gain $E$ after being infected by a pathogen for $t$ timesteps is $E = N - (\delta E \times t)$.
 In this scenario, _infection costs are independent of intake_.
 In an alternative implementation, the infectious pathogen may be considered to reduce an animal's ability to process intake, or to require a portion of daily intake to resist.
 For an individual with intake $N$, the net energetic gain $E$ after being infected by a pathogen for $t$ timesteps is $E = N \times (1 - \delta E) ^ t$.
-Naturally, the two cost structures are not easy to compare directly, but Fig. S2 shows the outcomes for energy in a representative case.
-
-```{r, echo=FALSE}
-# simulate direct costs
-cost_direct <- CJ(
-  intake = seq(0, 20, 1),
-  ti = seq(0, 100, 5),
-  delta_e = 0.25,
-  type = "direct"
-)
-cost_direct[, energy := (intake - (ti * delta_e))]
-
-# simulate percentage costs
-cost_percent <- CJ(
-  intake = seq(0, 20, 1),
-  ti = seq(0, 100, 5),
-  delta_e = 0.05,
-  type = "percent"
-)
-cost_percent[, energy := (intake * (1 - delta_e)^ti)]
-
-# combine data
-cost_sims <- rbindlist(
-  list(cost_direct, cost_percent)
-)
-
-p_costs <-
-  ggplot(cost_sims) +
-  geom_tile(
-    aes(
-      intake, ti,
-      fill = energy
-    )
-  ) +
-  scale_fill_continuous_diverging(
-    rev = T,
-    palette = "Blue-Yellow",
-    name = "Net\nenergy",
-    c1 = 120
-  ) +
-  facet_wrap(
-    ~type,
-    labeller = labeller(
-      type = c(
-        "direct" = "Direct cost",
-        "percent" = "Percentage cost"
-      )
-    )
-  ) +
-  theme_test() +
-  theme(
-    legend.key.width = unit(2, "mm")
-  ) +
-  coord_cartesian(
-    expand = F
-  ) +
-  labs(
-    x = "Intake",
-    y = "Time infected"
-  )
-
-ggsave(
-  p_costs,
-  filename = "supplement/figures/fig_cost_structure.png",
-  height = 3, width = 6
-)
-```
-
-![Calculated net energy for different combinations of intake and time infected. In the _Direct cost_ scenario, and with a $\delta E$ of 0.25 (shown here), which is our default implementation, an individual foraging on an item (handling time = 5 timesteps) would gain 1.0 unit of intake, and lose 1.25 units of energy in that same period if it were infected, for a net energy balance in that period of -0.25. Individuals' energetic balance is normalised (0 -- 1) with reference to the lowest value in each generation. Here, individuals' infection cost is _independent_ of their intake. In the _Percentage cost_ scenario, individuals' infection costs are linked to their intake. For a per-timestep 5% loss of intake (shown here), individuals infected for >25 timesteps already have a net energy balance close to, but never less than, zero. In this implementation, individuals' energy balances are _not normalised_ with reference to the lowest net energy, as no individual's energy is ever less than zero.](figures/fig_cost_structure.png){ width=70% }
 
 ### Evolutionary outcomes of the percentage cost implementation
 
@@ -109,7 +40,7 @@ Under all other conditions, the handler tracking strategy continues as the commo
 
 ## Large-scale natal dispersal of individuals
 
-Some models initialise the individuals in each new generation at random locations on the landscape [see e.g. @gupte2021]; this can be called large-scale or 'global' natal dispersal.
+Some models initialise the individuals in each new generation at random locations on the landscape [see e.g. @gupte2023]; this can be called large-scale or 'global' natal dispersal.
 This is a reasonable choice when modelling animals during a specific stage of their life cycle, such as after arriving on a wintering or breeding site after migration.
 Our default choice, on the other hand, is small-scale or 'local' natal dispersal, where individuals are initialised close to their parent's last position.
 This is also defensible, as many organisms do not disperse very far from their ancestors.
@@ -120,7 +51,7 @@ Successful individuals are likely to have more offspring than unsuccessful indiv
 This means that many individuals are initialised near profitable patches.
 In this case, and because of the sparse distribution of resource patches on the landscape, individuals adapt to tolerate their many neighbours (who are often kin), as avoiding them would lead to also moving away from a profitable patch.
 
-By forcing animals in each new generation to encounter ecological circumstances potentially different from those of their parents, implementing global dispersal can help investigate whether animals' evolved movement strategies are truly 'optimal' at the global scale [@gupte2021].
+By forcing animals in each new generation to encounter ecological circumstances potentially different from those of their parents, implementing global dispersal can help investigate whether animals' evolved movement strategies are truly 'optimal' at the global scale [@gupte2023].
 We implementated global dispersal by running 10 replicates of each parameter combination (3 combinations of $\delta E$ = 0.25 and $R \in$ 1, 2, 5; 30 simulations in all), with dispersal set to 10.
 This means that individuals' initial positions are drawn from a normal distribution with standard deviation = 10, centred on the location of their parent (Fig. S4).
 
@@ -210,7 +141,7 @@ The effect of landscape productivity on the mix of proportions of the pre- and p
 
 Individuals may skip reproduction when their body condition is below some threshold, as would be expcted when infected by a transmissible pathogen.
 We explored how restricting reproduction to only those individuals which had a positive energy balance ($\sum \text{intake} > \delta E\sum \text{time~infected}$) would affect our simulation outcomes.
-We found that for our default parameter combination the handler tracking strategy persists as the commonest strategy after pathogen introduction, with agent avoidance making up a small proportion of the population \textbf{(SI Appendix Fig. S5B)}.
+We found that for our default parameter combination the handler tracking strategy persists as the commonest strategy after pathogen introduction, with agent avoidance making up a small proportion of the population (Fig. S5B).
 At a lower infection cost ($\delta E$ = 0.1), there is broadly no effect of pathogen introduction on the evolved social movement strategy, and handler tracking persists at a high frequency.
 When infection costs are higher ($\delta E$ = 0.5), handler tracking still persists after pathogen introduction, but with frequent and strong irruptions of agent avoiding individuals over the generations following introduction.
 
@@ -218,12 +149,12 @@ When infection costs are higher ($\delta E$ = 0.5), handler tracking still persi
 
 In our model, the availability of inadvertent social information on the location of food item clusters is controlled by the handling time parameter $T_H$ (default = 5 timesteps).
 We explored the effect of the availabiltiy of social information on which social movement strategies were evolved after pathogen introduction by running our default implementation of scenario 1 ($\delta E$ = 0.25, $R$ = 2) with four alternative values of handling time: 0, 1, 2, and 10.
-We found that at low handling times ($T_H \in$ 1, 2), the handler tracking strategy persists as the dominant strategy after pathogen introduction, with a small proportion of agent avoiding individuals **(SI Appendix Fig. S5C)**.
+We found that at low handling times ($T_H \in$ 1, 2), the handler tracking strategy persists as the dominant strategy after pathogen introduction, with a small proportion of agent avoiding individuals (Fig. S5C).
 When handling time is doubled from the default ($T_H$ = 10), the agent avoiding strategy rapidly becomes the dominant strategy.
 As handling time increases, more individuals are immobilised as handlers, increasing the availability of inadvertent social information that is helpful in locating resources.
 However, after pathogen introduction, the cumulative risk of pathogen transmission is also increased with increased handling time when two handlers are within transmission distance, and one of them is infected.
 These results then suggest that the evolution of how social information is used can be strongly influenced by its indirect costs (here, transmission risk).
-When individuals do not need to handle food before consuming it ($T_H$ = 0), a mixture of handler tracking and agent avoiding strategies persists in the population from the beginning of the simulation, with no change following pathogen introduction **(SI Appendix Fig. S5C)**.
+When individuals do not need to handle food before consuming it ($T_H$ = 0), a mixture of handler tracking and agent avoiding strategies persists in the population from the beginning of the simulation, with no change following pathogen introduction (Fig. S5C).
 In this case, there are never any handlers, and thus oscillations in social movement strategy most likely represent neutral variation around the handler preference $s_H$; most individuals would more accurately be described as `non-handler avoiding'.
 
 ![Overall, implementing large-scale natal dispersal does not appear to alter the evolution of sociality under the risk of pathogen transmission from the results obtained in our default implementation of scenario 1.](figures/fig_eco_evo_alternatives.png)
@@ -280,5 +211,7 @@ Across the simulation, the commonest social movement strategy remains handler tr
 Since there is little to no change in social movement strategies, we did not expect nor find changes in ecological outcomes.
 
 ![**No evolutionary change in social movement strategies when novel pathogen introduction events are relatively uncommon.** **(A)** In our alternative implementation of the model, the pathogen is only introduced sporadically after the initial introduction (G = 3,000; red line in panel B). **(B)** When the introductions are relatively rare and sporadic, there is no shift in the mixture of movement strategies after pathogen introduction. The handler tracking strategy remains common across parameter combinations. ](figures/fig_evo_strategy_sporadic.png){ width=70% }
+
+\newpage
 
 # References
