@@ -18,4 +18,23 @@
 \usepackage[labelfont=bf,format=plain]{caption}
 % \usepackage{setspace}
 
+\PassOptionsToPackage{%
+  backend=biber,
+  hyperref,
+  url=false,
+  isbn=false,
+  doi=true,
+  eprint=false,
+  style= oxyear,
+  dashed=true,
+  maxcitenames=2,
+  maxbibnames=99,
+  date=year,
+  uniquename=false,
+  uniquelist=false,
+  useprefix=false,
+  natbib=true % natbib compatibility mode (\autocite and \citet still work)
+}{biblatex}
+\usepackage{biblatex}
+
 \linenumbers
