@@ -167,12 +167,13 @@ transmission_data <- lapply(files, function(file) {
   infection_data[, n_infected := nafill(n_infected, fill = 0)]
 
   # count forward infections or secondary cases
-  infection_data <- infection_data[, list(freq = .N), 
-                                   by = c("gen", "n_infected", "social_strat")]
+  infection_data <- infection_data[, list(freq = .N),
+    by = c("gen", "n_infected", "social_strat")
+  ]
 
   # get simulation stage
   infection_data[, stage := fifelse(gen <= sgen + 500, "pre", "post")]
-  
+
   # summarise mean secondary infections
   infection_data <- infection_data[, list(
     mean_freq = round(mean(freq))
