@@ -126,8 +126,8 @@ plot_degree <-
     cols = vars(type),
     labeller = labeller(
       type = c(
-        "pre" = "Pre-",
-        "post" = "Post-"
+        "pre" = "Pre-introduction",
+        "post" = "Post-introduction"
       )
     )
   ) +
@@ -320,14 +320,6 @@ plot_networks <-
       ),
       legend.position = "bottom"
     )
-
-ggsave(
-  plot = plot_networks,
-  filename = "figures/fig_networks.png",
-  height = 85,
-  width = 160,
-  units = "mm"
-)
 ```
 
 ## Load and plot transmission chains
@@ -444,7 +436,6 @@ chain_size_summary <- lapply(
 )
 ```
 
-
 ```{r}
 plot_chain_size <-
   ggplot(chain_size_data) +
@@ -508,20 +499,20 @@ plot_distributions <- wrap_plots(
 )
 
 plot_sociality <-
-wrap_plots(
-  plot_networks,
-  plot_distributions,
-  design = "AA\nAA\nAA\nBB"
-) &
-  plot_annotation(
-    tag_levels = c("A")
+  wrap_plots(
+    plot_networks,
+    plot_distributions,
+    design = "AA\nAA\nAA\nBB"
   ) &
-  theme(
-    plot.tag = element_text(
-      face = "bold"
-    ),
-    legend.position = "bottom"
-  )
+    plot_annotation(
+      tag_levels = c("A")
+    ) &
+    theme(
+      plot.tag = element_text(
+        face = "bold"
+      ),
+      legend.position = "bottom"
+    )
 
 # save plot
 ggsave(
