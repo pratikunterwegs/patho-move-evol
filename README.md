@@ -6,26 +6,30 @@ This work was developed in the [Modelling Adaptive Response Mechanisms Group (We
 
 ## Contact and Attribution
 
-Please contact [Pratik Gupte](p.r.gupte@rug.nl) for questions on the model or the associated project.
+Please contact Pratik Gupte for questions on the model or the associated project.
 
 ```md
 Name: Pratik Rajan Gupte
-Email: pratikgupte16@gmail.com OR p.r.gupte@rug.nl
+Email: pratikgupte16@gmail.com
 ORCID: https://orcid.org/0000-0001-5294-7819
 ```
 
-The latest version of this repository may be found here, while the latest archived version can be found on Zenodo at https://doi.org/10.5281/zenodo.6334026.
+You can cite all versions of this repository, archived on Zenodo, by using the DOI 10.5281/zenodo.6334026. This DOI represents all versions, and will always resolve to the latest one.
 
 ## Simulation Source Code
 
-The simulation source code is provided in a different repository, [_Pathomove_](https://github.com/pratikunterwegs/pathomove).
-The _Pathomove_ simulation is archived on Zenodo and can be cited as
+The simulation source code is provided in a different repository, [_pathomove_](https://github.com/pratikunterwegs/pathomove).
+The _pathomove_ simulation is archived on Zenodo. You can cite cite all versions of _Pathomove_ by using the DOI 10.5281/zenodo.6331815.
 
-Pratik Gupte. (2022). Source code for Pathomove, an individual-based model for the evolution of animal movement strategies under the risk of pathogen transmission (v1.1.0). Zenodo. https://doi.org/10.5281/zenodo.6782640
+## Simulation Data
+
+The simulation data are originally generated on the University of Groningen's _Peregrine_ high-performance computing cluster (using the R code in the `scripts/` folder: `scripts/00_use_cluster.Rmd`).
+
+The data used for this the manuscript are available on Zenodo, and you can cite all versions by using the DOI 10.5281/zenodo.6331756. This DOI represents all versions, and will always resolve to the latest one.
 
 ---
 
-## Workflow: Running Simulation Replicates
+## Workflow: Running the Simulation
 
 **Warning**: This is a relatively advanced computational study. Replicating it requires many interacting components. Please do _not_ expect it to work out of the box.
 
@@ -35,47 +39,22 @@ A brief description of this workflow is:
 
 2. Download this repository locally.
 
-3. If you intend to simply try out this simulation, run the script `supplement/05_try_sim.Rmd`. Look through the script for instructions on how to access the simulation output.
+3. Run the simulation with the required parameter combinations. Parameter combinations used in this study are found in `data/parameters/`.
 
-    A rough guide to running the simulation is also included in the Supplementary Material associated with the _biorXiv_ manuscript as a PDF.
+4. Collect the simulation output in `data/output/`, and analyse it using the scripts in `scripts/`. Analysis scripts are written to find the output in `data/output/`.
 
-    **Please note**: If you intend to fully replicate the analyses here, move to the sub-section below. This is a challenging task which cannot be simplified, and should be attempted with care.
+5. Prepare figures using the scripts in `figure-scripts/`.
 
-4. Run the simulation with the required parameter combinations. Parameter combinations used in this study are found in `data/parameters/`.
+## Workflow: Replicating this Study
 
-5. Collect the simulation output in `data/output/`, and analyse it using the scripts in `scripts/`. Analysis scripts are written to find the output in `data/output/`.
-
-6. Prepare figures using the scripts in `figure-scripts/`.
-
-### Replicating analyses
+**Note:** In order to have completely reproducible simulations, it is necessary to run the simulation in single-threaded mode. Multi-threaded simualtion runs are _not_ reproducible.
 
 1. Download and install the _Pathomove_ simulation Rcpp package from https://github.com/pratikunterwegs/pathomove using:
-
-    For Linux systems (The equivalent Windows commands are similar except that `R` is launched differently)
-
-    ```sh
-    # shell command
-    git clone git@github.com:pratikunterwegs/pathomove.git
-    
-    # in the pathomove directory
-    cd pathomove
-    
-    # launch R
-    R
-    ```
-
-    ```r
-    # R commands
-    devtools::build()
-    devtools::install()
-    ```
-
-    **OR**
 
     Install directly from an R terminal without downloading the simulation package source code separately.
 
     ```r
-    # R commands
+    # in R
     devtools::install_github("pratikunterwegs/pathomove")
     ```
 
@@ -84,6 +63,7 @@ A brief description of this workflow is:
 2. Download this repository, using:
 
     ```sh
+    # in the shell
     git clone git@github.com:pratikunterwegs/patho-move-evol.git
     ```
 
@@ -92,7 +72,8 @@ A brief description of this workflow is:
     This script should essentially run the commands
 
     ```r
-    # R command to run simulation and save output
+    # in R
+    # command to run simulation and save output
     data = pathomove::run_pathomove(...)
 
     # save data as Rds object
@@ -130,11 +111,12 @@ Continuing from (3.):
 
     - The same procedure applies for multiple replicates of the same parameter combination.
 
-5. Prepare a directory structure to store the output. A template directory structure can be found at https://github.com/pratikunterwegs/patho-move-evol.
+5. Prepare a directory structure to store the output. A template directory structure can be found at https://github.com/pratikunterwegs/patho-move-evol (this repository).
 
     There should be at least the following paths:
 
-    ```md
+    ```sh
+    # from the shell, upon running tree (or equivalent)
     yourFolder
     ├───bash
     ├───data
@@ -145,7 +127,7 @@ Continuing from (3.):
 
 6. Prepare a template job. An example is found in `bash/main_job_maker.sh`. This script is written for an Ubuntu-based, SLURM-scheduler HPC cluster.
 
-7. Run the following commands locally from `R`. The specific commands, and parameter combinations used in this study are found in `scripts/00_use_cluster.R`.
+7. Run the following commands locally from `R`. The specific commands, and parameter combinations used in this study are found in `scripts/00_use_cluster.Rmd`.
 
     ```r
     # this should be your R terminal
@@ -156,21 +138,23 @@ Continuing from (3.):
     # make a parameter file with all the combinations required
     # or with multiple replicates
     pathomove::make_parameter_file(
-    ...,
-    replicates = N,
-    which_file = "some parameter file name.csv"
+        ...,
+        replicates = N,
+        which_file = "<parameter_file_name.csv>"
     )
 
     # above, ... indicates the simulation parameters
 
     # use the use_cluster function to send in jobs
+    # try sending in a job
     pathomove::use_cluster(
-        ssh_con = "ssh connection to your HPC cluster",
-        password = "your HPC password", 
-        script = "your simulation run script", # e.g. scripts/do_sim_pathomove.R
-        folder = "yourFolder", # folder for the output
-        template_job = "template job shell script",  # the shell script from (5)
-        parameter_file = "some parameter file name.csv" # the parameter data
+        ssh_con = "p284074@peregrine.hpc.rug.nl",
+        password = password,
+        script = "scripts/do_sim_pathomove.R", # e.g. scripts/do_sim_pathomove.R
+        tag = scenario_tag,
+        folder = "patho-move-evol", # folder for the output, must contain data/
+        template_job = "bash/main_job_maker_default.sh", # the shell script from (5)
+        parameter_file = param_file_default # the parameter data
     )
     ```
 
@@ -188,13 +172,14 @@ Continuing from (3.):
 
 The source code for the analyses reported here can be found in the directory `scripts/`, and are explained briefly here:
 
-- `scripts/01_process_eco_evo_data.Rmd`: Process the output, in the form of _Rds_ objects, that result from running _Pathomove_ replicates or parameter combinations.
+- `scripts/01_process_eco_evo_data.Rmd`: Process the output, in the form of _Rds_ objects, that result from running _pathomove_ replicates or parameter combinations.
 
 - `scripts/02_process_networks.Rmd`: Process the pairwise individual associations logged during the simulation into social networks.
 
     - These two steps create the directory structure:
 
-    ```md
+    ```sh
+    # from the shell, upon running tree
     .
     ├── data
     │   ├── 00_data.txt
@@ -213,6 +198,7 @@ The source code for the analyses reported here can be found in the directory `sc
     - `gen_data/` holds data on the individuals in each generation stored from the simulation.
     - `morph_data/` holds data on the proportions of the social movement strategies in each stored generation.
     - `si_imp_data/` holds data on the importance of social information to movement strategies in each stored generation.
+    - `move_assoc_data/` holds data on the number of associations per movement distance in each stored generation.
 
         Across these data, there is one `.csv` file per simulation replicate.
 
@@ -224,9 +210,15 @@ The source code for the analyses reported here can be found in the directory `sc
 
 Used in previous steps.
 
-- `scripts/00_use_cluster.R`: Passes the simulation run commands to the University of Groningen's _Peregrine_ high-performance computing cluster. May also work with HPC cluster running Ubuntu, with required libraries installed, and with a SLURM-scheduler. Use with caution.
+- `scripts/00_use_cluster.Rmd`: Passes the simulation run commands to the University of Groningen's _Peregrine_ high-performance computing cluster. May also work with HPC cluster running Ubuntu, with required libraries installed --- this includes Boost and potentially Intel's TBB --- and with a SLURM-scheduler. _Use with caution_.
 
-- `scripts/00_make_batch_script.R`: An alternative to using an HPC cluster, written for Windows systems. Makes a batch script and parameter set to run simulations in sequence. Use with caution.
+- `scripts/00_make_batch_script.R`: An alternative to using an HPC cluster, written for Windows systems. Makes a batch script and parameter set to run simulations in sequence. Use with caution. Can be easily adapted to working with Linux systems.
+
+---
+
+## Analysis Functions
+
+Note that analysis function provided in this repo in earlier versions have now been moved to the simulation package repository; https://github.com/pratikunterwegs/pathomove.
 
 ---
 
@@ -242,19 +234,9 @@ These are not uploaded here, but the `docs/` folder indicates their storage loca
 
 ## Supplementary Material
 
-The supplementary material provided with this manuscript is generated from the `supplement/` directory.
+The supplementary material provided with this manuscript is generated from the `supplement.Rmd` file in the `supplement/` directory.
 
-- `supplement/01_model_description.Rmd` Displays a schematic of the simulation model, and produces an example landscape.
-
-- `supplement/02_comparing_ecological_outcomes.Rmd` Includes a figure comparing ecological outcomes across simulation replicates.
-
-- `supplement/03_modelling_global_dispersal.Rmd` Shows simulation outcomes when modelling global dispersal.
-
-- `supplement/04_modelling_percent_infection.Rmd` Shows simulation outcomes when modelling percentage infection costs.
-
-- `supplement/05_modelling_sporadic_introductions.Rmd` Shows simulation outcomes when modelling the introduction of novel pathogens in only some generations (determined probabilistically) after the initial introduction.
-
-- Other files in this directory are helper files required to format the supplementary material.
+Other files in this directory are helper files required to format the supplementary material.
 
 ## Other Directories
 
