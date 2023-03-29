@@ -120,5 +120,3 @@ docs/*.docx
 docs/*.pdf
 docs/*.tex
 docs/pathomove*
-
-*.bib
